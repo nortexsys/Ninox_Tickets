@@ -111,8 +111,8 @@ assumed.
 | Phase | State |
 | --- | --- |
 | **FASE 1 — Discover.** Original brief → PDR v0.2 → ADR v0.2 → Funcional v1.0 | **Done.** Plus a real end-to-end test: 16 documents read, validated, written to a Ninox test base with their attachments, and read back |
-| **FASE 2 — Specify.** Specifications through OpenSpec | **In progress.** This is the current phase |
-| **Then, within FASE 2** — features, tasks, milestones, delivery dates and test design | Not started |
+| **FASE 2 — Specify.** Specifications through OpenSpec | **Done.** 12 capabilities, all archived, `openspec validate --all --strict` green |
+| **Next, still within FASE 2** — features, tasks, milestones, delivery dates and test design | Not started. This is where the project goes next |
 | **FASE 3 — Deployment.** Store publication and the Nortex Systems website write-up | Not started |
 
 The specification phase is a gate, not a formality: the 16-document test left
@@ -151,7 +151,8 @@ Written down so the next session starts from the truth instead of from a guess.
 | A choice field written with text outside its option list | Unverified in every test so far |
 | Acceptance thresholds for product metrics | Deferred until the first corpus screening |
 | The name "Paperdrop" | Not yet checked in either app store, nor at the EUIPO |
-| Capability tree | **Approved.** Recorded in `openspec/project.md` §3 |
+| Capability tree | **Approved and complete.** Recorded in openspec/project.md §3 |
+| Specifications | **Complete.** 12 specs in `openspec/specs/`, all changes archived, validated by `openspec validate --all --strict` |
 | Privacy gate | **Closed** on 2026-09-23. Section 6 |
 | Residue of real personal data in excluded material | Open, and protected by the `.gitignore` alone. GAP-017, §6 |
 

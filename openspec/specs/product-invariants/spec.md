@@ -40,7 +40,7 @@ surfaces published for version 1.
 The app SHALL operate with no backend service, in any version, and SHALL NOT
 create a Paperdrop user account. Reading and validation SHALL run entirely on the
 device.
-[Origen: Funcional §1.2; Funcional §2.4 contract line 1; PDR §3.2; ADR-002]
+[Origen: Funcional §1.2; Funcional §2.4 contract line 1; Funcional §8 NFR-PRV-001; PDR §3.2; ADR-002]
 
 #### Scenario: capture without connectivity
 
@@ -100,7 +100,7 @@ database, and SHALL NOT delete or modify a record it did not create.
 The app SHALL NOT request, store or transmit a Ninox username or password. The
 Ninox API token SHALL be the only credential, and it SHALL be obtained through the
 platform's system browser.
-[Origen: Funcional §1.2; Funcional §5 BR-19; Funcional §2.4 contract line 3; ADR-018]
+[Origen: Funcional §1.2; Funcional §5 BR-19; Funcional §2.4 contract line 3; Funcional §8 NFR-SEC-003; ADR-018]
 
 #### Scenario: there is no surface for a password
 
