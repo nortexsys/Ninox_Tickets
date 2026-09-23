@@ -54,15 +54,84 @@ decision to be taken, or to the gaps register as an open gap.
 
 Decomposition of the functional into OpenSpec capabilities.
 
-> **Status: proposed, pending product-owner approval.** Until the tree is
-> approved, no `proposal.md` may be written against it. The definitive table
-> with owning FR modules, dependency order and Lite/Full classification is
-> recorded here on approval.
+> **Status: approved by the product owner on 2026-09-23.** The table below is the
+> decomposition written under that approval. A capability whose scope the product
+> owner wants changed is amended **here**, before its proposal is written — not
+> silently inside the proposal.
 
-Naming: kebab-case, matching OpenSpec's convention
-(`capture-intake`, `extraction-pipeline`, …). One capability owns one
+Naming: kebab-case, matching OpenSpec's convention. One capability owns one
 `openspec/specs/<capability>/spec.md` and, while it is being written, one
 `openspec/changes/add-<capability>/`.
+
+The functional has 96 `FR-` requirements in 12 modules, 22 business rules, 18
+non-functional requirements and 15 use cases. Twelve modules are not twelve
+capabilities: three are too thin to stand alone, and the cross-cutting rules need
+one owner each or they get written three times in three different wordings. That
+is what produces contradictions between capabilities.
+
+### 3.1 The tree
+
+| # | Capability | Owns | Spec | ~Req |
+| --- | --- | --- | --- | --- |
+| 1 | `product-invariants` | The negative requirements of §1.2 as testable "the app never…" statements, and the global rules: BR-01, BR-03, BR-10, BR-15, BR-16, BR-19, BR-20, plus ownership of the eight lines of the technical contract (§2.4) | Lite | 12 |
+| 2 | `countries-languages` | FR-CTR-001…007, **Annex B** (the country table: formats, check-digit algorithms and identifier types, legal rates, slots, rounding) and **Annex C** (keyword and negative-context dictionaries) | Lite | 10 |
+| 3 | `capture-intake` | FR-CAP-001…009, BR-17 (byte integrity of a received file) | Lite | 10 |
+| 4 | `extraction-pipeline` | FR-EXT-001…015, BR-06 (consensus by majority), BR-07 (derive by identity, never invent), BR-08 (legal rates and negative context gate tax candidates) | **Full** | 18 |
+| 5 | `validation-confidence` | FR-VAL-001…014, BR-02 (a check confirms only if every operand was read), BR-04 (never green without redundancy), BR-05 (derived values never raise confidence), BR-09 (integer minor units, one tolerance), BR-11 (a supplier name is confirmable only via memory), BR-12 (currency carries its own evidence) | **Full** | 20 |
+| 6 | `destinations-mapping` | FR-DST-001…009, **Annex A** (the Ninox API external contract, as the binding interface reference) | Lite | 10 |
+| 7 | `document-history` | FR-HIS-001…005 and **FR-DUP-001…002** (the duplicate *criteria* live with the store they are checked against) | Lite | 7 |
+| 8 | `ninox-send` | FR-SND-001…008, BR-18 (the record is always read back), BR-21 (never blindly retry a create), BR-22 (the attachment is never a mapping target) | **Full** | 11 |
+| 9 | `review-screen` | FR-REV-001…011 | Lite | 11 |
+| 10 | `supplier-memory` | FR-MEM-001…004 | Lite | 5 |
+| 11 | `setup-wizard` | FR-WIZ-001…008 | Lite | 8 |
+| 12 | `local-config-privacy` | FR-CFG-001…004 and the whole NFR series: PRV-001…006, SEC-001…003, PRF-001…003, OFL-001, ACC-001, I18N-001, LIC-001, PLT-001, SIZ-001 | Lite | 22 |
+
+Three capabilities are **Full**, by the same criterion as the reference project:
+the failure is silent or expensive. They are `extraction-pipeline` (the pipeline
+order and provenance are where the `derived_from_gross` tautology was born),
+`validation-confidence` (the product's central claim, and the place where a wrong
+rule confirms a wrong value without saying so) and `ninox-send` (a create whose
+response was lost, retried blindly, puts duplicate records in a real ERP).
+
+### 3.2 Recommended order
+
+```
+1. product-invariants          ← the contract every other spec cites; sets the format
+2. countries-languages         ← the data (algorithms, legal rates, formats, dictionaries)
+3. capture-intake              ← branch: independent of reading, needs only #1
+4. extraction-pipeline         ← needs #1, #2
+5. validation-confidence       ← needs #2, #4
+6. destinations-mapping        ← needs #1, Annex A
+7. document-history            ← needs #5, #6
+8. ninox-send                  ← needs #6, #7 (history owns the state machine, send drives it)
+9. review-screen               ← needs #5, #6
+10. supplier-memory            ← needs #2, #5
+11. setup-wizard               ← needs #6
+12. local-config-privacy       ← needs #7, #10
+```
+
+`product-invariants` and `countries-languages` go first for a practical reason and
+not a conceptual one: they are short, they are almost pure data and statement, and
+they let the product owner validate the spec **format** on content where a mistake
+costs little. The three Full capabilities then get full attention with the format
+already agreed.
+
+### 3.3 Boundary decisions taken here, so they are not re-argued per capability
+
+Each of these is a place where two capabilities could both claim the same
+behaviour. The owner is named; the other capability may only reference it.
+
+| Shared behaviour | Owner | The other side |
+| --- | --- | --- |
+| *That* a check-digit validator runs and what its outcome does to confidence | `validation-confidence` | `countries-languages` owns *which* algorithm (NIF vs NIE vs CIF are three) and the identifier types |
+| *That* a legal-tax-rate check gates a candidate | `validation-confidence` | `countries-languages` owns *which* rates are legal, per country |
+| The per-field "if absent, write 0" **setting** | `destinations-mapping` (FR-DST-006) | `validation-confidence` owns the principle that an absent value is not a zero (FR-VAL-012) |
+| The duplicate **criteria** (hash; supplier + date + total) | `document-history` (FR-DUP) | `review-screen` owns only the notice and the link (FR-REV-007) |
+| The document **state machine** | `document-history` (FR-HIS-002) | `ninox-send` drives the transitions; it does not define the states |
+| Whether a supplier name may be shown as confirmed | `validation-confidence` (BR-11) | `supplier-memory` owns the store, the indexing safeguard and its deletion |
+| Formula/read-only fields excluded from mapping, and the post-write formula contrast | `destinations-mapping` (FR-DST-004, FR-DST-005) | `ninox-send` performs the read-back that the contrast consumes |
+| Interface language strings (EN/DE) | `local-config-privacy` (NFR-I18N-001) | `countries-languages` owns document dictionaries, which are independent of interface language (FR-CTR-006) |
+| The consequence of a 500 (mapping error vs server error) | `ninox-send` (§9.3) | `destinations-mapping` owns what a valid mapping is |
 
 ---
 
