@@ -187,6 +187,37 @@ the two the user wants); the principle is `validation-confidence`, the setting i
 `destinations-mapping`. In both cases the split is written down so a reader of
 either spec can find the other half.
 
+### 3.5 Non-functional requirement ownership — one home per NFR
+
+The 18 non-functional requirements are accounted for the same way, and several of them are
+pointers to a requirement that already exists elsewhere rather than new behaviour. Writing
+them twice would produce two statements of one rule, which is the failure this whole
+section exists to prevent.
+
+| NFR | Owned by |
+| --- | --- |
+| NFR-PRV-001 no backend, ever | `product-invariants` — `no-backend-and-no-account` |
+| NFR-PRV-002 the precise privacy claim | `local-config-privacy` — `the-precise-privacy-claim` |
+| NFR-PRV-003 platform diagnostics distinguished from document content | `local-config-privacy` owns the notice's distinction; the invariant is `product-invariants`' `no-data-leaves-the-device-except-to-ninox` |
+| NFR-PRV-004 both local stores are declared | `local-config-privacy` — `both-local-stores-are-declared` |
+| NFR-PRV-005 data clearing is real | `local-config-privacy` — `local-data-clearing`; `supplier-memory` owns `real-deletion` for its own store |
+| NFR-PRV-006 no telemetry in public builds | `product-invariants` — `no-telemetry-in-public-builds`; the supervised alternative is `local-config-privacy`' `supervised-measurement-instead-of-telemetry` |
+| NFR-SEC-001 token in the platform keystore | `local-config-privacy` — `token-storage-in-the-platform-keystore` |
+| NFR-SEC-002 no app-controlled WebView | `product-invariants`' `token-is-the-only-credential` (its sign-in scenario) and `setup-wizard`'s `token-step-via-the-system-browser` |
+| NFR-SEC-003 no credentials beyond the token | `product-invariants` — `token-is-the-only-credential` |
+| NFR-PRF-001 time per document | `local-config-privacy` — `time-per-document`, its threshold deferred to GAP-003 |
+| NFR-PRF-002 reading requires no network | `capture-intake` — `capture-without-connectivity` |
+| NFR-OFL-001 offline behaviour | `capture-intake` — `capture-without-connectivity`; the `queued` state is `document-history`'s `document-states` |
+| NFR-PRF-003 tap count | `local-config-privacy` — `tap-count` |
+| NFR-ACC-001 accessibility | `local-config-privacy` — `accessibility` |
+| NFR-I18N-001 interface languages | `countries-languages` — `interface-languages`; externalising every string is `local-config-privacy`' `all-user-facing-strings-are-externalised` |
+| NFR-LIC-001 declared dependencies | `product-invariants` — `proprietary-dependencies-declared`; the AGPL exclusion is `local-config-privacy`' `no-agpl-component-ships` |
+| NFR-PLT-001 platforms | `product-invariants` — `no-desktop-application` |
+| NFR-SIZ-001 application size | `local-config-privacy` — `application-size`, blocked by ADR-011 (GAP-002) |
+
+Every one of the 18 has exactly one owner and none is unowned. Where a row names two
+capabilities, it says which side owns which statement — the same discipline as §3.3.
+
 ---
 
 ## 4. Spec format — mandatory
