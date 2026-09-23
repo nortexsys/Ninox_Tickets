@@ -17,8 +17,11 @@ drifts. This capability is the single home.
 ## What Changes
 
 - Add one capability spec, `product-invariants`, with **13 requirements**: ten
-  from the §1.2 negative list, the three unowned business rules, and the two
-  remaining contract lines that no `FR-` module carries.
+  from the §1.2 negative list — its two items on schema and on records the app did
+  not create are the same statement and are carried as a single requirement — plus
+  BR-09 as a representation invariant, plus the two lines of the §2.4 technical
+  contract that no `FR-` module carries (line 2, no user data leaving the device,
+  and line 5, proprietary dependencies declared).
 - It also establishes the spec format every later capability copies: `Purpose`,
   `ADDED Requirements` with `[Origen: …]` traceability and GIVEN/WHEN/THEN
   scenarios, `Out of Scope`, `Cross-Capability References`, `Open Questions`.
@@ -117,10 +120,15 @@ requirements for that reason.
    `openspec/project.md` §3.3 and the business-rule ownership map in §3.4 name
    this capability as owner for exactly BR-09, BR-16 and BR-19. No other spec may
    restate them; it references them.
-3. **A contract line with no `FR-` module still needs an owner.** Of the eight
-   contract lines of §2.4, six land here, one on `validation-confidence` (line 4)
-   and one on `capture-intake` (line 8). The mapping is explicit so that the two
-   lines that do *not* live here are not forgotten.
+3. **A contract line with no `FR-` module still needs an owner, and the mapping
+   is not one-to-one.** Of the eight contract lines of §2.4: lines **1, 2, 3, 5
+   and 7** live wholly here; line **6** is split three ways and this capability
+   owns only its schema-and-records half, while "never write an unmapped field" is
+   BR-15 in `destinations-mapping` and "never retry a create blindly" is BR-21 in
+   `ninox-send`; line **4** is `validation-confidence` (BR-01, BR-02, BR-05); line
+   **8** is `capture-intake` (BR-17). Five wholly here, one split, two elsewhere —
+   written down so that the lines that do *not* live here cannot be forgotten,
+   which is what almost happened to line 2 before this list existed.
 4. **No invented detail.** Where a statement's enforcement point is genuinely
    undecided, it is not guessed: it becomes an `Open Question` and an entry in the
    gaps register. The three `FR-` modules that could be expected to own some of
