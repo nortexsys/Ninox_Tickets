@@ -79,9 +79,9 @@ is what produces contradictions between capabilities.
 | 4 | `extraction-pipeline` | FR-EXT-001…015, BR-06 (consensus by majority), BR-07 (derive by identity, never invent), BR-08 (legal rates and negative context gate tax candidates), BR-20 (dates come only from the document) | **Full** | 16 |
 | 5 | `validation-confidence` | FR-VAL-001…014, BR-01 (determinism over coverage), BR-02 (a check confirms only if every operand was read), BR-03 (empty over false), BR-04 (never green without redundancy), BR-05 (derived values never raise confidence), BR-10 (the document number never reaches green), BR-11 (a supplier name is confirmable only via memory), BR-12 (currency carries its own evidence), BR-13 (absent is not zero) | **Full** | 15 |
 | 6 | `destinations-mapping` | FR-DST-001…009, BR-15 (never write an unmapped field, carried by FR-DST-009), and **Annex A's mapping-facing rows**: names versus identifiers, choice fields, formula and read-only fields | Lite | 9 |
-| 7 | `document-history` | FR-HIS-001…005 and **FR-DUP-001…002** (the duplicate *criteria* live with the store they are checked against) | Lite | 7 |
+| 7 | `document-history` | FR-HIS-001…005 and **FR-DUP-001** (the duplicate *criteria* live with the store they are checked against, because the check is read-side) | Lite | 6 |
 | 8 | `ninox-send` | FR-SND-001…008 — BR-18, BR-21 and BR-22 are carried by FR-SND-001, FR-SND-005 and FR-SND-002 respectively — and **Annex A's write-path rows**: payload shape, create response, merges, dates, error shape, retry policy, read-after-create, attachment upload | **Full** | 8 |
-| 9 | `review-screen` | FR-REV-001…011, BR-14 (never block a save) | Lite | 12 |
+| 9 | `review-screen` | FR-REV-001…011, **FR-DUP-002** (the duplicate notice, the link and the permission to proceed, which is the same behaviour as FR-REV-007), and BR-14 (never block a save, carried by FR-REV-009) | Lite | 12 |
 | 10 | `supplier-memory` | FR-MEM-001…004 | Lite | 5 |
 | 11 | `setup-wizard` | FR-WIZ-001…008 | Lite | 8 |
 | 12 | `local-config-privacy` | FR-CFG-001…004 and the whole NFR series: PRV-001…006, SEC-001…003, PRF-001…003, OFL-001, ACC-001, I18N-001, LIC-001, PLT-001, SIZ-001 | Lite | 22 |
