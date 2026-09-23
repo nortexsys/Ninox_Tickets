@@ -76,6 +76,38 @@ check that a scenario has a `WHEN`, and it does not check that a requirement is
 normative. See `project.md` §5 for the measured behaviour of the validator. Both
 of those are caught by review or not at all.
 
+### 4.1 Mandatory step after `openspec archive`
+
+`openspec archive <change> -y` consolidates the delta into
+`openspec/specs/<capability>/spec.md`, and **it keeps only the requirements**.
+Measured on the first capability rather than assumed:
+
+| What the delta had | What the archived spec keeps |
+| --- | --- |
+| `## Purpose` | **Replaced** with `TBD - created by archiving change <id>. Update Purpose after archive.` |
+| `### Requirement:` blocks, their scenarios and their `[Origen: …]` tags | **Kept**, intact |
+| `## Out of Scope` | **Dropped** |
+| `## Cross-Capability References` | **Dropped** |
+| `## Open Questions` | **Dropped** |
+
+So archiving a capability is **not the last step**. Immediately after it, restore
+the real `Purpose` and re-append the three dropped sections in
+`openspec/specs/<capability>/spec.md`, taking them from the archived delta at
+`openspec/changes/archive/<date>-<change>/specs/<capability>/spec.md`. They are
+part of the living truth: `Out of Scope` defines the boundary,
+`Cross-Capability References` is how a reader reaches the neighbour that owns the
+other half of a split behaviour, and `Open Questions` is the capability's state.
+
+Restore them by editing the placeholder and appending — **never retype the
+requirements section**, so the tool's own output for the requirement blocks is
+preserved byte for byte.
+
+**Accepted deviation, recorded so it is not re-litigated:** `archive` also warns
+*"Consider splitting changes with more than 10 deltas"*. This project deliberately
+does not split: one capability is one change, and capabilities range from 5 to 23
+requirements. The warning is non-blocking, and one-change-per-capability is what
+makes the `## Capabilities` block of a proposal the contract with its spec files.
+
 ---
 
 ## 5. Format
