@@ -78,9 +78,9 @@ is what produces contradictions between capabilities.
 | 3 | `capture-intake` | FR-CAP-001…009, BR-17 (byte integrity of a received file, carried by FR-CAP-005) | Lite | 9 |
 | 4 | `extraction-pipeline` | FR-EXT-001…015, BR-06 (consensus by majority), BR-07 (derive by identity, never invent), BR-08 (legal rates and negative context gate tax candidates), BR-20 (dates come only from the document) | **Full** | 16 |
 | 5 | `validation-confidence` | FR-VAL-001…014, BR-01 (determinism over coverage), BR-02 (a check confirms only if every operand was read), BR-03 (empty over false), BR-04 (never green without redundancy), BR-05 (derived values never raise confidence), BR-10 (the document number never reaches green), BR-11 (a supplier name is confirmable only via memory), BR-12 (currency carries its own evidence), BR-13 (absent is not zero) | **Full** | 15 |
-| 6 | `destinations-mapping` | FR-DST-001…009, BR-15 (never write an unmapped field), **Annex A** (the Ninox API external contract, as the binding interface reference) | Lite | 11 |
+| 6 | `destinations-mapping` | FR-DST-001…009, BR-15 (never write an unmapped field, carried by FR-DST-009), and **Annex A's mapping-facing rows**: names versus identifiers, choice fields, formula and read-only fields | Lite | 9 |
 | 7 | `document-history` | FR-HIS-001…005 and **FR-DUP-001…002** (the duplicate *criteria* live with the store they are checked against) | Lite | 7 |
-| 8 | `ninox-send` | FR-SND-001…008, BR-18 (the record is always read back), BR-21 (never blindly retry a create), BR-22 (the attachment is never a mapping target) | **Full** | 11 |
+| 8 | `ninox-send` | FR-SND-001…008 — BR-18, BR-21 and BR-22 are carried by FR-SND-001, FR-SND-005 and FR-SND-002 respectively — and **Annex A's write-path rows**: payload shape, create response, merges, dates, error shape, retry policy, read-after-create, attachment upload | **Full** | 8 |
 | 9 | `review-screen` | FR-REV-001…011, BR-14 (never block a save) | Lite | 12 |
 | 10 | `supplier-memory` | FR-MEM-001…004 | Lite | 5 |
 | 11 | `setup-wizard` | FR-WIZ-001…008 | Lite | 8 |
