@@ -1,0 +1,26 @@
+# ---------------------------------------------------------------------------
+# Que NO entra en git dentro de esta carpeta, y por que
+#
+# `out/` guarda los documentos reales y todo lo extraido de ellos:
+#   out/attachments/  adjuntos de los .msg (facturas de CLIENT_A y FAWALT con sus
+#                     NIF y firmas de correo)
+#   out/text/         texto OCR, incluye rutas absolutas del equipo
+#   out/parsed/       campos extraidos: proveedores, NIF, importes
+#   out/renders/      paginas renderizadas de PDFs escaneados
+#   out/ninox_log.json
+#
+# `inbox/` es la bandeja donde se dejan documentos nuevos sin procesar.
+#
+# Si el repositorio se hace publico con estos ficheros dentro, se publican
+# datos personales de terceros: nombres, NIF, numeros de tarjeta (uno de ellos
+# completo, sin enmascarar) y direcciones.
+#
+# Lo que SI se publica: src/ (el pipeline) y los informes .md de esta carpeta.
+# ---------------------------------------------------------------------------
+out/
+inbox/
+
+# El token de la API de Ninox vive en una variable de entorno, nunca en fichero.
+# Aun asi, por si alguien deja uno por descuido:
+.env
+*.key

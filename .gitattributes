@@ -1,0 +1,16 @@
+# Normalise line endings in the repository and keep binary deliverables untouched.
+#
+# Without this, git normalises on commit and every checkout rewrites the working
+# copy, so unrelated files show up as modified. The `.docx` matters most: they are
+# zip archives that were patched in place, and any text-mode filtering would
+# corrupt them.
+* text=auto eol=lf
+
+*.docx binary
+*.doc binary
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.msg binary
+*.ico binary

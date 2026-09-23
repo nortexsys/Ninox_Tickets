@@ -1,0 +1,91 @@
+# ---------------------------------------------------------------------------
+# Paperdrop for Ninox — reglas de exclusión del repositorio
+#
+# Este repositorio está destinado a ser PÚBLICO (github.com/nortexsys/Ninox_Tickets).
+# Todo lo que entre aquí se publica. Por eso los bloques de abajo no son
+# preferencias de comodidad: cada uno excluye algo que no puede salir.
+#
+# Antes de añadir una excepción a este fichero, comprobar que el fichero
+# afectado no lleva datos de terceros. La comprobación se hace leyéndolo,
+# no suponiéndolo.
+# ---------------------------------------------------------------------------
+
+# === 1. Documentos reales y todo lo derivado de ellos =====================
+
+# `docs/corpus/` guarda 13 documentos de terceros: seis facturas de proveedores
+# con sus NIF, cuatro contenedores `.msg` con adjuntos y firmas de correo, y
+# cuatro fotografías de tickets. Son documentos reales. No se publican.
+docs/corpus/
+
+# `out/` es el resultado de los experimentos de OCR: texto extraído de los
+# documentos reales, regiones recortadas, variantes preprocesadas y
+# `ticket.json`, que lleva el NIF del comercio y el BIN más los cuatro últimos
+# dígitos de la tarjeta de pago.
+out/
+
+# `corpus_test/out/` y `corpus_test/inbox/` ya los excluye
+# `corpus_test/.gitignore`. Se repiten aquí para que el repositorio no dependa
+# de un `.gitignore` anidado que se mueve con la carpeta.
+corpus_test/out/
+corpus_test/inbox/
+
+# El corpus de medida vive fuera del repositorio, por diseño:
+#   C:\Users\admin\proyectos\Paperdrop_corpus\
+Paperdrop_corpus/
+
+# === 2. Credenciales ======================================================
+
+# `NINOX_API_KEY` vive en el entorno de usuario y en el registro de Windows,
+# nunca en un fichero. `phone-harness/.env` es un override local por máquina.
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+phone-harness/.env
+
+# === 3. Material de trabajo que identifica a personas físicas =============
+
+# `tools/` es el prototipo de exploración del que salieron las lecciones del
+# PDR. `tools/load_db.py` y `tools/taxi_extract.py` llevan el nombre, el NIF,
+# la licencia y la matrícula de un taxista real; `sql/schema.sql` repite esos
+# datos en comentarios y `tools/decode_env.py` apunta a un `.env` con una
+# credencial. Ninguno se publica mientras no se sanee su contenido.
+# Los ejemplos trabajados que sí interesan están ya recogidos como ejemplos
+# sintéticos en el Anexo D del Funcional v1.0.
+tools/
+sql/
+
+# === 4. Flutter / Dart — la app del ADR-001 ===============================
+
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.iml
+.idea/
+
+# === 5. Python ============================================================
+
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+
+# === 6. Sistema operativo y editores ======================================
+
+Thumbs.db
+Desktop.ini
+desktop.ini
+.DS_Store
+*.swp
+*~
+
+# === 7. Andamiaje de agentes =============================================
+
+# Los worktrees de agentes duplican el árbol completo, corpus incluido.
+.claude/worktrees/
+.claude/settings.local.json
