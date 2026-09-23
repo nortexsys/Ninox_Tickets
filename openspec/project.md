@@ -84,7 +84,7 @@ is what produces contradictions between capabilities.
 | 9 | `review-screen` | FR-REV-001…011, **FR-DUP-002** (the duplicate notice, the link and the permission to proceed, which is the same behaviour as FR-REV-007), and BR-14 (never block a save, carried by FR-REV-009) | Lite | 11 |
 | 10 | `supplier-memory` | FR-MEM-001…004 | Lite | 5 |
 | 11 | `setup-wizard` | FR-WIZ-001…008 | Lite | 8 |
-| 12 | `local-config-privacy` | FR-CFG-001…004 and the whole NFR series: PRV-001…006, SEC-001…003, PRF-001…003, OFL-001, ACC-001, I18N-001, LIC-001, PLT-001, SIZ-001 | Lite | 22 |
+| 12 | `local-config-privacy` | FR-CFG-001…004 and the whole NFR series: PRV-001…006, SEC-001…003, PRF-001…003, OFL-001, ACC-001, I18N-001, LIC-001, PLT-001, SIZ-001, and the ten NFRs that no other capability owns — see §3.5 | Lite | 14 |
 
 Three capabilities are **Full**, by the same criterion as the reference project:
 the failure is silent or expensive. They are `extraction-pipeline` (the pipeline
@@ -404,3 +404,33 @@ confused with each other.
 ├── AGENTS.md                     ← project working contract, read every session
 └── .gitignore                    ← the confidentiality gate
 ```
+
+### 3.6 Use-case coverage
+
+The 15 use cases are end-to-end journeys, not behavioural requirements: each is composed of
+requirements owned elsewhere. They are therefore not cited in `[Origen:]` tags — a
+requirement that cited a journey would be claiming to implement a whole flow — and are
+mapped here instead, so that every journey has a home and none is unaccounted for.
+
+| Use case | Implemented by |
+| --- | --- |
+| UC-01 First run and setup wizard | `setup-wizard`, `destinations-mapping`, `product-invariants` |
+| UC-02 Clean document | `capture-intake`, `extraction-pipeline`, `validation-confidence`, `review-screen`, `ninox-send` |
+| UC-03 Typical document | as UC-02, with `review-screen`'s focus and edit behaviour doing the work |
+| UC-04 Structured e-invoice | `extraction-pipeline` (the XML route) and `capture-intake` (byte integrity, without which the route is lost) |
+| UC-05 Card-terminal slip | `validation-confidence` (absent is not zero; never green without a breakdown), `review-screen` (the block stays expanded), `extraction-pipeline` |
+| UC-06 Multi-rate receipt | `validation-confidence` (tax slots) and `countries-languages` (which rates are legal) |
+| UC-07 Cash withdrawal abroad, DCC | `extraction-pipeline` (negative context suppresses the mark-up) and `validation-confidence` (currency carries its own evidence) |
+| UC-08 Mail container with several attachments | `capture-intake` (the selection rule) and `product-invariants` (the body is never read) |
+| UC-09 Duplicate detected | `document-history` (the criteria and the check) and `review-screen` (the notice, the link, the permission to proceed) |
+| UC-10 Offline capture and queued send | `capture-intake`, `document-history` (the `queued` state) and `ninox-send` |
+| UC-11 Create with an uncertain outcome | `ninox-send` (reconciliation, and asking instead of guessing) and `document-history` (the `uncertain` state) |
+| UC-12 Correct and re-send from history | `document-history` and `ninox-send` (merge semantics) |
+| UC-13 Device migration | `local-config-privacy` |
+| UC-14 Scanned PDF without a text layer | `extraction-pipeline` (render and OCR) and `capture-intake` (the render is read-only) |
+| UC-15 Supplier recognised from memory | `supplier-memory` and `validation-confidence` (a name is confirmable only from memory) |
+
+All 15 are accounted for. The `UC-` identifiers remain the functional's canonical names for
+these journeys and are reproduced exactly where a requirement's acceptance condition is a
+whole flow — as `document-history`'s correction requirement and `ninox-send`'s
+reconciliation requirement both do, by naming UC-12 and UC-11.
