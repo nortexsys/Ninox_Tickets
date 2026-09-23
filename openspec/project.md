@@ -73,15 +73,15 @@ is what produces contradictions between capabilities.
 
 | # | Capability | Owns | Spec | ~Req |
 | --- | --- | --- | --- | --- |
-| 1 | `product-invariants` | The negative requirements of §1.2 as testable "the app never…" statements, and the global rules: BR-01, BR-03, BR-10, BR-15, BR-16, BR-19, BR-20, plus ownership of the eight lines of the technical contract (§2.4) | Lite | 12 |
+| 1 | `product-invariants` | The §1.2 negative requirements as testable "the app never…" statements, plus the invariants that **no FR module owns**: BR-09 (money as an integer in the minor unit, everywhere), BR-16 (never touch schema or records it did not create), BR-19 (the token is the only credential) | Lite | 13 |
 | 2 | `countries-languages` | FR-CTR-001…007, **Annex B** (the country table: formats, check-digit algorithms and identifier types, legal rates, slots, rounding) and **Annex C** (keyword and negative-context dictionaries) | Lite | 10 |
 | 3 | `capture-intake` | FR-CAP-001…009, BR-17 (byte integrity of a received file) | Lite | 10 |
-| 4 | `extraction-pipeline` | FR-EXT-001…015, BR-06 (consensus by majority), BR-07 (derive by identity, never invent), BR-08 (legal rates and negative context gate tax candidates) | **Full** | 18 |
-| 5 | `validation-confidence` | FR-VAL-001…014, BR-02 (a check confirms only if every operand was read), BR-04 (never green without redundancy), BR-05 (derived values never raise confidence), BR-09 (integer minor units, one tolerance), BR-11 (a supplier name is confirmable only via memory), BR-12 (currency carries its own evidence) | **Full** | 20 |
-| 6 | `destinations-mapping` | FR-DST-001…009, **Annex A** (the Ninox API external contract, as the binding interface reference) | Lite | 10 |
+| 4 | `extraction-pipeline` | FR-EXT-001…015, BR-06 (consensus by majority), BR-07 (derive by identity, never invent), BR-08 (legal rates and negative context gate tax candidates), BR-20 (dates come only from the document) | **Full** | 19 |
+| 5 | `validation-confidence` | FR-VAL-001…014, BR-01 (determinism over coverage), BR-02 (a check confirms only if every operand was read), BR-03 (empty over false), BR-04 (never green without redundancy), BR-05 (derived values never raise confidence), BR-10 (the document number never reaches green), BR-11 (a supplier name is confirmable only via memory), BR-12 (currency carries its own evidence), BR-13 (absent is not zero) | **Full** | 23 |
+| 6 | `destinations-mapping` | FR-DST-001…009, BR-15 (never write an unmapped field), **Annex A** (the Ninox API external contract, as the binding interface reference) | Lite | 11 |
 | 7 | `document-history` | FR-HIS-001…005 and **FR-DUP-001…002** (the duplicate *criteria* live with the store they are checked against) | Lite | 7 |
 | 8 | `ninox-send` | FR-SND-001…008, BR-18 (the record is always read back), BR-21 (never blindly retry a create), BR-22 (the attachment is never a mapping target) | **Full** | 11 |
-| 9 | `review-screen` | FR-REV-001…011 | Lite | 11 |
+| 9 | `review-screen` | FR-REV-001…011, BR-14 (never block a save) | Lite | 12 |
 | 10 | `supplier-memory` | FR-MEM-001…004 | Lite | 5 |
 | 11 | `setup-wizard` | FR-WIZ-001…008 | Lite | 8 |
 | 12 | `local-config-privacy` | FR-CFG-001…004 and the whole NFR series: PRV-001…006, SEC-001…003, PRF-001…003, OFL-001, ACC-001, I18N-001, LIC-001, PLT-001, SIZ-001 | Lite | 22 |
@@ -132,6 +132,53 @@ behaviour. The owner is named; the other capability may only reference it.
 | Formula/read-only fields excluded from mapping, and the post-write formula contrast | `destinations-mapping` (FR-DST-004, FR-DST-005) | `ninox-send` performs the read-back that the contrast consumes |
 | Interface language strings (EN/DE) | `local-config-privacy` (NFR-I18N-001) | `countries-languages` owns document dictionaries, which are independent of interface language (FR-CTR-006) |
 | The consequence of a 500 (mapping error vs server error) | `ninox-send` (§9.3) | `destinations-mapping` owns what a valid mapping is |
+
+### 3.4 Business-rule ownership — one home per rule
+
+The 22 business rules are cross-cutting by design, and §5 of the functional
+declares the catalogue normative: where a screen or a pipeline step appears to
+conflict with a rule, the rule wins. That makes it tempting to restate them
+wherever they bite — and restating a rule in two capabilities is how two
+capabilities end up disagreeing.
+
+Each rule therefore has **exactly one owning capability**. The owning spec writes
+the requirement; the capability named in the last column implements it and may
+only reference it.
+
+| Rule | Owned by | Implemented by |
+| --- | --- | --- |
+| BR-01 determinism over coverage | `validation-confidence` | FR-VAL-014, FR-VAL-001 |
+| BR-02 a check confirms only if every operand was read | `validation-confidence` | FR-VAL-002 |
+| BR-03 empty over false | `validation-confidence` | abstention; FR-VAL-009, FR-VAL-012 |
+| BR-04 never green without redundancy | `validation-confidence` | FR-VAL-001 |
+| BR-05 derived values never raise confidence | `validation-confidence` | FR-VAL-002, FR-VAL-008 |
+| BR-06 consensus by majority, never by maximum | `extraction-pipeline` | FR-EXT-006 |
+| BR-07 derive by identity; never invent a rate | `extraction-pipeline` | FR-EXT-008 |
+| BR-08 legal rates and negative context gate tax candidates | `extraction-pipeline` | FR-EXT-009, FR-EXT-010 |
+| BR-09 integer minor units; one tolerance only | `product-invariants` *(representation)* | FR-VAL-006 *(the tolerance)* |
+| BR-10 the document number never reaches green | `validation-confidence` | FR-VAL-010 |
+| BR-11 a supplier name is confirmable only via memory | `validation-confidence` | FR-VAL-010 |
+| BR-12 currency carries its own evidence | `validation-confidence` | FR-VAL-009 |
+| BR-13 absent is not zero; the destination decides | `validation-confidence` *(the principle)* | FR-VAL-012; the setting is FR-DST-006, owned by `destinations-mapping` |
+| BR-14 never block a save | `review-screen` | FR-REV-009 |
+| BR-15 never write an unmapped field | `destinations-mapping` | FR-DST-009 |
+| BR-16 never touch schema or records the app did not create | `product-invariants` | the §1.2 negative requirements |
+| BR-17 byte-integrity of received files | `capture-intake` | FR-CAP-005 |
+| BR-18 the record is always read back | `ninox-send` | FR-SND-001 |
+| BR-19 the token is the only credential | `product-invariants` | §1.2 negative, §2.4 contract 3 |
+| BR-20 dates come only from the document | `extraction-pipeline` | FR-VAL-013 *(format inference)* |
+| BR-21 never blindly retry a create | `ninox-send` | FR-SND-005 |
+| BR-22 the attachment is never a mapping target | `ninox-send` | FR-SND-002 |
+
+Two rules are deliberately split, because the rule text contains two different
+kinds of statement. **BR-09** states a representation invariant (money as an
+integer in the minor unit, in the model, the local store *and* the payload) and a
+tolerance rule; the invariant is project-wide and belongs to
+`product-invariants`, the tolerance is a validation check. **BR-13** states a
+principle (an absent value is not a zero) and a per-field configuration (which of
+the two the user wants); the principle is `validation-confidence`, the setting is
+`destinations-mapping`. In both cases the split is written down so a reader of
+either spec can find the other half.
 
 ---
 
@@ -229,6 +276,15 @@ requirement has at least one properly formed scenario — and guarantees nothing
 about whether a scenario is complete or a requirement is normative. The last two
 rows are enforced by review, not by the tool. A reviewer who relies on
 `validate --strict` alone will let empty scenarios through.
+
+**A change with only a proposal cannot pass, and that is by design.** Measured on
+the first change, `add-product-invariants`: with `proposal.md` present and no
+delta spec, `validate --strict` fails with *"Change must have at least one delta.
+No deltas found."* The proposal is reviewed **before** the spec is written, so a
+change is legitimately red between those two moments. That is not a defect to work
+around: validation belongs to the capability's definition of done
+(`AGENTS.md` §4), not to the review of its proposal. Do not add a placeholder spec
+file to make the red go away.
 
 ---
 
