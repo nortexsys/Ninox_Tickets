@@ -230,6 +230,10 @@ The system SHALL <observable behaviour>.
 * Every requirement carries at least one scenario. No exceptions.
 * Every requirement carries an `[Origen: ...]` tag naming the source document
   and the exact identifier. The tag is what makes the spec auditable.
+* **The first line of a requirement body must contain SHALL or MUST.** The strict
+  validator reads only the first line as the requirement's text (§5), so a
+  normative statement that begins on line 2 passes review and then fails
+  validation. Found the hard way, on `countries-languages`.
 * Scenarios use `####` — exactly four hashes. Three hashes silently fails to
   register as a scenario.
 * Normative language: **SHALL** / **MUST** for mandatory, **SHOULD** for
@@ -270,13 +274,31 @@ everything is worth nothing.
 | Non-bold `GIVEN` / `WHEN` / `THEN` / `AND` bullets | **Accepted** — the BearingWorld style passes strict validation |
 | Bold `**WHEN**` / `**THEN**` bullets | **Accepted** |
 | A scenario with only `THEN` and no `WHEN` | **No** — passes silently |
-| A requirement with no SHALL / MUST keyword | **No** — passes silently |
+| A requirement whose **first line** carries no SHALL or MUST | **Yes** — `ERROR: "<name>" must contain SHALL or MUST` |
 
-**Consequence.** The validator guarantees structural integrity — every
-requirement has at least one properly formed scenario — and guarantees nothing
-about whether a scenario is complete or a requirement is normative. The last two
-rows are enforced by review, not by the tool. A reviewer who relies on
-`validate --strict` alone will let empty scenarios through.
+**Consequence.** The validator guarantees structural integrity — every requirement
+has at least one properly formed scenario, and a normative keyword on its first
+line — and guarantees nothing about whether a scenario is complete. That last row
+is enforced by review or not at all: a reviewer who relies on `validate --strict`
+alone will let an empty scenario through.
+
+**The first-line rule, and a correction to an earlier version of this table.** The
+validator reads **only the first line** of a requirement body as that requirement's
+text. Measured with `openspec change show <id> --json --deltas-only`:
+`requirement.text` holds the first line and nothing after it. So a requirement
+whose normative statement begins on line 2 fails validation, and one whose first
+line happens to contain the word SHALL passes even if the rest of the body is not
+normative at all. The full body is **not** lost — `openspec archive` carries every
+line into the consolidated spec, verified on `product-invariants` — so this is a
+validation and reporting artifact, not data loss.
+
+An earlier version of this table recorded that SHALL/MUST was **not** enforced.
+That was wrong, and it was wrong because the throwaway probe used to measure it was
+flawed: the probe's requirement read *"This requirement deliberately avoids any
+SHALL or MUST keyword"*, which contains both keywords. The probe tested nothing,
+and its silence was recorded as a finding. Corrected here — and it is the reason a
+rule in this project is measured before it is written down, including when the
+measurement says what the author expected.
 
 **A change with only a proposal cannot pass, and that is by design.** Measured on
 the first change, `add-product-invariants`: with `proposal.md` present and no
