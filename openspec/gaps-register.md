@@ -1,0 +1,59 @@
+# Registro maestro de gaps — Paperdrop for Ninox
+
+Documento transversal a todas las capabilities. Recoge todo hueco o decisión
+pendiente que afecte a la escritura de las specs o a la publicación del proyecto.
+
+## Convenciones
+
+* **Un único registro para todo el proyecto.** No hay un registro por capability.
+* **`Ámbito`**
+  * `Spec` — el gap afecta al contenido de un requirement o a su criterio de
+    aceptación.
+  * `Proyecto` — el gap afecta a la operación, a la publicación o al gobierno
+    del proyecto, no al comportamiento de la app.
+* **`Tipo`**
+  * `BLOQUEANTE` — el requirement afectado no se puede escribir sin resolver
+    esto antes. No se rodea el gap ni se inventa la respuesta.
+  * `NO BLOQUEANTE` — la spec se escribe, el gap queda como `Open Questions` en
+    esa spec y se continúa.
+* **`Estado`** — `ABIERTO` o `CERRADO` con fecha, quién lo cerró y la
+  resolución. **Una entrada cerrada no se borra nunca.** Al cerrarla, su
+  resolución se traslada al `spec.md` afectado y se retira del bloque
+  `Open Questions` de esa spec.
+* Cuando se detecta una inconsistencia entre dos capabilities ya aprobadas, se
+  anota aquí como `ABIERTO` / `NO BLOQUEANTE` y la capability en curso no se
+  interrumpe.
+
+Sembrado el 2026-09-23 desde el Funcional v1.0 §11.5 y §12, el ADR v0.2 §3 y la
+evidencia de la prueba de 16 documentos.
+
+---
+
+## Gaps de especificación
+
+| ID | Ámbito | Gap | Origen | Área afectada | Tipo | Estado |
+|---|---|---|---|---|---|---|
+| GAP-001 | Spec | **ADR-010 sin cerrar: motor de reconocimiento de la ruta foto.** No se puede cerrar con la prueba de 16 documentos: no hubo verdad-terreno verificada campo a campo, la ruta foto tuvo 5 documentos y no se compararon motores. Criterio de cierre: los arreglos del pipeline de ADR-019 en su sitio, más un corpus de papel fotografiado de ~15 documentos que cubra hostelería térmica y combustible y al menos un PDF escaneado; medido como exactitud por campo tras validación, contando solo valores `read` / `from_xml`. Se amplía si los candidatos empatan. | ADR v0.2 §3 (ADR-010); Funcional §11.5, §12; prompt de revisión §2 | FR-EXT-005, FR-EXT-015, UC-14 | BLOQUEANTE | ABIERTO |
+| GAP-002 | Spec | **ADR-011 propuesto pero no cerrado: librería de extracción de texto de PDF.** La extracción posicional es un **requisito**, no una elección de librería: con texto plano, rótulo y valor quedan en líneas desacopladas. Los candidatos del ADR (PDFKit, PdfBox-Android) exponen posiciones de palabra. PyMuPDF queda descartado dentro de la app por AGPL. Criterio de cierre: confirmación contra el criterio de extracción posicional sobre el corpus de facturas de muestra, más una comprobación de tamaño. | ADR v0.2 §3 (ADR-011); Funcional §11.5, §12 | FR-EXT-004, NFR-SIZ-001 | BLOQUEANTE | ABIERTO |
+| GAP-003 | Spec | Umbrales de aceptación de las métricas de producto sin fijar. Diferidos deliberadamente a la primera pasada de *screening* sobre el corpus. Las métricas están definidas; lo que falta es el número. | Funcional §10.5, §12; PDR §12 | §10.5 | NO BLOQUEANTE | ABIERTO |
+| GAP-004 | Spec | Límites de subida de adjuntos. El caso básico está cerrado (`POST .../records/{id}/files` en multipart → 200, verificado con un registro desechable y 16 subidas reales). Siguen abiertos: el tamaño máximo de fichero, el comportamiento de un PDF multipágina cerca de ese límite y los tiempos reales de subida desde el mercado principal en lugar de desde un contenedor en la nube. | Funcional Annex A, §12; ADR-004 | FR-SND-003, FR-CAP-003 | NO BLOQUEANTE | ABIERTO |
+| GAP-005 | Spec | Campo `choice` escrito con un texto que no está en su lista de opciones. No verificado en ninguna prueba hasta hoy. FR-DST-007 ofrece únicamente las opciones existentes, lo que contiene el riesgo; el caso residual queda abierto y documentado. | ADR v0.2 §3.1; Funcional §12 | FR-DST-007 | NO BLOQUEANTE | ABIERTO |
+| GAP-006 | Spec | Host Ninox en nube privada. El *spike* técnico detrás de los puntos abiertos de ADR-004 debería re-ejecutarse o comprobarse contra una instancia privada antes de dar FR-DST-008 por cerrado para ese segmento. | ADR-017; Funcional §12 | FR-DST-008 | NO BLOQUEANTE | ABIERTO |
+| GAP-007 | Spec | iOS Share Extension: el trabajo nativo está presupuestado como trabajo nativo, no descubierto tarde, pero **su coste es una estimación de FASE 3** y puede requerir un puente nativo a Vision / VisionKit. El comportamiento está especificado; la viabilidad no está medida. | ADR-001; Funcional §2.3, §12 | FR-CAP-008 | NO BLOQUEANTE | ABIERTO |
+| GAP-008 | Spec | El *deep link* de regreso a Ninox **no es un contrato publicado por el fabricante**. La estructura de URL se verificó, pero puede cambiar. FR-SND-006 degrada a abrir la base si eso ocurre. | ADR-008; Funcional §12 | FR-SND-006 | NO BLOQUEANTE | ABIERTO |
+| GAP-009 | Spec | El contraste contra el campo fórmula **tiene un punto ciego conocido**: no detecta un total mal leído y usado después para derivar sus propios componentes, porque la fórmula reproduce el error. Solo protege contra eso la regla de leer antes de derivar (BR-02, BR-05). Debe quedar documentado en la UI y **no sobrevalorarse en la spec**. | PDR §7.4; Funcional §12, FR-DST-005 | FR-DST-005 | NO BLOQUEANTE | ABIERTO |
+
+---
+
+## Gaps de proyecto
+
+| ID | Ámbito | Gap | Origen | Área afectada | Tipo | Estado |
+|---|---|---|---|---|---|---|
+| GAP-010 | Proyecto | **Puerta de privacidad: identificador de una persona física en documentos publicables.** El `.gitignore` excluía el grueso de la exposición, pero **seis ficheros destinados a publicarse** llevaban el NIF real de un taxista. Cinco en texto plano —`corpus_test/REPORT.md` (L117-118, que además llevaba nombre completo, matrícula y licencia), `Paperdrop_PDR_v0.2_EN.md` (L84, L195), `Paperdrop_Funcional_v1.0_EN.md` (L749, L2293), `REPORT-CORPUS.md` (L61) y `docs/TWO_OPTIONS.MD` (L63)— y **tres `.docx`** con el mismo dato dentro: PDR v0.2, PDR v0.1 y Funcional v1.0. El Funcional afirma que "no se reproduce dato de ninguna persona física": tal como estaba, esa afirmación era falsa. El ejemplo de reparación por dígito de control es la evidencia de la tesis central del producto y **se conserva**; lo que se sustituyó fue el identificador. | Inspección del conjunto publicable y del `word/document.xml` de los `.docx`, 2026-09-23; corpus prompt §2.6 | `docs/`, `corpus_test/REPORT.md`, `REPORT-CORPUS.md` | BLOQUEANTE (para el primer commit y para publicar) | CERRADO — 2026-09-23 / Decisión del PO, ejecución del agente / El NIF real se ha sustituido por uno **sintético** —`12345679S`, con su lectura errónea `123456795`— elegido para conservar la propiedad exacta del ejemplo: el algoritmo admite una única sustitución del carácter final y la letra `S` es justo la que el OCR confunde con un `5`. La sustitución es de la misma longitud (9 caracteres), así que no altera el formato de ningún documento. Se aplicó en **seis ficheros**, incluidos los **tres `.docx`** que también llevaban el dato y que se parchearon por dentro (`word/document.xml`), con verificación de integridad del zip y de que el XML sigue siendo válido. En `corpus_test/REPORT.md` el aviso de privacidad se reescribió para **describir** los datos encontrados en lugar de reproducirlos: llevaba nombre, NIF, matrícula y licencia de la persona. Verificado: **cero ocurrencias del valor anterior** en todo el conjunto publicable, `.md` y `.docx`. Registrado como DEC-001 en `product-decisions.md`. |
+| GAP-011 | Proyecto | Disponibilidad del nombre **"Paperdrop"**: sin comprobar en ninguna de las dos tiendas de aplicaciones ni en el registro de la EUIPO antes de presentar nada. No afecta a ningún requirement de comportamiento. | PDR §14; Funcional §12 | Nombre del producto | NO BLOQUEANTE | ABIERTO |
+| GAP-012 | Proyecto | **Riesgo operativo heredado del banco de pruebas:** `NINOX_DB_ID` apuntaba a la base de **producción de JULSA INDUSTRIAL**. Mitigado por regla de proyecto (`AGENTS.md` §1.4: la base de pruebas se nombra siempre de forma explícita, team `qCq3JS7q7ptoap8Yg` / base `jd1m8n8l4j7i`). El riesgo no desaparece: sigue bastando con que alguien confíe en la variable de entorno. | Funcional §12; reglas de operación de la prueba; prompt de revisión §2.5 | Operación | NO BLOQUEANTE | ABIERTO |
+| GAP-013 | Proyecto | **Árbol de capabilities pendiente de aprobación del PO.** Está propuesto en `openspec/project.md` §3 y marcado como no aprobado. Hasta que se apruebe no se puede escribir ningún `proposal.md` contra él, porque el bloque `## Capabilities` del proposal es el contrato con los ficheros de spec. | Fase de specs, 2026-09-23 | Capability tree | BLOQUEANTE (para abrir la primera capability) | ABIERTO |
+| GAP-014 | Proyecto | Sesgo del corpus: la prueba de 16 documentos se inclinó hacia facturas B2B, justificantes bancarios y documentos no-EUR. Es un solo usuario y 16 documentos, no una conclusión de mercado. **Decisión del PO: no se amplía el corpus y no se reponderan las rutas.** Contrapartida asumida y ya especificada: el corpus de aceptación mantiene las dos mitades iguales (§10.1) y la primera ejecución no asume un ticket (FR-WIZ-008). | Funcional §2.2, §10.1, §12; PDR §2; prompt de revisión §2.3 | §10.1 | NO BLOQUEANTE | CERRADO — 2026-09-23 / PO / No se amplía el corpus ni se reponderan las dos rutas de documento. El sesgo se compensa en el corpus de aceptación. Registrado como DEC-004 en `product-decisions.md`. |
+| GAP-015 | Proyecto | El repositorio padre `C:\Users\admin` es un repositorio git mal configurado que se traga todo lo que cuelga de él: un commit hecho desde un subdirectorio acabaría publicando el proyecto en un repositorio ajeno. | Inspección de `git rev-parse --show-toplevel`, 2026-09-23 | Repositorio | NO BLOQUEANTE | CERRADO — 2026-09-23 / repo propio inicializado en `04_01_Ticket_reader_Ninox` (rama `main`) y `git rev-parse --show-toplevel` verificado devolviendo la raíz correcta. La regla de verificación queda en `AGENTS.md` §1.1 porque el riesgo sigue vivo para quien commitee desde otra carpeta. |
+| GAP-016 | Proyecto | Un `.env` de la raíz con una clave de API en claro, citado por el prompt del corpus. `tools/decode_env.py` sigue apuntando a esa ruta. | Corpus prompt §2.6; `tools/decode_env.py` L9 | Raíz del proyecto | NO BLOQUEANTE | CERRADO — 2026-09-23 / verificado: **no existe ningún `.env` en `04_01_Ticket_reader_Ninox`**. El único `.env` del entorno es `Ticket_reader_Ninox\phone-harness\.env`, que es un override local por máquina y está excluido. `tools/` está excluido del repositorio, así que la ruta muerta no se publica. |
+| GAP-017 | Proyecto | **Residuo de datos personales reales en material excluido.** `tools/load_db.py`, `tools/taxi_extract.py` y `sql/schema.sql` siguen conteniendo el nombre, el NIF, la matrícula y la licencia del taxista cuyo identificador se sustituyó en los documentos publicables (GAP-010). **La única protección sobre ellos es el `.gitignore`.** Se dejaron deliberadamente: son el registro de trabajo de un análisis sobre un documento real y cambiar la matrícula rompería código que valida su formato contra ese documento. El riesgo es condicional, no nulo: cualquiera que más adelante quiera publicar el prototipo, o que edite `.gitignore`, vuelve a exponerlos. Opciones si se quiere cerrar del todo: sanear `tools/` y `sql/` con valores sintéticos y código que siga siendo coherente, o borrarlos — el prototipo ya cumplió su función y sus lecciones están recogidas en el Anexo D del funcional. | Verificación de la puerta de privacidad, 2026-09-23 | `tools/`, `sql/` | NO BLOQUEANTE | ABIERTO |
