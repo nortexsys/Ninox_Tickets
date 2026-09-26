@@ -12,9 +12,11 @@ longer used (DEC-011).
 | `skills/` | The 26 vendored skills, stored once: `ninox` plus 25 `dart-*` / `flutter-*` from `flutter/agent-plugins` (provenance in `../THIRD-PARTY-NOTICES.md`) |
 | `third-party/` | Licence texts of the two vendored sources |
 | `tools/sync_skills.py` | Materialises each role's subset of `skills/` (`--check` for CI) |
-| `lanes/factory.py` | Builds one LangGraph lane agent (deepagents) with exactly its role's skills and write permissions |
-| `tests/` | Proof that each lane sees only its own skills and cannot write outside its paths |
-| `.build/` | Generated per-role skill copies for the LangGraph lanes. Git-ignored |
+| `lanes/factory.py` | Builds one LangGraph lane agent (deepagents) with exactly its role's skills, write permissions and, optionally, a `shell` tool |
+| `lanes/models.py` | Turns a role's `model` entry into a chat model; reads its key from the Windows user environment |
+| `lanes/runner.py` | The lane runner: worktree per lane, secret-free shell, checkpoints, bounds check and JSON report; smoke test |
+| `tests/` | Proof of the above, with no API call |
+| `.build/` | Generated and local state: per-role skill copies, lane worktrees, checkpoints, reports. Git-ignored |
 | `requirements.txt` | Python dependencies of the lane runner (Python 3.11+) |
 
 ## Who runs where
@@ -22,11 +24,11 @@ longer used (DEC-011).
 | Role | Runtime | Model | Skills are loaded by |
 | --- | --- | --- | --- |
 | Orchestrator | **Claude Code** (the session the product owner talks to) | Opus 5.5 | Claude Code itself, from `.claude/skills/` |
-| Spec | LangGraph (deepagents) | Atria Dawn Preview | `SkillsMiddleware`, source `agents/.build/skills/spec/` |
-| Core | LangGraph (deepagents) | DeepSeek-V4-Pro-0813 | same, `…/core/` |
-| Ninox | LangGraph (deepagents) | DeepSeek-V4.1-Flash | same, `…/ninox/` |
-| Mobile | LangGraph (deepagents) | DeepSeek-V4.1-Flash | same, `…/mobile/` |
-| QA | LangGraph (deepagents) | Sonnet 5 | same, `…/qa/` |
+| Spec | LangGraph (deepagents) | Atria Dawn Preview (`Atria-Dawn-Preview`) | `SkillsMiddleware`, source `agents/.build/skills/spec/` |
+| Core | LangGraph (deepagents) | DeepSeek-V4-Pro-0813 (`deepseek-v4-pro`) | same, `…/core/` |
+| Ninox | LangGraph (deepagents) | DeepSeek-V4.1-Flash (`deepseek-flash`) | same, `…/ninox/` |
+| Mobile | LangGraph (deepagents) | DeepSeek-V4.1-Flash (`deepseek-flash`) | same, `…/mobile/` |
+| QA | LangGraph (deepagents) | Sonnet 5 (`claude-sonnet-5`) | same, `…/qa/` |
 
 ## How a skill reaches an agent
 
@@ -46,9 +48,45 @@ Verified on 2026-09-25 with deepagents 0.7.19 / LangGraph 1.2.12: `python -m pyt
 (9 tests; a recording fake model, no API call) proves each lane is told about exactly its skills, can
 read a skill's body, cannot write under `/skills/`, and cannot write outside its paths.
 
+## Running a lane
+
+Python 3.11+ in a virtual environment **outside** the repository, on a short path (a long one breaks
+a DLL load on Windows): `python -m venv %TEMP%\pdlv`, then `pip install -r agents/requirements.txt`.
+From the repository root:
+
+```powershell
+python -m agents.lanes.runner smoke                     # every lane, one-line task, real model
+python -m agents.lanes.runner run core --change <name> --task-file <task.md>
+python -m agents.lanes.runner run core --change <name> --resume      # continue a stopped lane
+python -m agents.lanes.runner check core --change <name>             # re-run the bounds check
+```
+
+A run:
+
+* works in `agents/.build/worktrees/<role>`, on branch `change/<name>` cut from `main`; one change
+  per lane at a time. The lane commits there; it never pushes or merges;
+* gets a `shell` tool whose environment has every secret removed (`*KEY*`, `*TOKEN*`, `*SECRET*`,
+  `NINOX_*`, provider variables). `--allow-ninox-token` gives `NINOX_API_KEY` to the Ninox lane
+  only, and needs the PO's approval; `NINOX_DB_ID` never reaches a lane;
+* checkpoints to `agents/.build/checkpoints.sqlite`, thread `<role>:<change>`;
+* writes a JSON report to `agents/.build/reports/`: files touched since `main`, those outside the
+  role's `writes`, commits, token usage, and the lane's own report block. Any file outside `writes`
+  makes the verdict `reject`.
+
+Verified on 2026-09-26: `pytest agents/tests` 28 passed; smoke test green on Spec, Core, Ninox and
+Mobile with their real models (a shell call, then a one-line answer naming one of the lane's skills).
+
 **Limit, stated so it is not discovered later.** Filesystem permissions bind deepagents' file tools,
-not a shell. When the lane runner adds shell execution (plan T0.9), the orchestrator's review of the
-diff (any path outside the role's `writes` → reject) is what enforces the boundary.
+not the shell. The runner's bounds check on the diff (any path outside the role's `writes` → reject)
+is what enforces the boundary, and the orchestrator reads it before integrating anything. The
+`shell` tool is not deepagents' `execute`: deepagents 0.7.19 refuses filesystem permissions on a
+backend that executes commands, and the permissions are kept because they give the lane an
+immediate refusal instead of a rejection at review.
+
+**DeepSeek's thinking mode** is on by default and rejects (HTTP 400) a tool-calling history without
+each assistant turn's `reasoning_content`; `lanes/models.py` sends it back, which langchain-deepseek
+1.1.1 does not. **Atria** is always streamed with a long socket timeout: its gateway cuts long
+non-streamed requests (measured on BearingWorld).
 
 ## Rules
 
