@@ -1,0 +1,31 @@
+# Lines allowed to mention NINOX_DB_ID because they STATE or ENFORCE the rule (GAP-012).
+# Format: path | text that identifies the line | reason
+# `*` as the identifying text allowlists the whole file (the check's own three files).
+.claude/skills/ninox/references/credentials-and-safety.md | environment carried a `NINOX_DB_ID` variable | the ninox skill records the near-miss behind the rule
+.claude/skills/ninox/scripts/check_credentials.py | "NINOX_DB_ID", | the credential checker lists the variable among names that are not tokens
+AGENTS.md | 4. **Never use `NINOX_DB_ID`. Ever.** | the project rule states the ban
+agents/README.md | `NINOX_DB_ID` never reaches a lane | documents the lane boundary
+agents/lanes/runner.py | NINOX_DB_ID never reaches a lane (AGENTS.md | the runner prompt enforces the rule
+agents/lanes/runner.py | Never use NINOX_DB_ID. Never print, log or commit a credential. | the runner prompt enforces the rule
+agents/skills/ninox/references/credentials-and-safety.md | environment carried a `NINOX_DB_ID` variable | the ninox skill records the near-miss behind the rule
+agents/skills/ninox/scripts/check_credentials.py | "NINOX_DB_ID", | the credential checker lists the variable among names that are not tokens
+agents/tests/test_runner.py | "NINOX_DB_ID": "x" | the runner test seeds the forbidden variable to prove it is stripped
+agents/tests/test_runner.py | monkeypatch.setenv("NINOX_DB_ID", "must-not-leak") | the runner test plants the forbidden variable to prove it does not leak
+agents/tests/test_runner.py | os.getcwd() | the runner test probes the child environment for the forbidden variable
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.md | `NINOX_DB_ID` in the test environment pointed at a production database | the functional records the operating risk
+docs/Plan/Paperdrop_MVP_Plan_v0.1_EN.md | recommend renaming `NINOX_DB_ID` on the developer machine | the v0.1 plan records the mitigation
+docs/Plan/Paperdrop_MVP_Plan_v0.2_EN.md | `NINOX_DB_ID` is **not** renamed | the v0.2 plan records the decision and its mitigation
+docs/Plan/Paperdrop_MVP_Plan_v0.2_EN.md | job failing on any mention of `NINOX_DB_ID` | the v0.2 plan specifies this check
+docs/Plan/Paperdrop_MVP_Plan_v0.2_EN.md | An agent picks up `NINOX_DB_ID` | the v0.2 plan records the risk
+docs/Plan/Paperdrop_MVP_RESPUESTAS_1.md | NINOX_DB_ID_CLIENT_A_PROD | the PO's answer recommends renaming the variable
+docs/Plan/SPIKE_GAP-022_schema_formula_fields.md | `NINOX_DB_ID` was **not** consulted | the spike records that it did not use the variable
+docs/Plan/status/2026-09-26.md | `NINOX_DB_ID` never. | the status file records the lane rule
+openspec/changes/archive/2026-09-23-add-product-invariants/proposal.md | `NINOX_DB_ID` pointed at a production database | the archived proposal records GAP-012
+openspec/changes/archive/2026-09-23-add-product-invariants/specs/product-invariants/spec.md | `NINOX_DB_ID` pointed at a production database in the test | the archived spec records GAP-012
+openspec/changes/setup-mvp-foundations/design.md | the string `NINOX_DB_ID` appears in any tracked file outside an explicit allowlist | the design specifies this check
+openspec/gaps-register.md | NINOX_DB_ID | the gap register records GAP-012
+openspec/prompt_orquestador_inicio.md | Nunca NINOX_DB_ID. | the orchestrator prompt enforces the rule
+openspec/specs/product-invariants/spec.md | `NINOX_DB_ID` pointed at a production database in the test | the living spec records GAP-012
+.github/scripts/no_ninox_db_id.py | * | the check itself names the forbidden variable
+.github/scripts/no_ninox_db_id_allowlist.txt | * | the allowlist names the forbidden variable to describe each allowed line
+.github/scripts/tests/test_no_ninox_db_id.py | * | the test plants the forbidden variable to prove the check fails
