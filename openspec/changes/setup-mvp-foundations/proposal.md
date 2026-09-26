@@ -53,11 +53,12 @@ it makes *enforceable* — not satisfied — are listed in the next section.
   neither lane edits the other's folders.
 * **Analyzer and format** (design §3): a shared root `analysis_options.yaml`
   (`package:lints/recommended.yaml`, strict casts, strict inference, strict raw
-  types, errors on unused imports and missing returns, `prefer_single_quotes`,
-  `always_declare_return_types`, `avoid_print` — a lane that prints may print a
-  token — and `unawaited_futures`), an `app/` variant that adds
-  `package:flutter_lints/flutter.yaml`, and `dart format` at the default line
-  length, checked in CI.
+  types, `unused_import`, `unused_local_variable` and `dead_code` raised to
+  errors, and the lint rules `always_declare_return_types`, `avoid_print` — a
+  lane that prints may print a token — `prefer_single_quotes`,
+  `unawaited_futures`, `prefer_final_locals` and `directives_ordering`), an
+  `app/` variant that adds `package:flutter_lints/flutter.yaml`, and
+  `dart format` at the default line length, checked in CI.
 * **Android application settings** (design §4): `applicationId` and namespace
   `com.nortexsys.paperdrop`, display name **Paperdrop for Ninox**, `minSdk` 24,
   `compileSdk`/`targetSdk` 36, Android only, and the internet permission declared
@@ -126,46 +127,21 @@ name that already owns the behaviour in `openspec/specs/`.
   `compileSdk`/`targetSdk` 36. Owned by `product-invariants`'
   `no-desktop-application`; this change supplies the number the functional
   declined to name.
-* **NFR-PRV-001 — No backend, ever.** The CI `privacy` job refuses a tracked
-  file that holds a path into the private corpus, a Spanish DNI/NIE with a valid
-  check letter other than the synthetic `12345679S` (DEC-001), a Luhn-passing
-  card number, or a token-like string — and CI configures no secret, because the
-  repository is public. Owned by `product-invariants`' `no-backend-and-no-account`.
-* **NFR-PRV-006 — No telemetry in public builds.** The CI job runs on the public
-  repository with no secret configured, so no analytics call can be built into a
-  build and no key could be captured even if one were written. Owned by
-  `product-invariants`' `no-telemetry-in-public-builds`.
-* **NFR-SEC-001 — Token in the platform keystore.** `minSdk` 24 brings the
-  Android Keystore APIs the requirement needs (≥ 23), and `avoid_print` in the
-  analyzer config makes a lane that prints a token a build failure rather than a
-  log line. Owned by `local-config-privacy`' `token-storage-in-the-platform-keystore`.
 * **NFR-PRF-002 — Reading requires no network.** The `core-purity` job fails when
   `packages/paperdrop_core/lib/` imports anything outside its allowed set, so no
   future lane can put a network dependency into the code that reads and
   validates. Owned by `capture-intake`' `capture-without-connectivity`.
-* **NFR-I18N-001 — Interface languages.** The analyzer config and the workspace
-  exist before any screen is written, and the app skeleton starts in
-  `app/lib/app/` with localisation in the shell, so the first string a lane
-  writes lands in externalised resources and not as a hardcoded literal. Owned
-  by `local-config-privacy`' `all-user-facing-strings-are-externalised`.
-* **NFR-ACC-001 — Accessibility.** The app skeleton and the Flutter lint set are
-  in place before the first widget, so the labelling and non-colour-cue
-  requirements are coded against rather than retrofitted. Owned by
-  `local-config-privacy`' `accessibility`.
-* **NFR-SIZ-001 — Application size.** The dependency table lists the PDF text
-  component as *planned* with its licence undecided and not AGPL, so the size
-  question ADR-011 depends on is decided against a declared table rather than an
-  unknown one. Owned by `local-config-privacy`' `application-size`; still
-  blocked by ADR-011, GAP-002.
-* **BR-09 — Money as integer minor units.** `paperdrop_core` exists as the only
-  place a value is decided, with `double` excluded by rule and by the core's own
-  tests, and the `dart format` baseline is fixed before any amount type is
-  written. Owned by `product-invariants`' `money-as-integer-minor-units`.
-* **BR-19 — The token is the only credential.** The analyzer's `avoid_print`, the
-  CI `privacy` job's token-like-string check, the secret-free CI configuration
-  and the `no-ninox-db-id` job together mean a leaked credential or a real
-  database reference fails a build. Owned by `product-invariants`'
-  `token-is-the-only-credential`.
+
+The CI `privacy`, `no-ninox-db-id` and `encoding` jobs are **not** in this list.
+They protect the repository — no personal data or credential is published
+(`AGENTS.md` §1.2–§1.4), the production database is never named by a variable
+(GAP-012), and the repaired encoding of the sources of truth does not come back
+(GAP-024) — and they are listed under the gaps and decisions below. A repository
+check is not the acceptance condition of a product requirement: proving that no
+backend, no telemetry and no second credential exist in a build is the negative
+release checklist of plan §11.3, which QA automates in W3, and the app shell this
+change ships still holds a hardcoded title string, so NFR-I18N-001 is not
+enforceable yet either.
 
 **Gaps and decisions this change acts on.** Each exists in the register it
 belongs to and is acted on as recorded there; none is closed by this change.
@@ -202,7 +178,8 @@ Design §10, restated so the boundary with the first product changes is explicit
   `implement-core-model-and-countries`, `implement-validation-and-extraction-core`
   and `implement-ninox-client`.
 * **No push, no store listing, no release signing** — release signing is R1, and
-  publication depends on GAP-011's store checks, which are done.
+  DEC-006 still requires reading Ninox's trademark guidelines before any store
+  listing, which no change here does.
 * **`tool/benchmark/` is not created.** QA creates it in W3 (T2.x), as an
   integration test of the shipped pipeline over the private corpus.
 * **No coverage threshold.** The `test` job uploads the lcov artefact only;
