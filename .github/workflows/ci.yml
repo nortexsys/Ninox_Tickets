@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.5
+          channel: stable
+      - name: Resolve workspace
+        run: flutter pub get
+      - name: Analyze
+        run: dart analyze --fatal-infos
+
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.5
+          channel: stable
+      - name: Check formatting
+        run: dart format --output=none --set-exit-if-changed packages app/lib app/test
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.5
+          channel: stable
+      - name: Resolve workspace
+        run: flutter pub get
+      - name: Test paperdrop_core
+        working-directory: packages/paperdrop_core
+        run: dart test
+      - name: Test ninox_client
+        working-directory: packages/ninox_client
+        run: dart test
+      - name: Test app with coverage
+        working-directory: app
+        run: flutter test --coverage
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: app/coverage/lcov.info
+
+  python-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Core purity
+        run: python .github/scripts/core_purity.py
+      - name: Privacy
+        run: python .github/scripts/privacy_check.py
+      - name: No forbidden NINOX database id
+        run: python .github/scripts/no_ninox_db_id.py
+      - name: Encoding guard
+        run: python .github/scripts/encoding_guard.py
+      - name: Script tests
+        run: |
+          pip install pytest
+          python -m pytest .github/scripts/tests -q
+      - name: Scenario coverage report
+        run: python .github/scripts/scenario_coverage.py --out test-traceability.md
+      - name: Upload traceability report
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-traceability
+          path: test-traceability.md

@@ -1,0 +1,116 @@
+# Legitimate findings allowed for the privacy check (design §6).
+# Format: path | identifying text (matched against the finding's exact text) | reason
+# `*` as identifying text allowlists the whole file (pubspec.lock and this allowlist itself).
+pubspec.lock | * | pubspec.lock carries sha256 package content hashes (design §6)
+.github/scripts/privacy_allowlist.txt | * | the allowlist lists the findings it allows, so it necessarily contains them
+.claude/skills/.sync-manifest.json | 1666ada211d67d056b66e95a0286ed448422e27b05ca76695d4d8b1c1bbbf786 | sha256 content hash of a vendored skill; not a credential
+.claude/skills/.sync-manifest.json | 53350d23d9afd08b3a8428750a611e24b860d39102522d32f03c482551fa5656 | sha256 content hash of a vendored skill; not a credential
+.claude/skills/.sync-manifest.json | 372688b6467a10ed087ff553cdf41248a29ccb510720da8ae5142e9349ee8445 | sha256 content hash of a vendored skill; not a credential
+agents/skills/dart-setup-ffi-assets/SKILL.md | 4a88f50438a98402db2dbd47b59eb412 | example MD5 asset hash in the vendored dart-setup-ffi-assets skill
+agents/skills/dart-setup-ffi-assets/SKILL.md | 9f5e15043aa98402dcdbbd47b59ea520 | example MD5 asset hash in the vendored dart-setup-ffi-assets skill
+agents/skills/dart-setup-ffi-assets/SKILL.md | a881e5043ba98402acdebd47b59fa321 | example MD5 asset hash in the vendored dart-setup-ffi-assets skill
+docs/Fase 1. Discover/old/Paperdrop_ADR_v0.1_EN_1.docx:word/theme/theme1.xml | 05A4C25C-085E-4340-85A3-A5531E510DB2 | Word theme/settings identifier inside a tracked .docx; not a credential
+docs/Fase 1. Discover/old/Paperdrop_ADR_v0.1_EN_1.docx:word/theme/theme1.xml | 2E142A2C-CD16-42D6-873A-C26D2A0506FA | Word theme/settings identifier inside a tracked .docx; not a credential
+docs/Fase 1. Discover/old/Paperdrop_ADR_v0.1_EN_1.docx:word/theme/theme1.xml | 1BDDFF52-6CD6-40A5-AB3C-68EB2F1E4D0A | Word theme/settings identifier inside a tracked .docx; not a credential
+docs/Fase 1. Discover/old/Paperdrop_ADR_v0.1_EN_1.docx:word/settings.xml | FE4E7D10-1330-4D5F-8D41-30491CDEA1D9 | Word theme/settings identifier inside a tracked .docx; not a credential
+docs/Fase 1. Discover/old/Paperdrop_PDR_v0.1_EN.docx:word/theme/theme1.xml | 05A4C25C-085E-4340-85A3-A5531E510DB2 | Word theme/settings identifier inside a tracked .docx; not a credential
+docs/Fase 1. Discover/old/Paperdrop_PDR_v0.1_EN.docx:word/theme/theme1.xml | 2E142A2C-CD16-42D6-873A-C26D2A0506FA | Word theme/settings identifier inside a tracked .docx; not a credential
+docs/Fase 1. Discover/old/Paperdrop_PDR_v0.1_EN.docx:word/theme/theme1.xml | 1BDDFF52-6CD6-40A5-AB3C-68EB2F1E4D0A | Word theme/settings identifier inside a tracked .docx; not a credential
+docs/Fase 1. Discover/old/Paperdrop_PDR_v0.1_EN.docx:word/settings.xml | FE4E7D10-1330-4D5F-8D41-30491CDEA1D9 | Word theme/settings identifier inside a tracked .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | fb98d0ddb7217a18f9e5b27c68c152d8b32b9bf | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | bf454140442607469d181ee004aa5a584102cce | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | b19b207a7520848f44ecdaf8cf7e8943ff369f1 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | b2a76094fa1bc94df8904112998b8559786e100 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 8556e97f2f8c5962478f64acb71d034c36f79f6 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 590f7218a3081f295d86ff753b14942d11b7472 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | b8d1a0efed1b925076c644c776f0d6860b4ab44 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 85daa510adb078b5e1579d49128a45aed9844f1 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 6c8340118478ebfb20b8b73f7923fecccb2b4aa | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 4aa224b55215241388d87602670f72fe1becd28 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | b51a6e155a8728bb96cc7835ee22a81133d9db7 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 14e25a3251012fd8f4b0b5556e7e9840df9f0e8 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 426fec64802ee5c186244129dc5fa8afaf12512 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 117ce68c45e1a0d2a867f652efd825a5c5b00b3 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 675391e85d734643f6430805f1973ebc3bdb15c | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 17b6004fb9117af1eb9c74d9437186d330d6c0b | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 7edf60f30f36804226fed2b8bf918cc2e717935 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | fcd213b1a9c554f1c2305b61306d5cd9cad7475 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 2f8725dd60c1e32a97769470c6b8b96eb506d68 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | deb88a203305c241605c7088436ce587aa52a35 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | c61ad247ec1b120b677e9b853edc42e9040a3b7 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 57a982321d36e54fafbf356412e936d4868b19b | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 5986c1eaf543402dcbfd621f610a7e1b926c6c9 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | eb9981801d2101cca9520b1076c1620132e7cf4 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | d419033cba2b9f039a3fa6808f0763275856cc5 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | de07cb85bdb0c610c5694d2ec25d952c3f725ce | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 2c963a7af2885dbb97c06f6955c90bba0dd0c64 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 25989c75cfeacb61f43271b65907237ca00072d | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 3514c4d9d62fcf4b0ec9a800951c968e2c7cfc3 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 1b12f5313af3a34f2af434d8497d7786b1b7856 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 31f1fe6b8e6d6f79a60e7c3aec516f0b4f5f2ad | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 20e10ca591f37bd19ec04c62c9843f87fc65e2b | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 28ee8c48e7fdb955cb534e4ea4a706b3e5de5e8 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 37bc6df7a747fdf1ec5997c57c834838c7f10e4 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 6ee32079be283296eca8a0db841e97645a4c224 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | df1f5272506f80bba13f0b12b9d537c323bc27b | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 61b1b58da4bd46e9853e7ef374635cfc5bc42f1 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 83db35a072c4cdb8467e72ff055a3bbfdf7cf3d | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 92df9a7f51815475d9b9893f4e5d7aacf630c99 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 04490b95da3cb78022548811c03232c1fc2dbef | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | a8089da777860630d79dc6245849179d7585bb0 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 1c2bc66051b6a8c0d3cfe859512857ae0835bf3 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | de005a0bdad1ebda28529cf6ef88d054462c1ce | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 562fd13781600be11e1316cf9e714a3f8e8be6b | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | df74223d2e2e6b8d6d7c018d1a7cb0f87a51568 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | c0503f1054377d7cbb49a95fe4ce73ac8b2a0cc | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 063c19a3b88998d7384699380bbb56736482696 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 2ac11a1f473d6911e36e08ad26f3176b2e04fe5 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | feb7d453df06fd554945d0e7f4644f94c953b52 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | af1f11eee20b734a46735b3e85159d6c3649667 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 892b332db362a00df67a9d2721f7c356d72e1cb | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 9db7401fada15067f70485bc44f1ff98b0f3659 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | ebe67fd28e5468bdde0a786a23145e9f2a93cf6 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | df7d444fd3fee5bb6877d532e596b7b7f6feffd | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | e09ca49e193fe33d00e669028b13dda73b56641 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 92242e514545fe0b5c9f444a310057b93bca7f1 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 7ceb35be661c8742c50b8b00d03cfe942122d9d | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 1514fded583dfd380948abed2e4a473faa8969f | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 9fd0a07b89f5ad8492ddb6d5406038454456ee2 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 50145be2e50bd14adcc07368306e977c0dd7ded | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 59d88c8075c92aca80200b9bafe5999a7575534 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | c3dd3e0b4e15d034f6c49b9211cb9400fb003c3 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 2707db9d42bd8cae61b28e24df7845b75a870d6 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | a3b824cf4c1bfee79bda3bb6d6f3a0c51752c8a | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 1c977b141ffa9d4bf64159f4bb614e844b01b51 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 07a0357a5e44e15907fc03e5482ca19507d28dc | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 2e66a8cf88cf6b78e6e7ec27d7f7530a1624545 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 5c752ee6a24fdeb8dd008dd374bb2a5b8570275 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | a362bc97e85590c41b03636c9abdd6fcc48b146 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | ab54408f0b3c933e0a887845e01dd54759b6d0d | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 8e5aae89f3e3a6a320a63dcb292031fc4bb71fa | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 55cf0e3684cd0ede919c6be1747f0d70570237b | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 8cf3452ae6b0dd83e99d4c9a5124c0d2218acee | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 411a389e889259c1b4a597f4e11ffd3e0df1e00 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | e042f9e0832555d2ba875a253b2da9eefd95ba0 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 1690bfd0802a24306a5e5fb833165ff8b9d5f15 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 37eda376b864cb41e8f90a4ae2d9cad757bfa04 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 9498897ceebe3151ea75da759a4fb9978403654 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 4823951c15ef4c34e85fc176daa85ac9f97b7c3 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 9338b5e9edb3854508c9ee1441c040ecd426a0c | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | e7a86af0f30a52be8ad8a50d11a2f5fff6d2094 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 3c065205d66e9455c4ec8f3531ca60cdeceb034 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 5daed0fc15103c3ccbf99bab1e5ee19b9f0f0fa | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 0670e934ae3678b80329022f128a05b1abd0c87 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | a2028e06a6683d5da269748230a22d9f72917a0 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 5d7004c3e8fb894adad7d6f427ccab711da4624 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | c2e878b8e0dfd7397ef6dda33d1e49dea482285 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 6a1db325b9a51f892e11aaf2e78f4b8decfcd93 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 38166209d0af275af7d4f9ae511bccca5fa9a39 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | bc5dd205352a6ab8d8bad8b2f628c9439d8ea4c | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | f6f4d5cd97492a3e7948e4a0b4d5f17d922c600 | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 7a48e3fd893362737bede44ed37cfc6fbcd1b9f | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/document.xml | 48aa5463bb3844b4b9671592ef9acc10a06ea9d | Word-generated bookmark identifier in the Funcional .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/theme/theme1.xml | 05A4C25C-085E-4340-85A3-A5531E510DB2 | Word theme/settings identifier inside a tracked .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/theme/theme1.xml | 2E142A2C-CD16-42D6-873A-C26D2A0506FA | Word theme/settings identifier inside a tracked .docx; not a credential
+docs/Fase 2. Define/Paperdrop_Funcional_v1.0_EN.docx:word/theme/theme1.xml | 1BDDFF52-6CD6-40A5-AB3C-68EB2F1E4D0A | Word theme/settings identifier inside a tracked .docx; not a credential
+openspec/changes/archive/2026-09-23-add-extraction-pipeline/proposal.md | corpus_test/out/ninox_log.json | names the prototype log file that used to live in corpus_test/out; not a corpus document
