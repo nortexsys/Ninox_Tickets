@@ -21,6 +21,7 @@ from pathlib import Path
 from deepagents import create_deep_agent
 from deepagents.backends import CompositeBackend, FilesystemBackend, LocalShellBackend
 from deepagents.middleware.filesystem import FilesystemPermission, _check_fs_permission
+from langchain.agents.middleware import ToolErrorMiddleware
 from langchain_core.tools import StructuredTool
 
 from agents.tools.sync_skills import BUILD, load_roles, sync
@@ -43,6 +44,17 @@ def lane_permissions(writes: list[str], denies: list[str] = ()) -> list[Filesyst
 def may_write(writes: list[str], path: str, denies: list[str] = ()) -> bool:
     """Whether a lane with these `writes`/`denies` may write `path` (repository-relative), by deepagents' own rule."""
     return _check_fs_permission(lane_permissions(writes, denies), "write", "/" + path.lstrip("/")) == "allow"
+
+
+def _tool_error_to_model(exc: Exception, request) -> str | None:
+    """A file tool asked for a path outside the worktree, or a missing one: tell the lane, don't crash.
+
+    deepagents 0.7.19 raises ValueError for a path outside the backend's root, and the ToolNode
+    re-raises it, which ended a 90-minute Spec run on 2026-09-26. Anything else still propagates."""
+    if isinstance(exc, (ValueError, OSError)):
+        return (f"`{request.tool_call['name']}` failed: {type(exc).__name__}: {exc}. Use a path relative to "
+                f"your worktree root (it starts with /), and stay inside the worktree.")
+    return None
 
 
 def shell_tool(worktree: Path, env: dict[str, str], timeout: int) -> StructuredTool:
@@ -84,6 +96,7 @@ def build_lane_agent(role: str, worktree: Path, model, *, system_prompt: str | N
         skills=[SKILLS_MOUNT],
         backend=backend,
         permissions=lane_permissions(spec.get("writes", []), spec.get("denies", [])),
+        middleware=[ToolErrorMiddleware(on_error=_tool_error_to_model)],
         checkpointer=checkpointer,
         name=f"paperdrop-{role}",
     )

@@ -128,6 +128,18 @@ def test_a_write_to_the_main_checkout_is_detected(tmp_path, monkeypatch):
     assert runner.main_checkout_state() != before
 
 
+def test_a_path_outside_the_worktree_is_an_error_message_not_a_crash(tmp_path):
+    # The exact shape that crashed the Spec lane on 2026-09-26: a virtual path carrying a drive letter.
+    outside = "/" + (tmp_path.parent / "elsewhere" / "analysis_options.yaml").as_posix()
+    call = AIMessage(content="", tool_calls=[{"name": "read_file", "args": {"file_path": outside}, "id": "c1"}])
+    agent = build_lane_agent("spec", tmp_path, Recorder(messages=iter([call, AIMessage(content="done")])),
+                             resync=False)
+    out = agent.invoke({"messages": [{"role": "user", "content": "read"}]})
+    tool_msg = [m for m in out["messages"] if m.type == "tool"][0]
+    assert "stay inside the worktree" in str(tool_msg.content)
+    assert out["messages"][-1].content == "done"
+
+
 def test_shell_runs_in_the_worktree_without_secrets(tmp_path, monkeypatch):
     monkeypatch.setenv("NINOX_DB_ID", "must-not-leak")
     probe = f'"{sys.executable}" -c "import os; print(os.environ.get(\'NINOX_DB_ID\', \'absent\'), os.getcwd())"'
