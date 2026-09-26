@@ -71,34 +71,41 @@ capability, it is a draft.
 - [ ] `openspec validate <change> --strict` passes.
 - [ ] The PO has approved it.
 
+Every `openspec` command in this project runs on the pinned version:
+`npx -y @fission-ai/openspec@1.13.2 <command>` (`project.md` §5).
+
 `openspec validate --strict` passing is necessary and not sufficient. It does not
-check that a scenario has a `WHEN`, and it does not check that a requirement is
-normative. See `project.md` §5 for the measured behaviour of the validator. Both
+check that a scenario has a `WHEN`, and it checks only that an upper-case SHALL or
+MUST appears somewhere in a requirement's body, not that it governs the mandatory
+behaviour. See `project.md` §5 for the measured behaviour of the validator. Both
 of those are caught by review or not at all.
 
 ### 4.1 Mandatory step after `openspec archive`
 
 `openspec archive <change> -y` consolidates the delta into
 `openspec/specs/<capability>/spec.md`, and **it keeps only the requirements**.
-Measured on the first capability rather than assumed:
+Measured on the first capability rather than assumed, under 1.4.1, and re-measured
+under the pinned 1.13.2 on 2026-09-26 with a throwaway capability created by a
+change:
 
-| What the delta had | What the archived spec keeps |
-| --- | --- |
-| `## Purpose` | **Replaced** with `TBD - created by archiving change <id>. Update Purpose after archive.` |
-| `### Requirement:` blocks, their scenarios and their `[Origen: …]` tags | **Kept**, intact |
-| `## Out of Scope` | **Dropped** |
-| `## Cross-Capability References` | **Dropped** |
-| `## Open Questions` | **Dropped** |
+| What the delta had | What the archived spec keeps — 1.13.2 (pinned) | 1.4.1 |
+| --- | --- | --- |
+| `## Purpose` | **Kept**, the real text. A Purpose under 50 characters draws a warning, and `validate --strict` reports it as too brief | **Replaced** with `TBD - created by archiving change <id>. Update Purpose after archive.` |
+| `### Requirement:` blocks, their scenarios and their `[Origen: …]` tags | **Kept**, intact | **Kept**, intact |
+| `## Out of Scope` | **Dropped** | **Dropped** |
+| `## Cross-Capability References` | **Dropped** | **Dropped** |
+| `## Open Questions` | **Dropped** | **Dropped** |
 
-So archiving a capability is **not the last step**. Immediately after it, restore
-the real `Purpose` and re-append the three dropped sections in
+So archiving a capability is **not the last step**. Immediately after it, check
+that the real `Purpose` is there (restore it if it is not) and re-append the three
+dropped sections in
 `openspec/specs/<capability>/spec.md`, taking them from the archived delta at
 `openspec/changes/archive/<date>-<change>/specs/<capability>/spec.md`. They are
 part of the living truth: `Out of Scope` defines the boundary,
 `Cross-Capability References` is how a reader reaches the neighbour that owns the
 other half of a split behaviour, and `Open Questions` is the capability's state.
 
-Restore them by editing the placeholder and appending — **never retype the
+Restore them by appending (and by editing the placeholder, if one is there) — **never retype the
 requirements section**, so the tool's own output for the requirement blocks is
 preserved byte for byte.
 

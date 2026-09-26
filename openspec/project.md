@@ -299,29 +299,49 @@ single `ADDED` block. The other operation blocks are supported for later use.
 
 ## 5. What `openspec validate --strict` actually enforces
 
-Measured against `@fission-ai/openspec@1.4.1` with two throwaway probes
-(`_convention-probe`, `_convention-negatives`), since a validator that accepts
-everything is worth nothing.
+**The project pins `@fission-ai/openspec@1.13.2`** (plan T0.1, approved by the PO
+on 2026-09-26). Always invoke it as `npx -y @fission-ai/openspec@1.13.2 <command>`;
+an unpinned `openspec` may be a different version with different rules. The reason
+for the pin is that 1.13.2 honours `skip_specs: true` in a change's
+`.openspec.yaml` and 1.4.1 does not (plan §8.1).
 
-| Rule | Enforced? |
-| --- | --- |
-| A requirement with no scenario at all | **Yes** — `ERROR: "<name>" must include at least one scenario` |
-| `### Scenario:` with three hashes | **Yes, indirectly** — not recognised as a scenario, so the requirement fails as having none |
-| Four-hash `#### Scenario:` | **Yes** — accepted |
-| Non-bold `GIVEN` / `WHEN` / `THEN` / `AND` bullets | **Accepted** — the BearingWorld style passes strict validation |
-| Bold `**WHEN**` / `**THEN**` bullets | **Accepted** |
-| A scenario with only `THEN` and no `WHEN` | **No** — passes silently |
-| A requirement whose **first line** carries no SHALL or MUST | **Yes** — `ERROR: "<name>" must contain SHALL or MUST` |
+Measured on 2026-09-26 against both versions, on a throwaway copy of `openspec/`
+outside the repository, with one positive probe, one negative probe and one probe
+per edge case, since a validator that accepts everything is worth nothing. The
+1.4.1 column reproduces the original measurement, which confirms the probes.
+
+| Rule | 1.13.2 (pinned) | 1.4.1 (before 2026-09-26) |
+| --- | --- | --- |
+| A requirement with no scenario at all | **Yes** — `ERROR: ADDED "<name>" must include at least one scenario` | **Yes**, same error |
+| `### Scenario:` with three hashes | **Yes, indirectly** — not recognised as a scenario, so the requirement fails as having none; an `INFO` line now names the ignored header | **Yes, indirectly**, without the `INFO` |
+| Four-hash `#### Scenario:` | **Accepted** | **Accepted** |
+| Non-bold `GIVEN` / `WHEN` / `THEN` / `AND` bullets | **Accepted** — the BearingWorld style passes strict validation | **Accepted** |
+| Bold `**WHEN**` / `**THEN**` bullets | **Accepted** | **Accepted** |
+| A scenario with only `THEN` and no `WHEN` | **No** — passes silently | **No** |
+| A requirement whose body carries no upper-case SHALL or MUST anywhere | **Yes under `--strict`** — reported as `WARNING: ... should contain SHALL or MUST`, and `--strict` turns the warning into a failure | **Yes** — `ERROR: ... must contain SHALL or MUST` |
+| A requirement whose SHALL is on line 2, not line 1 | **Accepted** — the whole body is read | **Rejected** — only line 1 is read |
+| Lower-case `shall` | **Not counted** — fails as above | **Not counted** |
+| A change with a proposal and no delta | **Fails** — `Change must have at least one delta` | **Fails**, same error |
+| The same change with `skip_specs: true` in `.openspec.yaml` | **Passes** — `INFO: ... zero deltas accepted` | **Fails** — the key is ignored |
+| `validate --all --strict` on the 12 living specs | **12 passed**, plus `INFO` notes on requirement text longer than 500 characters | **12 passed** |
 
 **Consequence.** The validator guarantees structural integrity — every requirement
-has at least one properly formed scenario, and a normative keyword on its first
-line — and guarantees nothing about whether a scenario is complete. That last row
-is enforced by review or not at all: a reviewer who relies on `validate --strict`
-alone will let an empty scenario through.
+has at least one properly formed scenario, and an upper-case normative keyword
+somewhere in its body — and guarantees nothing about whether a scenario is complete,
+or whether the keyword governs the behaviour that is actually mandatory. Those are
+enforced by review or not at all: a reviewer who relies on `validate --strict` alone
+will let an empty scenario through.
 
-**The first-line rule, and a correction to an earlier version of this table.** The
-validator reads **only the first line** of a requirement body as that requirement's
-text. Measured with `openspec change show <id> --json --deltas-only`:
+**The first-line rule applied to 1.4.1 only.** Under 1.13.2,
+`openspec change show <id> --json --deltas-only` returns the whole body as
+`requirement.text`, so the paragraphs below describe the behaviour of the previous
+version. They are kept because the 12 living specs were written and validated under
+it, which is why every one of them states its normative sentence on line 1. Keep
+doing so: it is the form that passes under both versions.
+
+**The first-line rule, and a correction to an earlier version of this table.** Under
+1.4.1, the validator read **only the first line** of a requirement body as that
+requirement's text. Measured with `openspec change show <id> --json --deltas-only`:
 `requirement.text` holds the first line and nothing after it. So a requirement
 whose normative statement begins on line 2 fails validation, and one whose first
 line happens to contain the word SHALL passes even if the rest of the body is not
@@ -344,7 +364,13 @@ No deltas found."* The proposal is reviewed **before** the spec is written, so a
 change is legitimately red between those two moments. That is not a defect to work
 around: validation belongs to the capability's definition of done
 (`AGENTS.md` §4), not to the review of its proposal. Do not add a placeholder spec
-file to make the red go away.
+file to make the red go away. Still true under 1.13.2.
+
+**`skip_specs: true` is for changes that alter no behaviour** — the
+implementation-only changes of plan §8.2. It is not a way to turn a behaviour change green
+before its delta is written: such a change stays red until its delta exists, as
+above. Under 1.13.2, `archive <change> -y` archives a `skip_specs` change without
+the `--skip-specs` flag.
 
 ---
 
