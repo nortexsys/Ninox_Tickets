@@ -112,6 +112,22 @@ def test_one_worktree_per_lane_on_its_change_branch(tmp_path, monkeypatch):
         runner.ensure_worktree("mobile", "Not_Kebab")
 
 
+def test_a_write_to_the_main_checkout_is_detected(tmp_path, monkeypatch):
+    from agents.lanes import runner
+    git("init", "-q", "-b", "main", cwd=tmp_path)
+    (tmp_path / "README.md").write_text("x")
+    git("add", ".", cwd=tmp_path)
+    git("commit", "-q", "-m", "base", cwd=tmp_path)
+    monkeypatch.setattr(runner, "REPO", tmp_path)
+    before = runner.main_checkout_state()
+    assert runner.main_checkout_state() == before
+    (tmp_path / "stray.txt").write_text("a lane's shell wrote here")
+    assert runner.main_checkout_state() != before
+    (tmp_path / "stray.txt").unlink()
+    (tmp_path / "README.md").write_text("edited")
+    assert runner.main_checkout_state() != before
+
+
 def test_shell_runs_in_the_worktree_without_secrets(tmp_path, monkeypatch):
     monkeypatch.setenv("NINOX_DB_ID", "must-not-leak")
     probe = f'"{sys.executable}" -c "import os; print(os.environ.get(\'NINOX_DB_ID\', \'absent\'), os.getcwd())"'

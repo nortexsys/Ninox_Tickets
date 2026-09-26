@@ -52,6 +52,8 @@ in a worktree that is your filesystem root and your shell's working directory.
 Rules, from AGENTS.md and CLAUDE.md — they override any skill:
 * Write only under: {writes}{denies}. Anything else is rejected at review, including files a shell
   command creates.
+* Your shell starts in your worktree: stay there. Never `cd` out of it, and never read or write the
+  main checkout or any other folder — everything you need is in your worktree.
 * Commit your work on your branch with git. Never push, never merge, never switch branches.
 * Never write to Ninox. Never use NINOX_DB_ID. Never print, log or commit a credential.
 * Everything you write is in English. Requirement identifiers are copied exactly, never invented.
@@ -111,6 +113,13 @@ def touched_files(worktree: Path, *, base: str = BASE) -> list[str]:
     changed = git("diff", "--name-only", merge_base, cwd=worktree).splitlines()
     untracked = git("ls-files", "--others", "--exclude-standard", cwd=worktree).splitlines()
     return sorted({p for p in changed + untracked if p})
+
+
+def main_checkout_state() -> str:
+    """Status and HEAD of the main checkout. A lane's shell is not confined to its worktree, so a run
+    compares this before and after: any difference not made by the orchestrator is a lane writing
+    where it must not."""
+    return git("rev-parse", "HEAD") + "\n" + git("status", "--porcelain", "--untracked-files=all")
 
 
 def check_bounds(role: str, worktree: Path, *, base: str = BASE) -> dict:
@@ -178,6 +187,7 @@ def run_lane(role: str, change: str, task: str | None, *, resume: bool = False,
     thread = f"{role}:{change}"
     CHECKPOINTS.parent.mkdir(parents=True, exist_ok=True)
     started = time.time()
+    main_before = main_checkout_state()
     with SqliteSaver.from_conn_string(str(CHECKPOINTS)) as saver:
         sync(data)
         agent = build_lane_agent(role, worktree, model, system_prompt=prompt, checkpointer=saver, resync=False,
@@ -185,6 +195,7 @@ def run_lane(role: str, change: str, task: str | None, *, resume: bool = False,
         payload = None if task is None else {"messages": [{"role": "user", "content": task}]}
         out = agent.invoke(payload, {"configurable": {"thread_id": thread}, "recursion_limit": recursion_limit})
     text = final_text(out["messages"])
+    main_changed = main_checkout_state() != main_before
     report = {
         "role": role, "change": change, "branch": branch, "worktree": str(worktree),
         "model": model_spec["id"], "model_substituted_from": model_from, "thread_id": thread, "resumed": resume,
@@ -192,7 +203,10 @@ def run_lane(role: str, change: str, task: str | None, *, resume: bool = False,
         **check_bounds(role, worktree, base=base),
         "commits": git("log", "--oneline", f"{base}..HEAD", cwd=worktree).splitlines(),
         "lane_report": lane_report_block(text), "final_message": text,
+        "main_checkout_changed": main_changed,
     }
+    if main_changed:  # also true if the orchestrator edited main meanwhile: it reads the diff and decides
+        report["verdict"] = "reject"
     report["path"] = str(write_report(report))
     return report
 
