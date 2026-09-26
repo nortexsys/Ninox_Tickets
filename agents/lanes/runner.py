@@ -158,14 +158,18 @@ def write_report(report: dict) -> Path:
 
 
 def run_lane(role: str, change: str, task: str | None, *, resume: bool = False,
-             allow_ninox_token: bool = False, base: str = BASE, recursion_limit: int = 400) -> dict:
+             allow_ninox_token: bool = False, base: str = BASE, recursion_limit: int = 400,
+             model_from: str | None = None) -> dict:
+    """`model_from` runs the lane on another role's model — a substitution the PO must know about;
+    the report names the model that actually ran. Skills, paths and prompt stay the lane's own."""
     from langgraph.checkpoint.sqlite import SqliteSaver
 
     data = load_roles()
     spec = data["roles"][role]
     if task is None and not resume:
         raise ValueError("a new run needs a task")
-    model = make_model(spec["model"])
+    model_spec = data["roles"][model_from]["model"] if model_from else spec["model"]
+    model = make_model(model_spec)
     worktree = ensure_worktree(role, change, base=base)
     branch = f"change/{change}"
     denies = f" — but never under: {', '.join(spec['denies'])}" if spec.get("denies") else ""
@@ -183,7 +187,7 @@ def run_lane(role: str, change: str, task: str | None, *, resume: bool = False,
     text = final_text(out["messages"])
     report = {
         "role": role, "change": change, "branch": branch, "worktree": str(worktree),
-        "model": spec["model"]["id"], "thread_id": thread, "resumed": resume,
+        "model": model_spec["id"], "model_substituted_from": model_from, "thread_id": thread, "resumed": resume,
         "seconds": round(time.time() - started, 1), "usage": token_usage(out["messages"]),
         **check_bounds(role, worktree, base=base),
         "commits": git("log", "--oneline", f"{base}..HEAD", cwd=worktree).splitlines(),
@@ -237,6 +241,7 @@ def main(argv: list[str] | None = None) -> int:
     g.add_argument("--task-file", type=Path)
     r.add_argument("--resume", action="store_true", help="continue the lane's checkpointed thread")
     r.add_argument("--allow-ninox-token", action="store_true", help="ninox lane only; needs the PO's approval")
+    r.add_argument("--model-from", choices=lanes, help="run on another lane's model (a substitution; recorded)")
     c = sub.add_parser("check", help="re-run the bounds check of a lane's worktree")
     c.add_argument("role", choices=lanes)
     c.add_argument("--change", required=True)
@@ -259,7 +264,8 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(report, indent=2))
         return 0 if report["verdict"] == "review" else 1
     task = a.task_file.read_text(encoding="utf-8") if a.task_file else a.task
-    report = run_lane(a.role, a.change, task, resume=a.resume, allow_ninox_token=a.allow_ninox_token)
+    report = run_lane(a.role, a.change, task, resume=a.resume, allow_ninox_token=a.allow_ninox_token,
+                      model_from=a.model_from)
     print(json.dumps({k: v for k, v in report.items() if k != "final_message"}, indent=2, ensure_ascii=False))
     return 0 if report["verdict"] == "review" else 1
 
