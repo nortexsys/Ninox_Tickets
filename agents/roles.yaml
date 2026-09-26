@@ -91,7 +91,9 @@ roles:
 
   qa:
     runtime: langgraph
-    # Anthropic's published id. Not yet confirmed by the API: ANTHROPIC_API_KEY answered 401 on 2026-09-26.
+    # Confirmed by a live call on 2026-09-26 (smoke test), with a key scoped to the `Default`
+    # workspace. An organisation-scoped key answers 400: langchain-anthropic does not send the
+    # anthropic-workspace-id header that such a key requires.
     model: {name: "Sonnet 5", provider: anthropic, id: "claude-sonnet-5", api_key_env: ANTHROPIC_API_KEY}
     skills:
       - ninox                      # verifies the Ninox lane against the verified contract
