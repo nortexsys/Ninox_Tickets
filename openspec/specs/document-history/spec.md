@@ -8,8 +8,8 @@ nothing on the device would say which records the app had been unsure about. His
 is therefore a first-class surface, not a convenience view.
 
 It is also where the document **state machine** lives. The states are not labels.
-`queued`, `uncertain` and `failed` are three different situations â€” waiting, genuinely
-unknown, and known to have failed â€” and collapsing them is how a create whose response
+`queued`, `uncertain` and `failed` are three different situations — waiting, genuinely
+unknown, and known to have failed — and collapsing them is how a create whose response
 was lost gets retried and duplicated. `capture-intake` and `ninox-send` drive
 transitions of a machine that is defined here.
 
@@ -23,13 +23,13 @@ criteria produce belongs to `review-screen`; the criteria belong here.
 ### Requirement: content-of-a-history-entry
 
 Every capture SHALL produce a local history entry holding the thumbnail, the extracted values **with their provenance**, the destination, the state, the confidence, the document hash, and the Ninox record identifier once sent.
-[Origen: Funcional Â§4.8 FR-HIS-001; PDR Â§7.5; Funcional Â§6.3]
+[Origen: Funcional §4.8 FR-HIS-001; PDR §7.5; Funcional §6.3]
 
 #### Scenario: all eight items are present
 
 - GIVEN a completed capture
 - WHEN its history entry is opened
-- THEN the thumbnail, the values, the destination, the state, the confidence, the hash and â€” once sent â€” the record identifier are all present
+- THEN the thumbnail, the values, the destination, the state, the confidence, the hash and — once sent — the record identifier are all present
 
 #### Scenario: provenance is visible locally though it is never sent
 
@@ -42,8 +42,8 @@ Every capture SHALL produce a local history entry holding the thumbnail, the ext
 
 ### Requirement: document-states
 
-A history entry SHALL carry exactly one state of `pending`, `queued`, `extracting`, `reviewing`, `sending`, `uncertain`, `sent`, `failed` or `duplicate-flagged`, and its transitions SHALL be those of the state machine in Â§6.2.3 of the functional.
-[Origen: Funcional Â§4.8 FR-HIS-002; Funcional Â§6.2.3 (the document state machine); PDR Â§7.5]
+A history entry SHALL carry exactly one state of `pending`, `queued`, `extracting`, `reviewing`, `sending`, `uncertain`, `sent`, `failed` or `duplicate-flagged`, and its transitions SHALL be those of the state machine in §6.2.3 of the functional.
+[Origen: Funcional §4.8 FR-HIS-002; Funcional §6.2.3 (the document state machine); PDR §7.5]
 
 #### Scenario: an offline save is queued, not failed
 
@@ -77,7 +77,7 @@ A history entry SHALL carry exactly one state of `pending`, `queued`, `extractin
 ### Requirement: correction-and-re-send
 
 From a history entry the user SHALL be able to correct values and re-send, and the result SHALL be an update of the same record rather than a new one.
-[Origen: Funcional Â§4.8 FR-HIS-003; PDR Â§7.5, Â§9.1]
+[Origen: Funcional §4.8 FR-HIS-003; PDR §7.5, §9.1]
 
 #### Scenario: a correction updates rather than duplicates
 
@@ -98,7 +98,7 @@ From a history entry the user SHALL be able to correct values and re-send, and t
 ### Requirement: file-retention
 
 Local document images SHALL be deleted once a send is confirmed, since the document is in Ninox by then, and SHALL be retained while an item is pending or failed.
-[Origen: Funcional Â§4.8 FR-HIS-004; PDR Â§7.5; Funcional Â§6.3]
+[Origen: Funcional §4.8 FR-HIS-004; PDR §7.5; Funcional §6.3]
 
 #### Scenario: a confirmed send releases the local file
 
@@ -125,7 +125,7 @@ Local document images SHALL be deleted once a send is confirmed, since the docum
 ### Requirement: history-is-the-uncertainty-trace
 
 History SHALL be treated as a first-class surface rather than an optional extra, because mapping the review metadata is optional and a user who mapped nothing has no other way to see which records were uncertain.
-[Origen: Funcional Â§4.8 FR-HIS-005; PDR Â§7.5]
+[Origen: Funcional §4.8 FR-HIS-005; PDR §7.5]
 
 #### Scenario: confidence survives the send with nothing mapped
 
@@ -145,7 +145,7 @@ History SHALL be treated as a first-class surface rather than an optional extra,
 ### Requirement: duplicate-criteria
 
 A document SHALL be flagged as a duplicate when its hash matches an earlier send, or when supplier, date and total together match one, and the check SHALL run against local history before a save.
-[Origen: Funcional Â§4.12 FR-DUP-001; PDR Â§7.2; Funcional Â§5 BR-15; ADR-013]
+[Origen: Funcional §4.12 FR-DUP-001; PDR §7.2; Funcional §5 BR-15; ADR-013]
 
 #### Scenario: the same file captured twice matches on hash
 
@@ -195,20 +195,20 @@ A document SHALL be flagged as a duplicate when its hash matches an earlier send
 
 ## Cross-Capability References
 
-- `ninox-send` â€” drives every transition of the state machine defined here, and owns
+- `ninox-send` — drives every transition of the state machine defined here, and owns
   the reconciliation that resolves `uncertain`. The record identifier this capability
   stores is what makes `correction-and-re-send` an update rather than a duplicate.
-- `capture-intake` â€” requires that an offline save queues rather than fails, which is
+- `capture-intake` — requires that an offline save queues rather than fails, which is
   this capability's `queued` state.
-- `review-screen` â€” owns the duplicate notice, the link to the existing record and the
+- `review-screen` — owns the duplicate notice, the link to the existing record and the
   permission to proceed (FR-REV-007, FR-DUP-002), and presents the duplicate-flag state
   this capability determines.
-- `destinations-mapping` â€” owns `never-write-an-unmapped-field`, which is the reason
+- `destinations-mapping` — owns `never-write-an-unmapped-field`, which is the reason
   the duplicate check is read-side.
-- `validation-confidence` â€” owns the confidence this capability stores as a property of
+- `validation-confidence` — owns the confidence this capability stores as a property of
   an entry.
-- `extraction-pipeline` â€” owns the provenance this capability stores without sending it.
-- `local-config-privacy` â€” owns clearing local data and the configuration export, and
+- `extraction-pipeline` — owns the provenance this capability stores without sending it.
+- `local-config-privacy` — owns clearing local data and the configuration export, and
   `supplier-memory` owns the other local store.
 
 ---
@@ -223,10 +223,10 @@ A document SHALL be flagged as a duplicate when its hash matches an earlier send
 - **Settled before writing.** FR-DUP-002 describes the review screen's notice, link and
   permission to proceed, which is the same behaviour as FR-REV-007. Both are left to
   `review-screen` and this capability keeps the criteria, the check and the
-  `duplicate-flagged` state â€” because the criteria depend on local history, while the
+  `duplicate-flagged` state — because the criteria depend on local history, while the
   notice depends on the review screen. The correction is recorded in
-  `openspec/project.md` Â§3.1.
-- **The transitions themselves are referenced, not restated.** Â§6.2.3 of the functional
+  `openspec/project.md` §3.1.
+- **The transitions themselves are referenced, not restated.** §6.2.3 of the functional
   holds the state machine's transition table. Reproducing it here would create a second
   copy to drift; `document-states` requires that the transitions are that table's and
   names where it lives.

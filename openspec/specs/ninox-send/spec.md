@@ -3,7 +3,7 @@
 ## Purpose
 A create whose response is lost in a timeout is the most expensive failure this product
 can have. The record may exist or it may not, the app cannot tell, and the obvious
-instinct â€” retry â€” is precisely what writes a duplicate into someone's accounting. The
+instinct — retry — is precisely what writes a duplicate into someone's accounting. The
 answer is not a retry policy but a **reconciliation**, and where the evidence is
 genuinely ambiguous the app asks the user instead of guessing.
 
@@ -11,7 +11,7 @@ A second trap points the other way. An HTTP 500 from this API does not mean the 
 is unwell: it is what an invalid or read-only field name returns. A client that reads 500
 as an outage and retries forever will hammer the API over its own mapping mistake and
 never mention it. That is why the retry behaviour is stated as a **matrix** of eleven
-conditions rather than as guidance â€” the intuitive answer is wrong for at least four of
+conditions rather than as guidance — the intuitive answer is wrong for at least four of
 them, and nobody classifies eleven failure modes correctly at the moment of failure.
 
 Third, the record is read back, and the **read-back is what the user is shown**. Fields
@@ -23,8 +23,8 @@ something the app cannot vouch for.
 ## Requirements
 ### Requirement: create-attach-read-back
 
-A send SHALL be three steps â€” create the record, attach the document to it, read the record back â€” and the confirmation SHALL present the read-back values as what is actually stored rather than what was sent.
-[Origen: Funcional Â§4.7 FR-SND-001; Funcional Â§5 BR-18; PDR Â§9; ADR-004; Annex A (read after create)]
+A send SHALL be three steps — create the record, attach the document to it, read the record back — and the confirmation SHALL present the read-back values as what is actually stored rather than what was sent.
+[Origen: Funcional §4.7 FR-SND-001; Funcional §5 BR-18; PDR §9; ADR-004; Annex A (read after create)]
 
 #### Scenario: the confirmation shows stored values
 
@@ -50,7 +50,7 @@ A send SHALL be three steps â€” create the record, attach the document to i
 ### Requirement: payload-shape
 
 Records SHALL be written as a nested object under a `fields` key keyed by field name, dates SHALL be sent as `YYYY-MM-DD` and stored verbatim, amounts SHALL be sent as integers in the currency's minor unit and rates as integers in basis points, and the document SHALL never be a mapping target.
-[Origen: Funcional Â§4.7 FR-SND-002; Funcional Â§5 BR-22; ADR-004, ADR-016; Annex A (payload shape and dates)]
+[Origen: Funcional §4.7 FR-SND-002; Funcional §5 BR-22; ADR-004, ADR-016; Annex A (payload shape and dates)]
 
 #### Scenario: a payload round-trips without a float
 
@@ -77,7 +77,7 @@ Records SHALL be written as a nested object under a `fields` key keyed by field 
 ### Requirement: attachment-upload
 
 The document SHALL be attached with a single multipart call to the record's files endpoint returning HTTP 200, and the app SHALL be able to read the attachment back with its name, size and content type.
-[Origen: Funcional Â§4.7 FR-SND-003; ADR-004; Annex A (attachment upload)]
+[Origen: Funcional §4.7 FR-SND-003; ADR-004; Annex A (attachment upload)]
 
 #### Scenario: the upload succeeds and is readable
 
@@ -98,7 +98,7 @@ The document SHALL be attached with a single multipart call to the record's file
 ### Requirement: the-retry-matrix
 
 Send errors SHALL be handled per the matrix below and in no other way.
-[Origen: Funcional Â§4.7 FR-SND-004; Funcional Â§9.1, Â§9.3; PDR Â§9.1; ADR-004, ADR-013; Annex A (retry policy and error shape)]
+[Origen: Funcional §4.7 FR-SND-004; Funcional §9.1, §9.3; PDR §9.1; ADR-004, ADR-013; Annex A (retry policy and error shape)]
 
 | Condition | Behaviour |
 | --- | --- |
@@ -163,7 +163,7 @@ Send errors SHALL be handled per the matrix below and in no other way.
 ### Requirement: reconciliation-of-an-uncertain-create
 
 A create whose response was lost SHALL enter the `uncertain` state and trigger a read-side reconciliation against the destination table's most recently created records, using `createdAt` and `createdBy` and the mapped fields within a short time window: exactly one match adopts that record, no match creates one, and ambiguity asks the user because the app never guesses.
-[Origen: Funcional Â§4.7 FR-SND-005; Funcional Â§5 BR-21; PDR Â§9.1; ADR-013; Finding 1]
+[Origen: Funcional §4.7 FR-SND-005; Funcional §5 BR-21; PDR §9.1; ADR-013; Finding 1]
 
 #### Scenario: the POST landed but the response was lost
 
@@ -200,7 +200,7 @@ A create whose response was lost SHALL enter the `uncertain` state and trigger a
 ### Requirement: deep-link-back-to-the-record
 
 After a successful send the confirmation SHALL offer a link to open the record in Ninox built entirely from data the app already holds, with no additional API call and no credentials, and the button SHALL degrade to opening the database if the URL structure no longer resolves.
-[Origen: Funcional Â§4.7 FR-SND-006; PDR Â§9.2; ADR-008; Funcional Â§2.4 contract line 3]
+[Origen: Funcional §4.7 FR-SND-006; PDR §9.2; ADR-008; Funcional §2.4 contract line 3]
 
 #### Scenario: the record opens
 
@@ -220,7 +220,7 @@ After a successful send the confirmation SHALL offer a link to open the record i
 ### Requirement: automations-may-run-and-the-read-back-is-the-visibility
 
 The app SHALL treat creating a record as an action that may trigger automations inside the user's Ninox database which the API does not expose, and the user-facing documentation SHALL say so.
-[Origen: Funcional Â§4.7 FR-SND-007; ADR-004 (note); Annex A (note)]
+[Origen: Funcional §4.7 FR-SND-007; ADR-004 (note); Annex A (note)]
 
 #### Scenario: the documentation carries the admission
 
@@ -239,7 +239,7 @@ The app SHALL treat creating a record as an action that may trigger automations 
 ### Requirement: updates-are-merges
 
 A correction or a retry SHALL send only what changed, so that fields not sent are preserved and a failed attachment can be retried without touching the record.
-[Origen: Funcional Â§4.7 FR-SND-008; ADR-004; Annex A (updates are merges); PDR Â§9.1]
+[Origen: Funcional §4.7 FR-SND-008; ADR-004; Annex A (updates are merges); PDR §9.1]
 
 #### Scenario: a correction leaves the rest untouched
 
@@ -280,18 +280,18 @@ A correction or a retry SHALL send only what changed, so that fields not sent ar
 
 ## Cross-Capability References
 
-- `destinations-mapping` â€” resolves the destination this capability sends to and owns
+- `destinations-mapping` — resolves the destination this capability sends to and owns
   Annex A's mapping-facing rows. The split of Annex A between the two capabilities is
-  recorded in `openspec/project.md` Â§3.1.
-- `validation-confidence` â€” decides which values may be written and what absent means at
+  recorded in `openspec/project.md` §3.1.
+- `validation-confidence` — decides which values may be written and what absent means at
   the destination; this capability transports the decision.
-- `extraction-pipeline` â€” produces the values and the provenance, and fixes stages 5 to 7
+- `extraction-pipeline` — produces the values and the provenance, and fixes stages 5 to 7
   of the pipeline order that this capability performs.
-- `document-history` â€” defines the state machine this capability drives, and stores the
+- `document-history` — defines the state machine this capability drives, and stores the
   record identifier the create returns.
-- `capture-intake` â€” produces the file this capability attaches, and owns byte integrity,
+- `capture-intake` — produces the file this capability attaches, and owns byte integrity,
   which is why an attachment can be retried without re-deriving it.
-- `product-invariants` â€” owns BR-16, never touch schema or records the app did not
+- `product-invariants` — owns BR-16, never touch schema or records the app did not
   create, which bounds the reconciliation to the app's own recently created records, and
   BR-21's prohibition on a blind retry.
 
@@ -299,18 +299,18 @@ A correction or a retry SHALL send only what changed, so that fields not sent ar
 
 ## Open Questions
 
-- **GAP-004** â€” Annex A's still-open upload points: the maximum file size, a multi-page
+- **GAP-004** — Annex A's still-open upload points: the maximum file size, a multi-page
   PDF near that limit, a choice field written with text matching none of its options, and
   real upload timings from the primary market rather than from a cloud container. This
-  capability contains what it can â€” the attachment is retried alone, and a created record
-  with a failed attachment is never treated as done â€” and states no threshold it cannot
+  capability contains what it can — the attachment is retried alone, and a created record
+  with a failed attachment is never treated as done — and states no threshold it cannot
   test.
-- **GAP-005** â€” a choice field written with text outside its options. Contained by
+- **GAP-005** — a choice field written with text outside its options. Contained by
   `destinations-mapping` offering only existing options; the residual case is open.
-- **GAP-008** â€” the deep link is not a published vendor contract, which is exactly why
+- **GAP-008** — the deep link is not a published vendor contract, which is exactly why
   `deep-link-back-to-the-record` requires degradation to opening the database rather than
   an error.
-- **GAP-009** â€” the formula-field contrast's blind spot. Neither the read-back nor the
+- **GAP-009** — the formula-field contrast's blind spot. Neither the read-back nor the
   reconciliation window closes it: it does not catch a total misread and then used to
   derive its own components, because the formula reproduces the error.
 - **A note on why the matrix is a matrix.** The eleven conditions have different correct

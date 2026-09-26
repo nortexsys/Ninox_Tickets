@@ -2,7 +2,7 @@
 
 ## Purpose
 This is the product's central claim written as behaviour. Paperdrop does not trust a
-reading â€” it establishes one deterministically from other things it read. That claim
+reading — it establishes one deterministically from other things it read. That claim
 is only true if three conditions hold, and the 16-document test showed that none of
 them holds by accident.
 
@@ -10,7 +10,7 @@ First, a check must know **where its operands came from**. Nine of the ten recor
 the test reported as arithmetically verified had derived the base from the total and
 then checked that the parts add up; with a total misread as 19,98 the breakdown comes
 out 16,51 + 3,47 and with the real 19,99 it comes out 16,52 + 3,47. Both add up. So
-provenance â€” produced by `extraction-pipeline` and consumed here â€” is not metadata:
+provenance — produced by `extraction-pipeline` and consumed here — is not metadata:
 it is the mechanism that decides whether a check confirms anything.
 
 Second, a value with **nothing to cross against** must not be presented as certain,
@@ -34,7 +34,7 @@ where two values each read independently agree through an identity (strong);
 value** (weak). Only the first SHALL be shown green with a lock, the other two SHALL
 be amber, and an amount with no independent figure to cross against SHALL never be
 green however cleanly it was read.
-[Origen: Funcional Â§4.3 FR-VAL-001; Funcional Â§5 BR-04; PDR Â§6; Finding 5]
+[Origen: Funcional §4.3 FR-VAL-001; Funcional §5 BR-04; PDR §6; Finding 5]
 
 #### Scenario: redundancy makes a total green
 
@@ -62,7 +62,7 @@ green however cleanly it was read.
 A check that consumes a value SHALL raise the confidence state only if **every**
 operand feeding it has provenance `read` or `from_xml`, and a check built from a
 derived operand SHALL confirm nothing.
-[Origen: Funcional Â§4.3 FR-VAL-002; Funcional Â§5 BR-02, BR-05; PDR Â§6.1; ADR-019; 16-document test]
+[Origen: Funcional §4.3 FR-VAL-002; Funcional §5 BR-02, BR-05; PDR §6.1; ADR-019; 16-document test]
 
 #### Scenario: a derived breakdown leaves the total amber
 
@@ -90,7 +90,7 @@ derived operand SHALL confirm nothing.
 
 A green value SHALL be editable only after the user taps its lock icon, and amber and
 red values SHALL be directly editable.
-[Origen: Funcional Â§4.3 FR-VAL-003; PDR Â§6]
+[Origen: Funcional §4.3 FR-VAL-003; PDR §6]
 
 #### Scenario: a locked value does not open its editor
 
@@ -116,7 +116,7 @@ red values SHALL be directly editable.
 
 The numeric recognition score SHALL never be displayed to the user. It SHALL be
 stored locally, and written to Ninox only if the user explicitly mapped it.
-[Origen: Funcional Â§4.3 FR-VAL-004; PDR Â§6]
+[Origen: Funcional §4.3 FR-VAL-004; PDR §6]
 
 #### Scenario: no decimal score appears on any screen
 
@@ -137,7 +137,7 @@ stored locally, and written to Ninox only if the user explicitly mapped it.
 The validation layer SHALL implement a check-digit validator for every identifier
 type the country table declares, and each validator SHALL be accepted only when it
 reproduces the standard valid and invalid test vectors for its identifier type.
-[Origen: Funcional Â§4.3 FR-VAL-005; PDR Â§10; ADR-005; Annex B]
+[Origen: Funcional §4.3 FR-VAL-005; PDR §10; ADR-005; Annex B]
 
 #### Scenario: each validator is accepted against vectors
 
@@ -165,10 +165,10 @@ reproduces the standard valid and invalid test vectors for its identifier type.
 
 The validation layer SHALL evaluate, in integer minor units, that the sum of printed
 bases equals the net total, that the sum of printed tax amounts equals the tax total,
-and that net plus tax plus any printed rounding equals the gross total â€” with
-**exact integer equality and no tolerance** â€” while `base Ã— rate â‰ˆ tax` SHALL carry a
+and that net plus tax plus any printed rounding equals the gross total — with
+**exact integer equality and no tolerance** — while `base × rate ≈ tax` SHALL carry a
 tolerance of at most one minor unit per tax line.
-[Origen: Funcional Â§4.3 FR-VAL-006; Funcional Â§5 BR-09 (the tolerance half); ADR-016; PDR Â§6; Annex D]
+[Origen: Funcional §4.3 FR-VAL-006; Funcional §5 BR-09 (the tolerance half); ADR-016; PDR §6; Annex D]
 
 #### Scenario: printed values must be exactly equal
 
@@ -185,7 +185,7 @@ tolerance of at most one minor unit per tax line.
 
 #### Scenario: the single tolerance is where it is allowed to be
 
-- GIVEN a line where `base Ã— rate` differs from the printed tax
+- GIVEN a line where `base × rate` differs from the printed tax
 - WHEN it is evaluated
 - THEN a difference of at most one minor unit is admitted
 - AND no other check in the product admits any tolerance at all
@@ -196,7 +196,7 @@ tolerance of at most one minor unit per tax line.
 
 Any tax rate used by the pipeline SHALL be checked against the detected country's
 legal rate set and SHALL be rejected when it is not legal for that country.
-[Origen: Funcional Â§4.3 FR-VAL-007; Funcional Â§5 BR-08 (first half); ADR-005, ADR-019; Annex B]
+[Origen: Funcional §4.3 FR-VAL-007; Funcional §5 BR-08 (first half); ADR-005, ADR-019; Annex B]
 
 #### Scenario: an illegal rate is rejected
 
@@ -215,7 +215,7 @@ legal rate set and SHALL be rejected when it is not legal for that country.
 ### Requirement: repair-to-the-only-consistent-value
 
 Where a reading fails a check digit and exactly one replacement of the offending character makes it pass, the app SHALL apply that repair, tag the value `repaired`, and present it amber with the repair visible, because the repair is correct only if every other character was read correctly. A reading with two admissible repairs SHALL not be repaired.
-[Origen: Funcional Â§4.3 FR-VAL-008; PDR Â§6, Â§1.1; Annex D]
+[Origen: Funcional §4.3 FR-VAL-008; PDR §6, §1.1; Annex D]
 
 #### Scenario: the unique repair is applied and shown
 
@@ -239,7 +239,7 @@ Where a reading fails a check digit and exactly one replacement of the offending
 Currency SHALL hold a confidence state separate from that of any amount, and a
 currency that cannot be sustained from evidence SHALL suppress the writing of amounts
 rather than allow a wrong-currency figure to be written.
-[Origen: Funcional Â§4.3 FR-VAL-009; Funcional Â§5 BR-12; PDR Â§6 (v0.2); Finding 3; 16-document test]
+[Origen: Funcional §4.3 FR-VAL-009; Funcional §5 BR-12; PDR §6 (v0.2); Finding 3; 16-document test]
 
 #### Scenario: an unsustained currency suppresses the amounts
 
@@ -269,7 +269,7 @@ rather than allow a wrong-currency figure to be written.
 carry no check digit and each recognition pass produces a different variant, and
 `supplier_name` SHALL be presentable as confirmed only when the supplier memory
 supplies it from an identifier that passed its check digit.
-[Origen: Funcional Â§4.3 FR-VAL-010; Funcional Â§5 BR-10, BR-11; PDR Â§6.2, Â§11; ADR-009]
+[Origen: Funcional §4.3 FR-VAL-010; Funcional §5 BR-10, BR-11; PDR §6.2, §11; ADR-009]
 
 #### Scenario: no document number is ever green
 
@@ -300,12 +300,12 @@ supplies it from an identifier that passed its check digit.
 
 ### Requirement: tax-slots
 
-The model SHALL carry one slot per printed tax rate â€” a `tax_rate` / `tax_base` /
-`tax_amount` triplet â€” with the number of slots declared by the country table, and
+The model SHALL carry one slot per printed tax rate — a `tax_rate` / `tax_base` /
+`tax_amount` triplet — with the number of slots declared by the country table, and
 slots that do not apply SHALL stay empty. Each slot SHALL map independently, all
 SHALL be optional, and `tax_total` SHALL be the sum of the printed tax amounts and
 never a value computed from the gross total and an assumed rate.
-[Origen: Funcional Â§4.3 FR-VAL-011; PDR Â§5.3; ADR-005; Annex B]
+[Origen: Funcional §4.3 FR-VAL-011; PDR §5.3; ADR-005; Annex B]
 
 #### Scenario: two printed rates occupy two slots and leave a third empty
 
@@ -330,7 +330,7 @@ A value not printed SHALL NOT be treated as a zero, and whether "not printed" me
 empty field or a contractual zero SHALL be a per-field property of the destination
 mapping chosen by the user. The app SHALL never hardcode either behaviour, and the
 default SHALL be to write empty.
-[Origen: Funcional Â§4.3 FR-VAL-012; Funcional Â§5 BR-13; PDR Â§7.3, Â§6; 16-document test, record 1414]
+[Origen: Funcional §4.3 FR-VAL-012; Funcional §5 BR-13; PDR §7.3, §6; 16-document test, record 1414]
 
 #### Scenario: the destination setting decides and nothing else changes
 
@@ -360,7 +360,7 @@ default SHALL be to write empty.
 The validation layer SHALL check dates for coherence, and where the document's own
 evidence does not decide between two readings of a date SHALL flag it as ambiguous
 rather than silently assume one.
-[Origen: Funcional Â§4.3 FR-VAL-013; PDR Â§10, Â§5.1; ADR-005]
+[Origen: Funcional §4.3 FR-VAL-013; PDR §10, §5.1; ADR-005]
 
 #### Scenario: an unambiguous date is read
 
@@ -388,7 +388,7 @@ rather than silently assume one.
 A value SHALL be presented as confirmed only when a deterministic constraint
 establishes it from values that were themselves read and not derived by assumption,
 and the app SHALL prefer admitting doubt to guessing convincingly.
-[Origen: Funcional Â§4.3 FR-VAL-014; Funcional Â§5 BR-01; PDR Â§4; Funcional Â§2.4 contract line 4]
+[Origen: Funcional §4.3 FR-VAL-014; Funcional §5 BR-01; PDR §4; Funcional §2.4 contract line 4]
 
 #### Scenario: this requirement holds when its three parts hold
 
@@ -409,7 +409,7 @@ and the app SHALL prefer admitting doubt to guessing convincingly.
 When the app cannot sustain a value it SHALL write nothing rather than a
 plausible-looking number, and this SHALL be the default behaviour rather than a
 fallback.
-[Origen: Funcional Â§5 BR-03; PDR Â§4; 16-document test]
+[Origen: Funcional §5 BR-03; PDR §4; 16-document test]
 
 #### Scenario: an unsustained amount is written as nothing
 
@@ -452,7 +452,7 @@ fallback.
 - **How a state is drawn.** The colour, the lock icon, the field order and the collapse
   rules are `review-screen`'s. This capability fixes what each state means and what may
   be shown as confirmed.
-- **The numeric threshold for the photo route's accuracy.** Â§10.5 defers it to the
+- **The numeric threshold for the photo route's accuracy.** §10.5 defers it to the
   first corpus screening (GAP-003), and neither this spec nor
   `extraction-pipeline` states one.
 - **Storing the supplier memory.** `supplier-memory` owns the store, its indexing
@@ -463,30 +463,30 @@ fallback.
 
 ## Cross-Capability References
 
-- `extraction-pipeline` â€” produces every value and its provenance tag, and owns the
+- `extraction-pipeline` — produces every value and its provenance tag, and owns the
   read-before-derive rule and the derive-by-identity boundary whose consequences this
   capability evaluates. Provenance is this capability's input and cannot be produced
   here.
-- `countries-languages` â€” owns the check-digit algorithms, the legal rate sets per
+- `countries-languages` — owns the check-digit algorithms, the legal rate sets per
   country, the declared slot count and the format-inference algorithm. This capability
   owns that the checks run and what their outcome means.
-- `review-screen` â€” renders the state this capability determines, and owns the lock
+- `review-screen` — renders the state this capability determines, and owns the lock
   affordance, the field order and the collapse rules.
-- `destinations-mapping` â€” owns the per-field absent-versus-zero setting and the write
+- `destinations-mapping` — owns the per-field absent-versus-zero setting and the write
   path that consumes the final decision, plus the formula-field contrast.
-- `supplier-memory` â€” owns the store whose contents are the only way a supplier name
+- `supplier-memory` — owns the store whose contents are the only way a supplier name
   may reach green.
-- `ninox-send` â€” owns writing the values and reading them back.
+- `ninox-send` — owns writing the values and reading them back.
 
 ---
 
 ## Open Questions
 
-- **GAP-003** â€” the acceptance thresholds for product metrics are deferred to the first
+- **GAP-003** — the acceptance thresholds for product metrics are deferred to the first
   corpus screening, and **GAP-001** (ADR-010, the recognition engine) is what the
   screening waits on. No requirement in this capability states a numeric threshold, so
   neither gap blocks it.
-- **GAP-009** â€” the formula-field contrast has a known blind spot and does not catch a
+- **GAP-009** — the formula-field contrast has a known blind spot and does not catch a
   total misread and then used to derive its own components. That is why
   `a-check-confirms-only-if-every-operand-was-read` is written as a rule about
   provenance rather than as a rule about contrasts: the contrast is a second-line check
@@ -494,11 +494,11 @@ fallback.
 - **Settled before writing.** Whether the supplier-memory half of
   `what-never-reaches-green` belongs here or in `supplier-memory`: it is here, because
   it is a statement about what may be shown as confirmed, while `supplier-memory` owns
-  the store and its safeguard. Recorded in `openspec/project.md` Â§3.3 so that
+  the store and its safeguard. Recorded in `openspec/project.md` §3.3 so that
   `supplier-memory` references it rather than restating it.
 - **A note on record 1414.** The product owner overruled both the consultant and an
   earlier internal reading on that record: a card-terminal slip whose VAT column
   received `0,00` was correct, because the column is *deductible VAT* and a slip that
   prints no breakdown justifies deducting nothing. That verdict is the origin of
-  `absent-is-not-zero`'s third scenario, and the general principle it overrides â€” that
-  an unknown value is never a zero â€” survives as the default in the second scenario.
+  `absent-is-not-zero`'s third scenario, and the general principle it overrides — that
+  an unknown value is never a zero — survives as the default in the second scenario.

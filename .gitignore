@@ -53,7 +53,8 @@ phone-harness/.env
 # credencial. Ninguno se publica mientras no se sanee su contenido.
 # Los ejemplos trabajados que sí interesan están ya recogidos como ejemplos
 # sintéticos en el Anexo D del Funcional v1.0.
-tools/
+# Anchored to the root: an unanchored `tools/` also ignored `agents/tools/`.
+/tools/
 sql/
 
 # === 4. Flutter / Dart — la app del ADR-001 ===============================
@@ -89,3 +90,9 @@ desktop.ini
 # Los worktrees de agentes duplican el árbol completo, corpus incluido.
 .claude/worktrees/
 .claude/settings.local.json
+
+# Copias por rol de los skills, generadas por `agents/tools/sync_skills.py` desde
+# `agents/skills/`. Se regeneran en cada arranque de un carril; no se versionan.
+# `.claude/skills/` (el subconjunto del orquestador) sí se versiona: Claude Code
+# lo descubre al abrir la sesión, antes de que se pueda ejecutar nada.
+agents/.build/
