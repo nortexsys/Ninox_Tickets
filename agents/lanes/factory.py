@@ -28,17 +28,21 @@ from agents.tools.sync_skills import BUILD, load_roles, sync
 SKILLS_MOUNT = "/skills/"
 
 
-def lane_permissions(writes: list[str]) -> list[FilesystemPermission]:
-    return [
-        FilesystemPermission(operations=["write"], paths=[SKILLS_MOUNT + "**"], mode="deny"),
+def lane_permissions(writes: list[str], denies: list[str] = ()) -> list[FilesystemPermission]:
+    """First match wins: skills are read-only, then the role's `denies`, then its `writes`, then nothing."""
+    rules = [FilesystemPermission(operations=["write"], paths=[SKILLS_MOUNT + "**"], mode="deny")]
+    if denies:
+        rules.append(FilesystemPermission(operations=["write"], paths=list(denies), mode="deny"))
+    rules += [
         FilesystemPermission(operations=["write"], paths=list(writes), mode="allow"),
         FilesystemPermission(operations=["write"], paths=["/**"], mode="deny"),
     ]
+    return rules
 
 
-def may_write(writes: list[str], path: str) -> bool:
-    """Whether a lane with these `writes` may write `path` (repository-relative), by deepagents' own rule."""
-    return _check_fs_permission(lane_permissions(writes), "write", "/" + path.lstrip("/")) == "allow"
+def may_write(writes: list[str], path: str, denies: list[str] = ()) -> bool:
+    """Whether a lane with these `writes`/`denies` may write `path` (repository-relative), by deepagents' own rule."""
+    return _check_fs_permission(lane_permissions(writes, denies), "write", "/" + path.lstrip("/")) == "allow"
 
 
 def shell_tool(worktree: Path, env: dict[str, str], timeout: int) -> StructuredTool:
@@ -79,7 +83,7 @@ def build_lane_agent(role: str, worktree: Path, model, *, system_prompt: str | N
         system_prompt=system_prompt,
         skills=[SKILLS_MOUNT],
         backend=backend,
-        permissions=lane_permissions(spec.get("writes", [])),
+        permissions=lane_permissions(spec.get("writes", []), spec.get("denies", [])),
         checkpointer=checkpointer,
         name=f"paperdrop-{role}",
     )

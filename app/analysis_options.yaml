@@ -1,0 +1,9 @@
+# The workspace settings plus Flutter's lints (setup-mvp-foundations, design §3).
+include:
+  - ../analysis_options.yaml
+  - package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - build/**
+    - android/**

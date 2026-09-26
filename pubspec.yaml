@@ -1,0 +1,15 @@
+# Paperdrop for Ninox — Dart pub workspace (setup-mvp-foundations, design §2).
+# One resolution for every member: a version conflict between lanes surfaces here, at `pub get`.
+name: paperdrop_workspace
+publish_to: none
+
+environment:
+  sdk: ^3.13.0
+
+workspace:
+  - packages/paperdrop_core
+  - packages/ninox_client
+  - app
+
+dev_dependencies:
+  lints: ^6.0.0

@@ -1,0 +1,14 @@
+name: paperdrop_core
+description: >-
+  Everything in Paperdrop for Ninox that decides a value: money and rates, the canonical model,
+  provenance, countries, check digits, layout reasoning, the amount solver and confidence.
+  Pure Dart: no Flutter, no dart:io, no network.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.13.0
+
+dev_dependencies:
+  test: ^1.25.6
