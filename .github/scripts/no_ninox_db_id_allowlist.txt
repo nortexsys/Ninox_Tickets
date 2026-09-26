@@ -29,3 +29,5 @@ openspec/specs/product-invariants/spec.md | `NINOX_DB_ID` pointed at a productio
 .github/scripts/no_ninox_db_id.py | * | the check itself names the forbidden variable
 .github/scripts/no_ninox_db_id_allowlist.txt | * | the allowlist names the forbidden variable to describe each allowed line
 .github/scripts/tests/test_no_ninox_db_id.py | * | the test plants the forbidden variable to prove the check fails
+openspec/changes/setup-mvp-foundations/proposal.md | (`NINOX_DB_ID` pointed at a production database | the proposal describes GAP-012, which the CI check mitigates
+openspec/changes/archive/2026-09-26-setup-mvp-foundations/proposal.md | (`NINOX_DB_ID` pointed at a production database | the same line once the change is archived
