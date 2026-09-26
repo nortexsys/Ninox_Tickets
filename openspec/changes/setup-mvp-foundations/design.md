@@ -69,9 +69,10 @@ Mobile never edits Ninox's folders and Ninox never edits the shell.
 ## 3. Analyzer and format
 
 * Root `analysis_options.yaml`: `package:lints/recommended.yaml`, plus
-  `strict-casts`, `strict-inference`, `strict-raw-types`; errors on `unused_import`,
-  `missing_return`-class diagnostics; `prefer_single_quotes`, `always_declare_return_types`,
-  `avoid_print` (a lane that prints may print a token), `unawaited_futures`.
+  `strict-casts`, `strict-inference`, `strict-raw-types`; `unused_import`,
+  `unused_local_variable` and `dead_code` raised to errors; lint rules
+  `always_declare_return_types`, `avoid_print` (a lane that prints may print a token),
+  `prefer_single_quotes`, `unawaited_futures`, `prefer_final_locals`, `directives_ordering`.
 * `app/analysis_options.yaml` includes `package:flutter_lints/flutter.yaml` and the same
   language modes.
 * `dart format` with the default line length (80) — no project style to argue about; CI
