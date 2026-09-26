@@ -1,0 +1,24 @@
+name: paperdrop
+description: Paperdrop for Ninox — reads a receipt or an invoice and writes it to a Ninox table.
+publish_to: none
+version: 0.1.0+1
+resolution: workspace
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  paperdrop_core:
+    path: ../packages/paperdrop_core
+  ninox_client:
+    path: ../packages/ninox_client
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

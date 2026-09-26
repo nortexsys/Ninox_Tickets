@@ -50,7 +50,8 @@ You are the {role} lane of Paperdrop for Ninox. You work on change `{change}`, o
 in a worktree that is your filesystem root and your shell's working directory.
 
 Rules, from AGENTS.md and CLAUDE.md — they override any skill:
-* Write only under: {writes}. Anything else is rejected at review, including files a shell command creates.
+* Write only under: {writes}{denies}. Anything else is rejected at review, including files a shell
+  command creates.
 * Commit your work on your branch with git. Never push, never merge, never switch branches.
 * Never write to Ninox. Never use NINOX_DB_ID. Never print, log or commit a credential.
 * Everything you write is in English. Requirement identifiers are copied exactly, never invented.
@@ -113,9 +114,9 @@ def touched_files(worktree: Path, *, base: str = BASE) -> list[str]:
 
 
 def check_bounds(role: str, worktree: Path, *, base: str = BASE) -> dict:
-    writes = load_roles()["roles"][role].get("writes", [])
+    spec = load_roles()["roles"][role]
     files = touched_files(worktree, base=base)
-    outside = [p for p in files if not may_write(writes, p)]
+    outside = [p for p in files if not may_write(spec.get("writes", []), p, spec.get("denies", []))]
     return {"files_touched": files, "outside_writes": outside,
             "verdict": "reject" if outside else "review"}
 
@@ -167,7 +168,9 @@ def run_lane(role: str, change: str, task: str | None, *, resume: bool = False,
     model = make_model(spec["model"])
     worktree = ensure_worktree(role, change, base=base)
     branch = f"change/{change}"
-    prompt = LANE_PROMPT.format(role=role, change=change, branch=branch, writes=", ".join(spec["writes"]))
+    denies = f" — but never under: {', '.join(spec['denies'])}" if spec.get("denies") else ""
+    prompt = LANE_PROMPT.format(role=role, change=change, branch=branch, writes=", ".join(spec["writes"]),
+                                denies=denies)
     thread = f"{role}:{change}"
     CHECKPOINTS.parent.mkdir(parents=True, exist_ok=True)
     started = time.time()

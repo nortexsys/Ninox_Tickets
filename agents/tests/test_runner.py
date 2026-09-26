@@ -44,14 +44,30 @@ def test_only_the_ninox_lane_may_receive_the_token():
     ("core", "agents/roles.yaml", False),
     ("ninox", "app/lib/features/wizard/wizard_screen.dart", True),
     ("ninox", "app/lib/features/review/review_screen.dart", False),
+    ("ninox", "app/test/features/send/send_test.dart", True),
     ("mobile", "app/lib/features/review/review_screen.dart", True),
+    ("mobile", "app/lib/features/wizard/wizard_screen.dart", False),    # Ninox's folder (denies)
+    ("mobile", "app/test/features/send/send_test.dart", False),
+    ("mobile", "app/lib/app/router.dart", True),
     ("qa", "packages/paperdrop_core/test/money_test.dart", True),
     ("qa", "packages/paperdrop_core/lib/money.dart", False),
     ("spec", "openspec/changes/x/specs/cap/spec.md", True),
     ("spec", "AGENTS.md", False),
 ])
 def test_bounds_follow_roles_yaml(role, path, allowed):
-    assert may_write(ROLES[role]["writes"], path) == allowed
+    assert may_write(ROLES[role]["writes"], path, ROLES[role].get("denies", [])) == allowed
+
+
+@pytest.mark.parametrize("path,allowed", [
+    ("/app/lib/features/wizard/x.dart", False),
+    ("/app/lib/features/review/x.dart", True),
+])
+def test_mobile_file_tools_honour_denies(path, allowed, tmp_path):
+    call = AIMessage(content="", tool_calls=[{"name": "write_file", "args": {"file_path": path, "content": "x"}, "id": "c1"}])
+    agent = build_lane_agent("mobile", tmp_path, Recorder(messages=iter([call, AIMessage(content="done")])),
+                             resync=False)
+    agent.invoke({"messages": [{"role": "user", "content": "write"}]})
+    assert (tmp_path / path.lstrip("/")).exists() == allowed
 
 
 def git(*args, cwd):

@@ -64,8 +64,9 @@ roles:
       - dart-add-unit-test
       - dart-generate-test-mocks
       - dart-run-static-analysis
-    # Wizard and send paths in app/ are fixed by the design.md of setup-mvp-foundations.
-    writes: ["/packages/ninox_client/**", "/app/lib/features/wizard/**", "/app/lib/features/send/**"]
+    # Wizard and send paths in app/ fixed by setup-mvp-foundations, design §2 and §5.
+    writes: ["/packages/ninox_client/**", "/app/lib/features/wizard/**", "/app/lib/features/send/**",
+             "/app/test/features/wizard/**", "/app/test/features/send/**"]
 
   mobile:
     runtime: langgraph
@@ -84,6 +85,9 @@ roles:
       - dart-fix-runtime-errors
       - dart-use-path-package
     writes: ["/app/**"]
+    # `denies` is checked before `writes`: app/ is Mobile's except the Ninox lane's folders.
+    denies: ["/app/lib/features/wizard/**", "/app/lib/features/send/**",
+             "/app/test/features/wizard/**", "/app/test/features/send/**"]
 
   qa:
     runtime: langgraph

@@ -1,0 +1,6 @@
+# Lines allowed to carry double-encoded text, because they DESCRIBE the defect (plan v0.2, T0.10).
+# Format: path | text that identifies the line | reason
+docs/Plan/Paperdrop_MVP_Plan_v0.2_EN.md | **GAP-024 — corrupted text encoding.** | plan §6.3 records the defect by example
+docs/Plan/Paperdrop_MVP_Plan_v0.2_EN.md | Encoding guard: a CI job that fails on double-encoded text | the T0.10 row names the patterns this guard looks for
+openspec/gaps-register.md | Codificación corrupta (mojibake) en fuentes de verdad | GAP-024 records the defect by example
+openspec/product-decisions.md | Se repara la codificación del Funcional v1.0 | DEC-010 records the repair by example

@@ -1,0 +1,8 @@
+/// The Ninox port of ADR-003 and its classic REST adapter.
+///
+/// The team and the database are always explicit arguments. This package never reads an
+/// environment variable to choose a target (AGENTS.md §1.4).
+library;
+
+/// The package's name, so the workspace can prove it resolves before any real API exists.
+const String packageName = 'ninox_client';
