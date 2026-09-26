@@ -133,7 +133,7 @@ as they are; this is where their content lives now:
 | **FASE 1 — Discover.** Original brief → PDR v0.2 → ADR v0.2 → Funcional v1.0 | **Done.** Plus a real end-to-end test: 16 documents read, validated, written to a Ninox test base with their attachments, and read back |
 | **FASE 2 — Specify.** Specifications through OpenSpec | **Done.** 12 capabilities, all archived, `openspec validate --all --strict` green |
 | **FASE 2 — Plan.** Features, tasks, milestones, delivery dates and test design | **Done** on 2026-09-25: `docs/Plan/Paperdrop_MVP_Plan_v0.2_EN.md`, approved by the PO (DEC-009) |
-| **MVP build** — milestones M0–M3, 2026-09-28 → 2026-10-23 (buffer to 2026-10-30) | **Starts 2026-09-28 with M0.** This is where the project goes next |
+| **MVP build** — milestones M0–M3, 2026-09-28 → 2026-10-23 (buffer to 2026-10-30) | **M0 built on 2026-09-26, not pushed**: Dart workspace, CI, lane runner, templates (change `setup-mvp-foundations`, open until the Android build on the PO's phone and the PO's approval). What is open is in `docs/Plan/status/2026-09-26.md`. Next: M1, lanes open Wed 30 Sep |
 | **FASE 3 — Deployment.** Store publication and the Nortex Systems website write-up | Not started |
 
 The specification phase is a gate, not a formality: the 16-document test left
