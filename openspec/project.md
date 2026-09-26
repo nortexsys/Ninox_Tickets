@@ -401,6 +401,9 @@ confused with each other.
 ├── sql/                          ← prototype schema. Not published (carries a natural person's data)
 ├── tools/                        ← prototype scripts. Not published (same reason)
 ├── out/                          ← OCR experiments. Never published
+├── agents/                       ← agent team: roles.yaml, skills/, lane factory (DEC-011)
+├── .claude/skills/               ← the orchestrator's skills, generated from agents/skills/
+├── CLAUDE.md                     ← Claude Code entry point; imports AGENTS.md
 ├── AGENTS.md                     ← project working contract, read every session
 └── .gitignore                    ← the confidentiality gate
 ```

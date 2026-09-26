@@ -1,0 +1,9 @@
+{
+  "role": "orchestrator",
+  "source": "agents/skills",
+  "skills": {
+    "ninox": "1666ada211d67d056b66e95a0286ed448422e27b05ca76695d4d8b1c1bbbf786",
+    "dart-run-static-analysis": "53350d23d9afd08b3a8428750a611e24b860d39102522d32f03c482551fa5656",
+    "dart-collect-coverage": "372688b6467a10ed087ff553cdf41248a29ccb510720da8ae5142e9349ee8445"
+  }
+}

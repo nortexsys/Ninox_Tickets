@@ -1,0 +1,98 @@
+# Paperdrop for Ninox — agent roles, models and skills.
+#
+# Single source of truth for WHICH agent gets WHICH skill. The skills themselves live once,
+# in agents/skills/. `python agents/tools/sync_skills.py` materialises each role's subset:
+#   * claude-code roles  -> .claude/skills/            (discovered natively by Claude Code)
+#   * langgraph roles    -> agents/.build/skills/<role>/  (read by deepagents' SkillsMiddleware)
+# Editing this file is a change to what an agent is told: record it in
+# openspec/product-decisions.md like any other tooling decision (DEC-011).
+#
+# `model.id` values marked TO-CONFIRM must be checked against the provider's documentation
+# before first use (plan v0.2, T0.9). API keys are read from the Windows user environment,
+# never from a file, exactly like NINOX_API_KEY (AGENTS.md §1.3).
+
+version: 1
+skills_root: agents/skills
+
+roles:
+  orchestrator:
+    runtime: claude-code
+    model: {name: "Opus 5.5", id: "claude-opus-5-5"}
+    materialize_to: .claude/skills
+    skills:
+      - ninox                      # reviews the Ninox lane; carries the safety rules
+      - dart-run-static-analysis   # checks a lane's output before QA
+      - dart-collect-coverage
+    writes: ["/openspec/changes/**/design.md", "/openspec/changes/**/tasks.md", "/docs/Plan/status/**"]
+
+  spec:
+    runtime: langgraph
+    model: {name: "Atria Dawn Preview", provider: TO-CONFIRM, id: TO-CONFIRM, api_key_env: ATRIA_API_KEY}
+    skills:
+      - ninox                      # API facts decide spec wording (GAP-022 was one)
+    writes: ["/openspec/**"]
+
+  core:
+    runtime: langgraph
+    model: {name: "DeepSeek-V4-Pro-0813", provider: deepseek, id: TO-CONFIRM, api_key_env: DEEPSEEK_API_KEY}
+    skills:
+      - dart-add-unit-test
+      - dart-generate-test-mocks
+      - dart-run-static-analysis
+      - dart-collect-coverage
+      - dart-use-pattern-matching
+      - dart-write-documentation
+      - dart-use-doc-examples
+      - dart-resolve-package-conflicts
+    writes: ["/packages/paperdrop_core/**"]
+
+  ninox:
+    runtime: langgraph
+    model: {name: "DeepSeek-V4.1-Flash", provider: deepseek, id: TO-CONFIRM, api_key_env: DEEPSEEK_API_KEY}
+    skills:
+      - ninox
+      - flutter-use-http-package
+      - flutter-implement-json-serialization
+      - flutter-add-widget-test
+      - flutter-setup-localization
+      - dart-add-unit-test
+      - dart-generate-test-mocks
+      - dart-run-static-analysis
+    # Wizard and send paths in app/ are fixed by the design.md of setup-mvp-foundations.
+    writes: ["/packages/ninox_client/**", "/app/lib/features/wizard/**", "/app/lib/features/send/**"]
+
+  mobile:
+    runtime: langgraph
+    model: {name: "DeepSeek-V4.1-Flash", provider: deepseek, id: TO-CONFIRM, api_key_env: DEEPSEEK_API_KEY}
+    skills:
+      - flutter-apply-architecture-best-practices
+      - flutter-add-widget-test
+      - flutter-add-integration-test
+      - flutter-add-widget-preview
+      - flutter-build-responsive-layout
+      - flutter-fix-layout-issues
+      - flutter-setup-declarative-routing
+      - flutter-setup-localization
+      - dart-add-unit-test
+      - dart-run-static-analysis
+      - dart-fix-runtime-errors
+      - dart-use-path-package
+    writes: ["/app/**"]
+
+  qa:
+    runtime: langgraph
+    model: {name: "Sonnet 5", provider: anthropic, id: TO-CONFIRM, api_key_env: ANTHROPIC_API_KEY}
+    skills:
+      - ninox                      # verifies the Ninox lane against the verified contract
+      - dart-add-unit-test
+      - dart-collect-coverage
+      - dart-run-static-analysis
+      - flutter-add-widget-test
+      - flutter-add-integration-test
+      - dart-build-cli-app         # the benchmark runner's command line
+    writes: ["/**/test/**", "/**/integration_test/**", "/validation/**", "/tool/benchmark/**", "/.github/**"]
+
+# Vendored but assigned to no role, on purpose (DEC-004 keeps the collection whole):
+#   dart-setup-ffi-assets, dart-use-ffigen      — no FFI in this product (ADR-010/011 use platform APIs)
+#   dart-use-primary-constructors               — raises the Dart SDK floor, not yet decided
+#   dart-migrate-to-checks-package              — only if the project adopts package:checks

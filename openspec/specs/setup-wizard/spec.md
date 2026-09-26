@@ -3,7 +3,7 @@
 ## Purpose
 Configuration is the only part the user cannot skip and the part they will do once, so
 everything about it is judged against one risk: the user confirming a proposal they did
-not read. A field mapped to the wrong column does not fail loudly â€” it writes a plausible
+not read. A field mapped to the wrong column does not fail loudly — it writes a plausible
 value into the wrong place, and the read-back shows the app succeeded.
 
 That risk decides the mapping step. Proposals are **pre-filled** so the user corrects
@@ -13,7 +13,7 @@ functional names the failure mode exactly: a mediocre suggestion a user confirms
 reading. Leaving `doc_date` unmapped looks worse and behaves better.
 
 Two requirements keep the wizard honest about what it is doing. It never renders Ninox's
-login inside a WebView it controls â€” the token is obtained through the platform's own
+login inside a WebView it controls — the token is obtained through the platform's own
 browser, which is a contract line rather than a convenience. And nothing is mandatory: a
 user may map nothing at all, which the closing summary states in plain language instead of
 leaving it to be discovered.
@@ -23,7 +23,7 @@ leaving it to be discovered.
 ### Requirement: five-screens-at-most
 
 The wizard SHALL have at most five screens: token, team, database, table and mapping.
-[Origen: Funcional Â§4.6 FR-WIZ-001; PDR Â§8]
+[Origen: Funcional §4.6 FR-WIZ-001; PDR §8]
 
 #### Scenario: no sixth screen exists
 
@@ -37,7 +37,7 @@ The wizard SHALL have at most five screens: token, team, database, table and map
 ### Requirement: steps-auto-omit-when-there-is-nothing-to-choose
 
 The team, database and table steps SHALL each be skipped automatically when their list contains exactly one option.
-[Origen: Funcional Â§4.6 FR-WIZ-002; PDR Â§8]
+[Origen: Funcional §4.6 FR-WIZ-002; PDR §8]
 
 #### Scenario: a single-option subscription sees two screens
 
@@ -57,8 +57,8 @@ The team, database and table steps SHALL each be skipped automatically when thei
 
 ### Requirement: token-step-via-the-system-browser
 
-The token step SHALL offer instructions for obtaining a Ninox API token, a paste-from-clipboard action, and an option to open Ninox's settings page in the platform's own system browser â€” Custom Tabs on Android, SFSafariViewController on iOS â€” and the app SHALL never render Ninox's login inside a WebView it controls. The token SHALL be validated immediately, and a successful call SHALL also return the list the next step needs.
-[Origen: Funcional Â§4.6 FR-WIZ-003; PDR Â§8; ADR-018; Finding 7; Funcional Â§2.4 contract line 3; Funcional Â§8 NFR-SEC-002]
+The token step SHALL offer instructions for obtaining a Ninox API token, a paste-from-clipboard action, and an option to open Ninox's settings page in the platform's own system browser — Custom Tabs on Android, SFSafariViewController on iOS — and the app SHALL never render Ninox's login inside a WebView it controls. The token SHALL be validated immediately, and a successful call SHALL also return the list the next step needs.
+[Origen: Funcional §4.6 FR-WIZ-003; PDR §8; ADR-018; Finding 7; Funcional §2.4 contract line 3; Funcional §8 NFR-SEC-002]
 
 #### Scenario: the login is presented outside the app's process
 
@@ -85,29 +85,29 @@ The token step SHALL offer instructions for obtaining a Ninox API token, a paste
 
 ### Requirement: table-listing-returns-the-schema
 
-The table listing SHALL also return the table's schema so that the mapping step needs no additional round trip, and formula and read-only fields SHALL be annotated in what is returned so that the mapping step can exclude them.
-[Origen: Funcional Â§4.6 FR-WIZ-004; PDR Â§8; ADR-004]
+The table listing SHALL also return each table's writable fields so that the mapping step needs no additional round trip, and formula fields SHALL NOT reach the mapping step.
+[Origen: Funcional §4.6 FR-WIZ-004; PDR §8; ADR-004; DEC-005]
 
 #### Scenario: one round trip per list
 
 - GIVEN the listing call for a table
 - WHEN it returns
-- THEN it carries the table's schema with it
+- THEN it carries the table's fields with it
 - AND reaching the mapping step requires no further network call
 
-#### Scenario: the picker cannot offer an unwritable field
+#### Scenario: the picker cannot offer a formula field
 
-- GIVEN a table containing a formula field and a read-only field
+- GIVEN a table containing a formula field
 - WHEN the mapping step builds its picker
-- THEN neither appears among the candidates
-- AND the annotation in the listing is what the mapping step used to exclude them
+- THEN that field does not appear among the candidates
+- AND its exclusion does not depend on its name or type
 
 ---
 
 ### Requirement: pre-filled-proposals
 
 The mapping step SHALL show each of the six core fields as a pre-filled proposal over the table's real fields, so that the user corrects only what is wrong, and where nothing plausible exists the field SHALL be visibly unmapped rather than shown as an empty selector.
-[Origen: Funcional Â§4.6 FR-WIZ-005; PDR Â§8]
+[Origen: Funcional §4.6 FR-WIZ-005; PDR §8]
 
 #### Scenario: a proposal is ready to correct
 
@@ -127,8 +127,8 @@ The mapping step SHALL show each of the six core fields as a pre-filled proposal
 
 ### Requirement: two-stage-matching-with-a-strict-threshold
 
-Field matching SHALL run in two stages â€” a hard type filter first, then string similarity against a multilingual synonym dictionary â€” and SHALL use a threshold strict enough that below it a field is left unmapped rather than proposed.
-[Origen: Funcional Â§4.6 FR-WIZ-006; PDR Â§8.1; Annex C]
+Field matching SHALL run in two stages — a hard type filter first, then string similarity against a multilingual synonym dictionary — and SHALL use a threshold strict enough that below it a field is left unmapped rather than proposed.
+[Origen: Funcional §4.6 FR-WIZ-006; PDR §8.1; Annex C; DEC-005]
 
 #### Scenario: the type filter runs before similarity
 
@@ -137,11 +137,11 @@ Field matching SHALL run in two stages â€” a hard type filter first, then s
 - THEN it is removed before similarity is computed
 - AND a date is never proposed against a non-date field, nor an amount against a non-number field
 
-#### Scenario: formula and read-only fields never reach matching
+#### Scenario: formula fields never reach matching
 
-- GIVEN a table containing a formula field and a read-only field
+- GIVEN a table containing a formula field
 - WHEN matching runs
-- THEN neither was a candidate at any stage
+- THEN it was not a candidate at any stage
 
 #### Scenario: a German table receives its proposals
 
@@ -163,12 +163,10 @@ Field matching SHALL run in two stages â€” a hard type filter first, then s
 - THEN the suggestion is not made
 - AND the field is left for the user to map deliberately or not at all
 
----
-
 ### Requirement: no-mapping-is-mandatory
 
 No mapping SHALL be mandatory, and a user SHALL be able to finish the wizard having mapped everything, one field, or nothing at all.
-[Origen: Funcional Â§4.6 FR-WIZ-007; PDR Â§8.2]
+[Origen: Funcional §4.6 FR-WIZ-007; PDR §8.2]
 
 #### Scenario: finishing with nothing mapped is possible
 
@@ -187,8 +185,8 @@ No mapping SHALL be mandatory, and a user SHALL be able to finish the wizard hav
 
 ### Requirement: plain-language-summary-and-first-document-offer
 
-The wizard SHALL close with a plain-language summary of the consequence â€” naming exactly which core fields will be saved and which will not â€” and its final screen SHALL offer to capture a document of any kind rather than returning the user to an empty application.
-[Origen: Funcional Â§4.6 FR-WIZ-008; PDR Â§8.2, Â§2]
+The wizard SHALL close with a plain-language summary of the consequence — naming exactly which core fields will be saved and which will not — and its final screen SHALL offer to capture a document of any kind rather than returning the user to an empty application.
+[Origen: Funcional §4.6 FR-WIZ-008; PDR §8.2, §2]
 
 #### Scenario: the summary names the mapped and the unmapped fields
 
@@ -229,37 +227,37 @@ The wizard SHALL close with a plain-language summary of the consequence â€”
   how review presents them.
 - **The first capture.** `capture-intake` owns it; the wizard's last screen offers it.
 - **The matching threshold's numeric value.** The functional gives no number, and this
-  spec states the outcome the threshold must produce rather than inventing one â€” the same
+  spec states the outcome the threshold must produce rather than inventing one — the same
   reason `extraction-pipeline` states no accuracy figure for the photo route.
 
 ---
 
 ## Cross-Capability References
 
-- `destinations-mapping` â€” owns everything about what a destination is and what may be
+- `destinations-mapping` — owns everything about what a destination is and what may be
   written; this wizard's mapping step applies `formula-and-read-only-fields-are-not-mapping-candidates`
   and `choice-fields-offer-the-existing-options` rather than restating them.
-- `product-invariants` â€” owns `token-is-the-only-credential`, which the token step
+- `product-invariants` — owns `token-is-the-only-credential`, which the token step
   implements, and `no-backend-and-no-account`, which is why configuration is local.
-- `local-config-privacy` â€” owns the token's storage in the platform keystore, the
+- `local-config-privacy` — owns the token's storage in the platform keystore, the
   configuration export this wizard's output is carried by, and the clearing action.
-- `countries-languages` â€” owns the multilingual dictionaries the synonym matching
+- `countries-languages` — owns the multilingual dictionaries the synonym matching
   consults, and the interface languages.
-- `capture-intake` â€” owns the capture the wizard's final screen offers.
-- `review-screen` â€” owns the presentation of the six fields the closing summary names.
+- `capture-intake` — owns the capture the wizard's final screen offers.
+- `review-screen` — owns the presentation of the six fields the closing summary names.
 
 ---
 
 ## Open Questions
 
-- **GAP-005** â€” a choice field written with text outside its options. It concerns
+- **GAP-005** — a choice field written with text outside its options. It concerns
   `destinations-mapping` but reaches this capability through the mapping step's picker: if
   the case behaves unexpectedly, the picker is where the user would meet it.
-- **GAP-006** â€” the private-cloud host has not been re-verified. The destination's advanced
+- **GAP-006** — the private-cloud host has not been re-verified. The destination's advanced
   setup, which this wizard leads the user to, is where that host is entered.
 - **Deliberately left to implementation.** The similarity threshold's value, the synonym
   dictionary's full contents beyond Annex C, and what counts as a "plausible" candidate are
   all unspecified in the functional. `two-stage-matching-with-a-strict-threshold` requires
-  the outcome â€” below the threshold the field stays unmapped, and a mediocre suggestion is
-  never made â€” because that outcome is what the acceptance test can check, while a number
+  the outcome — below the threshold the field stays unmapped, and a mediocre suggestion is
+  never made — because that outcome is what the acceptance test can check, while a number
   would be asserted by this spec and tested by nobody.

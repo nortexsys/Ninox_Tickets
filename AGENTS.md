@@ -82,7 +82,9 @@ assumed.
 | Project root | `C:\Users\admin\proyectos\04_01_Ticket_reader_Ninox` |
 | Renamed from | `C:\Users\admin\proyectos\Ticket_reader_Ninox` — an older, mostly empty folder of the same name still exists. **It is not the project.** Documents that cite the old path mean the new one |
 | Measurement corpus | `C:\Users\admin\proyectos\Paperdrop_corpus\` — **outside the repository by design** |
-| Mobile test harness | `Ticket_reader_Ninox\phone-harness\` — a separate concern (driving a real phone over adb), not part of the app |
+| Mobile test harness | None. `Ticket_reader_Ninox\phone-harness\` (driving a real phone over adb) was deleted by the PO on 2026-09-26; it was never part of the app |
+| Agent team | `agents/` — roles, models and skills (`agents/roles.yaml`, `agents/README.md`). The orchestrator runs in **Claude Code** (`CLAUDE.md`, `.claude/skills/`); the other five agents run in **LangGraph** (DEC-011) |
+| MVP plan | `docs/Plan/Paperdrop_MVP_Plan_v0.2_EN.md` — scope, team, milestones, dates |
 
 ### 2.2 The documents
 
@@ -94,6 +96,24 @@ assumed.
 | Original brief | `docs/Fase 1. Discover/Funcional_App_NinoxTickets.md` | **Superseded** by PDR v0.2. Provenance only |
 | 16-document test | `corpus_test/`, `REPORT-CORPUS.md` | Evidence. The PO's verdicts in `corpus_test/REPORT_after_review.md` are authoritative |
 | Specifications | `openspec/` | **Current phase** |
+| PO's answers to the plan | `docs/Plan/Paperdrop_MVP_RESPUESTAS_1.md` | **Do not read — provenance only.** Absorbed into plan v0.2 §6.4 and DEC-005…DEC-009 |
+| Project slide deck | `docs/Plan/Paperdrop_for_Ninox_proyecto.pptx` | **Do not read — provenance only.** Plan v0.2 is the current statement of scope, team and dates |
+| Orchestrator start-up prompt | `openspec/prompt_orquestador_inicio.md` | **Do not read — provenance only.** Its rules are in `CLAUDE.md`; its steps are plan v0.2 §9, M0 |
+
+These three are in Spanish and are kept as provenance, like the original brief;
+they are the recorded exception to §1.7. Citations of them in the registers and
+in the plan are left as they are.
+
+**Deleted by the PO on 2026-09-26.** Citations of these files elsewhere are left
+as they are; this is where their content lives now:
+
+| Deleted | Its content now lives in |
+| --- | --- |
+| `docs/handoff.md` | Plan v0.2 §1 (premises P1–P4), §10 and §12 |
+| `docs/Plan/seleccion de agentes.md` | Plan v0.2 §7, `agents/roles.yaml`, `agents/README.md`, DEC-011 |
+| `docs/skills_proposed.md` | DEC-002 (consumed working note) and DEC-004; the vendored skills under `agents/` |
+| `docs/TWO_OPTIONS.MD` | DEC-002 (consumed working note); the structure of Funcional v1.0 |
+| `Ticket_reader_Ninox/` (untracked folder inside the repository root) | Nowhere — it was not part of the project |
 
 ### 2.3 The registries that hold state across sessions
 
@@ -112,7 +132,8 @@ assumed.
 | --- | --- |
 | **FASE 1 — Discover.** Original brief → PDR v0.2 → ADR v0.2 → Funcional v1.0 | **Done.** Plus a real end-to-end test: 16 documents read, validated, written to a Ninox test base with their attachments, and read back |
 | **FASE 2 — Specify.** Specifications through OpenSpec | **Done.** 12 capabilities, all archived, `openspec validate --all --strict` green |
-| **Next, still within FASE 2** — features, tasks, milestones, delivery dates and test design | Not started. This is where the project goes next |
+| **FASE 2 — Plan.** Features, tasks, milestones, delivery dates and test design | **Done** on 2026-09-25: `docs/Plan/Paperdrop_MVP_Plan_v0.2_EN.md`, approved by the PO (DEC-009) |
+| **MVP build** — milestones M0–M3, 2026-09-28 → 2026-10-23 (buffer to 2026-10-30) | **Starts 2026-09-28 with M0.** This is where the project goes next |
 | **FASE 3 — Deployment.** Store publication and the Nortex Systems website write-up | Not started |
 
 The specification phase is a gate, not a formality: the 16-document test left
@@ -145,14 +166,15 @@ Written down so the next session starts from the truth instead of from a guess.
 
 | Item | State |
 | --- | --- |
-| ADR-010 — recognition engine for the photo route | **Proposed.** Blocks `FR-EXT-005`, `FR-EXT-015`, `UC-14` |
-| ADR-011 — PDF text-extraction library | **Proposed.** Blocks `FR-EXT-004`, `NFR-SIZ-001`. Must expose word positions |
+| ADR-010 — recognition engine for the photo route | **Proposed.** Approach decided (platform engine behind a port, confirmed by the screening of plan T2.5). Blocks `FR-EXT-005`, `FR-EXT-015`, `UC-14` |
+| ADR-011 — PDF text-extraction library | **Proposed.** Evaluation in plan T1.15, decision by 2026-10-06. Blocks `FR-EXT-004`, `NFR-SIZ-001`. Must expose word positions |
 | Ninox attachment-upload limits | Closed for the basic case. Open: maximum file size, multi-page PDF near that limit, real upload timings |
 | A choice field written with text outside its option list | Unverified in every test so far |
 | Acceptance thresholds for product metrics | Deferred until the first corpus screening |
-| The name "Paperdrop" | Not yet checked in either app store, nor at the EUIPO |
+| The product name | **Closed**: "Paperdrop for Ninox" (DEC-006, GAP-011). Ninox's trademark guidelines still to be read before a store listing |
 | Capability tree | **Approved and complete.** Recorded in openspec/project.md §3 |
-| Specifications | **Complete.** 12 specs in `openspec/specs/`, all changes archived, validated by `openspec validate --all --strict` |
+| Specifications | **Complete.** 12 specs in `openspec/specs/`, all changes archived, validated by `openspec validate --all --strict`. Amended on 2026-09-25 by `resolve-mvp-planning-gaps` (GAP-018, GAP-019, GAP-022); text encoding repaired (GAP-024) |
+| Formula fields in the Ninox schema | **Measured** on 2026-09-25: `.../tables` omits them, `.../schema` marks them with `fn`; no read-only marker exists. `docs/Plan/SPIKE_GAP-022_schema_formula_fields.md` |
 | Privacy gate | **Closed** on 2026-09-23. Section 6 |
 | Residue of real personal data in excluded material | Open, and protected by the `.gitignore` alone. GAP-017, §6 |
 

@@ -3,7 +3,7 @@
 ## Purpose
 A recognition pass produces **candidates**, not values. Turning candidates into
 values requires three rules and a memory: which candidate wins, where a value may
-legitimately come from, and which of those rules produced it â€” because a check that
+legitimately come from, and which of those rules produced it — because a check that
 consumes a value must be able to tell whether that value was read or computed.
 Without that memory, every arithmetic check confirms itself.
 
@@ -16,7 +16,7 @@ apart. Only reading the printed quantities can.
 
 The same test produced two other structural defects: the pipeline took the
 **maximum** across recognition passes, so one noisy pass overruled three that
-agreed; and it **invented tax rates** the document never stated â€” 9 %, 30 % and a
+agreed; and it **invented tax rates** the document never stated — 9 %, 30 % and a
 4.5 % currency-conversion mark-up, none legal in Spain and one legal nowhere in the
 EU.
 
@@ -33,7 +33,7 @@ candidate readings; (2) read all printed quantities, matching independently read
 candidates against each other; (3) derive by identity only, from read values;
 (4) validation; (5) write; (6) read back; (7) compare with the destination's formula
 fields. No stage SHALL consume the output of a stage that runs after it.
-[Origen: Funcional Â§4.2 FR-EXT-001; PDR Â§6.1, Â§7.4; ADR-019]
+[Origen: Funcional §4.2 FR-EXT-001; PDR §6.1, §7.4; ADR-019]
 
 #### Scenario: the seven stages appear in order
 
@@ -54,12 +54,12 @@ fields. No stage SHALL consume the output of a stage that runs after it.
 ### Requirement: invoice-route-priority
 
 The invoice route SHALL try extraction methods in a fixed order and stop at the
-first that succeeds: (1) embedded or attached XML â€” ZUGFeRD or Factur-X inside the
-PDF, or a standalone XRechnung â€” read deterministically with provenance `from_xml`;
+first that succeeds: (1) embedded or attached XML — ZUGFeRD or Factur-X inside the
+PDF, or a standalone XRechnung — read deterministically with provenance `from_xml`;
 (2) the PDF's text layer, extracted with word-level positions; (3) page render and
 OCR, exactly like the photo route. The route taken SHALL be recorded in the
 recognition-engine metadata.
-[Origen: Funcional Â§4.2 FR-EXT-002; ADR-014; Finding 12]
+[Origen: Funcional §4.2 FR-EXT-002; ADR-014; Finding 12]
 
 #### Scenario: a hybrid e-invoice takes the XML route and stops
 
@@ -94,7 +94,7 @@ XML extraction SHALL be deterministic, field by field, and SHALL distinguish
 XRechnung's syntaxes (UBL and CII) and the ZUGFeRD and Factur-X profile levels. A
 field the profile does not carry SHALL be reported as `not_in_xml` and never as
 absent. Extraction SHALL be a read-only operation on the PDF that carries the XML.
-[Origen: Funcional Â§4.2 FR-EXT-003; ADR-014, ADR-015]
+[Origen: Funcional §4.2 FR-EXT-003; ADR-014, ADR-015]
 
 #### Scenario: a full-profile sample is read deterministically
 
@@ -121,9 +121,9 @@ absent. Extraction SHALL be a read-only operation on the PDF that carries the XM
 ### Requirement: positional-pdf-text-extraction
 
 Text-layer extraction SHALL associate a label with the value nearest it in the
-document's **visual layout**, using word-level coordinates. Plain-text extraction â€”
-associating by extraction order alone â€” SHALL NOT be accepted as an implementation.
-[Origen: Funcional Â§4.2 FR-EXT-004; ADR-011; 16-document test, PRO1013-26]
+document's **visual layout**, using word-level coordinates. Plain-text extraction —
+associating by extraction order alone — SHALL NOT be accepted as an implementation.
+[Origen: Funcional §4.2 FR-EXT-004; ADR-011; 16-document test, PRO1013-26]
 
 *Acceptance is blocked by ADR-011, the library selection (GAP-002). The behaviour
 above is fixed; the test cannot run until the library is chosen.*
@@ -149,7 +149,7 @@ above is fixed; the test cannot run until the library is chosen.*
 A PDF with no text layer and no XML SHALL have its pages rendered and sent through
 the OCR pipeline exactly like the photo route, with consensus and validation
 applying. Rendering SHALL be read-only and the source file SHALL never be re-saved.
-[Origen: Funcional Â§4.2 FR-EXT-005; ADR-010, ADR-014, ADR-015]
+[Origen: Funcional §4.2 FR-EXT-005; ADR-010, ADR-014, ADR-015]
 
 *Acceptance is blocked by ADR-010, the recognition engine (GAP-001).*
 
@@ -172,7 +172,7 @@ applying. Rendering SHALL be read-only and the source file SHALL never be re-sav
 ### Requirement: consensus-by-majority
 
 Where a value has several candidate readings, the value a **majority** of passes agree on SHALL win, and a single outlier SHALL never override agreement between the others however extreme its apparent confidence. Arithmetic SHALL be applied only to operands that passed consensus.
-[Origen: Funcional Â§4.2 FR-EXT-006; Funcional Â§5 BR-06; ADR-019; 16-document test]
+[Origen: Funcional §4.2 FR-EXT-006; Funcional §5 BR-06; ADR-019; 16-document test]
 
 #### Scenario: three agreeing passes beat one outlier
 
@@ -201,7 +201,7 @@ The pipeline SHALL attempt to read **all** operands of an amount breakdown as th
 are printed, matching independently read candidates against each other, before
 computing any of them from the others. Where a quantity cannot be read, the pipeline
 SHALL leave it empty rather than reconstruct it.
-[Origen: Funcional Â§4.2 FR-EXT-007; PDR Â§6.1; ADR-019; 16-document test]
+[Origen: Funcional §4.2 FR-EXT-007; PDR §6.1; ADR-019; 16-document test]
 
 #### Scenario: three printed quantities are read, none derived
 
@@ -232,7 +232,7 @@ Deriving a value by **identity from read values** SHALL be permitted, SHALL be
 tagged `derived`, and SHALL carry **no confirmatory effect** on the confidence
 state. Deriving a value by assuming a rate the document does not state SHALL never
 be permitted, and where the rate is not printed the breakdown SHALL stay empty.
-[Origen: Funcional Â§4.2 FR-EXT-008; Funcional Â§5 BR-07; ADR-019; 16-document test]
+[Origen: Funcional §4.2 FR-EXT-008; Funcional §5 BR-07; ADR-019; 16-document test]
 
 #### Scenario: a total with no printed rate yields no breakdown
 
@@ -244,13 +244,13 @@ be permitted, and where the rate is not printed the breakdown SHALL stay empty.
 #### Scenario: a derived base confers nothing
 
 - GIVEN a document printing the total and the tax
-- WHEN the base is derived as `total âˆ’ tax`
+- WHEN the base is derived as `total − tax`
 - THEN it is tagged `derived`
 - AND a later `base + tax = total` check does not raise the total's confidence
 
 #### Scenario: the invented rates of the test are impossible
 
-- GIVEN the three rates the 16-document test produced â€” 9 %, 30 % and a 4.5 %
+- GIVEN the three rates the 16-document test produced — 9 %, 30 % and a 4.5 %
   currency-conversion mark-up
 - WHEN each is considered for a derivation
 - THEN none is used, because none was printed as a tax rate
@@ -262,7 +262,7 @@ be permitted, and where the rate is not printed the breakdown SHALL stay empty.
 The pipeline SHALL NOT use a tax rate for any derivation until the validation layer
 has admitted it against the detected country's legal set, and a rate the check
 rejects SHALL be discarded rather than used.
-[Origen: Funcional Â§4.2 FR-EXT-009; Funcional Â§5 BR-08 (first half); ADR-005, ADR-019; 16-document test]
+[Origen: Funcional §4.2 FR-EXT-009; Funcional §5 BR-08 (first half); ADR-005, ADR-019; 16-document test]
 
 #### Scenario: a rejected rate cannot drive a derivation
 
@@ -286,7 +286,7 @@ that are percentages or numbers in the document but are not tax figures, and
 candidates suppressed this way SHALL NOT be bound to a tax label. Suppressed
 surcharge-like amounts SHALL be captured as `surcharges[]` with an appropriate
 label where the document supports it.
-[Origen: Funcional Â§4.2 FR-EXT-010; Funcional Â§5 BR-08 (second half); ADR-019; 16-document test, PRO1013-26 and record 1428; Annex C]
+[Origen: Funcional §4.2 FR-EXT-010; Funcional §5 BR-08 (second half); ADR-019; 16-document test, PRO1013-26 and record 1428; Annex C]
 
 #### Scenario: a conversion mark-up is not a tax rate
 
@@ -312,11 +312,11 @@ label where the document supports it.
 
 ### Requirement: provenance-on-every-value
 
-Every extracted value SHALL carry a provenance tag â€” `read`, `derived`, `repaired`
-or `from_xml` â€” held internally alongside the confidence state. Provenance SHALL
+Every extracted value SHALL carry a provenance tag — `read`, `derived`, `repaired`
+or `from_xml` — held internally alongside the confidence state. Provenance SHALL
 never be written to Ninox, and SHALL determine whether a consuming check may raise
 the confidence state.
-[Origen: Funcional Â§4.2 FR-EXT-011; PDR Â§6.1; ADR-019; Funcional Â§1.5]
+[Origen: Funcional §4.2 FR-EXT-011; PDR §6.1; ADR-019; Funcional §1.5]
 
 #### Scenario: every value is tagged
 
@@ -342,7 +342,7 @@ the confidence state.
 
 For a multi-page document the pipeline SHALL read every page and consolidate into a
 single canonical model, with one value per field and provenance per value.
-[Origen: Funcional Â§4.2 FR-EXT-012; PDR Â§7.1]
+[Origen: Funcional §4.2 FR-EXT-012; PDR §7.1]
 
 #### Scenario: totals continuing on a second page produce one model
 
@@ -355,10 +355,10 @@ single canonical model, with one value per field and provenance per value.
 
 ### Requirement: currency-is-read-from-the-document
 
-Currency SHALL be extracted from the document's own evidence â€” the printed ISO code,
-the symbol, the issuer country â€” and SHALL never be defaulted to the table's
+Currency SHALL be extracted from the document's own evidence — the printed ISO code,
+the symbol, the issuer country — and SHALL never be defaulted to the table's
 currency.
-[Origen: Funcional Â§4.2 FR-EXT-013; PDR Â§6 (v0.2); Finding 3]
+[Origen: Funcional §4.2 FR-EXT-013; PDR §6 (v0.2); Finding 3]
 
 #### Scenario: a euro receipt is tagged EUR
 
@@ -387,12 +387,12 @@ currency.
 Label dictionaries SHALL cover the document languages the product expects,
 independently of the interface language, since a German user may well scan a French
 invoice.
-[Origen: Funcional Â§4.2 FR-EXT-014; PDR Â§10; ADR-005; Annex C]
+[Origen: Funcional §4.2 FR-EXT-014; PDR §10; ADR-005; Annex C]
 
 #### Scenario: labels bind regardless of interface language
 
 - GIVEN the interface set to English
-- WHEN a French invoice labelled `Total Ã  payer` and a German invoice labelled
+- WHEN a French invoice labelled `Total à payer` and a German invoice labelled
   `Zu zahlen` are extracted
 - THEN each binds its total correctly
 
@@ -408,8 +408,8 @@ invoice.
 
 The photo route SHALL produce candidate readings of sufficient quality that, after
 consensus and validation, per-field accuracy over the screening corpus meets the
-threshold fixed in Â§10.5.
-[Origen: Funcional Â§4.2 FR-EXT-015; ADR-010; PDR Â§12, Â§13]
+threshold fixed in §10.5.
+[Origen: Funcional §4.2 FR-EXT-015; ADR-010; PDR §12, §13]
 
 *Acceptance is blocked by ADR-010, the engine selection, and by the corpus
 extension its closure criterion requires (GAP-001). The threshold itself is
@@ -422,11 +422,11 @@ deferred to the first corpus screening (GAP-003), so no number is stated here.*
 - THEN only values with provenance `read` or `from_xml` are counted
 - AND the measurement runs after validation, not before it
 
-#### Scenario: the threshold is the one Â§10.5 fixes
+#### Scenario: the threshold is the one §10.5 fixes
 
 - GIVEN the screening has been run
 - WHEN the result is compared against the release criterion
-- THEN it is compared against the threshold fixed in Â§10.5
+- THEN it is compared against the threshold fixed in §10.5
 - AND no threshold invented outside that section is used
 
 ---
@@ -435,7 +435,7 @@ deferred to the first corpus screening (GAP-003), so no number is stated here.*
 
 `doc_date` SHALL never be derived from a filename or from a received-email
 timestamp, and SHALL be read from the document itself.
-[Origen: Funcional Â§5 BR-20; PDR Â§5.1, Â§10]
+[Origen: Funcional §5 BR-20; PDR §5.1, §10]
 
 #### Scenario: a dated filename does not supply the date
 
@@ -460,7 +460,7 @@ timestamp, and SHALL be read from the document itself.
   `validation-confidence`.
 - **Which tax rates are legal, and every check-digit algorithm.** `countries-languages`
   owns the data and the algorithms. This capability owns the **gate** that consumes
-  the legal-rate check and the `not_in_xml` status it produces â€” not the check
+  the legal-rate check and the `not_in_xml` status it produces — not the check
   itself, nor what `not_in_xml` means for absent-versus-zero, which is FR-VAL-012's.
 - **Currency's confidence state.** This capability reads the currency from the
   document's evidence; whether it can be sustained, and that an unsustained currency
@@ -474,28 +474,28 @@ timestamp, and SHALL be read from the document itself.
 - **Writing, attaching and reading back.** Stages 5 to 7 of the pipeline order are
   performed by `ninox-send`, which owns the payload, the retry matrix and the
   read-back. This capability fixes the order they occupy.
-- **The shape of the canonical data model.** Â§6.1 of the functional specifies it;
+- **The shape of the canonical data model.** §6.1 of the functional specifies it;
   this capability specifies which values may populate it and with what provenance.
 
 ---
 
 ## Cross-Capability References
 
-- `validation-confidence` â€” owns everything that decides whether a value is
+- `validation-confidence` — owns everything that decides whether a value is
   trustworthy: the three strengths (FR-VAL-001), the confirmatory rule that consumes
   this capability's provenance tags (FR-VAL-002), the check-digit validators
   (FR-VAL-005), the redundancy checks and their single tolerance (FR-VAL-006), the
   legal-rate check (FR-VAL-007), repair (FR-VAL-008), currency's confidence state
   (FR-VAL-009), what never reaches green (FR-VAL-010), tax slots (FR-VAL-011),
   absent-versus-zero (FR-VAL-012) and date coherence (FR-VAL-013).
-- `countries-languages` â€” owns the legal rate sets, the check-digit algorithms and
+- `countries-languages` — owns the legal rate sets, the check-digit algorithms and
   the format-inference algorithm, and supplies the label and negative-context
   dictionaries whose **content** it owns while this capability owns their
   application.
-- `capture-intake` â€” produces the file or PDF this capability reads, and owns byte
+- `capture-intake` — produces the file or PDF this capability reads, and owns byte
   integrity, which is what keeps the XML route available at all (FR-CAP-005).
-- `ninox-send` â€” performs pipeline stages 5 to 7 and owns the read-back.
-- `destinations-mapping` â€” owns the formula fields that stage 7 compares against,
+- `ninox-send` — performs pipeline stages 5 to 7 and owns the read-back.
+- `destinations-mapping` — owns the formula fields that stage 7 compares against,
   and the per-field absent-versus-zero setting.
 
 ---
@@ -504,11 +504,11 @@ timestamp, and SHALL be read from the document itself.
 
 - **GAP-001** (ADR-010, recognition engine) blocks the acceptance of
   `render-and-ocr-fallback` and `photo-route-recognition-quality`, and is the reason
-  the latter states no numeric threshold: Â§10.5 defers it to the first corpus
+  the latter states no numeric threshold: §10.5 defers it to the first corpus
   screening, tracked as **GAP-003**.
 - **GAP-002** (ADR-011, PDF text-extraction library) blocks the acceptance of
   `positional-pdf-text-extraction`. The requirement fixes the criterion the library
-  must satisfy â€” word-level coordinates, binding in the visual layout â€” which is
+  must satisfy — word-level coordinates, binding in the visual layout — which is
   exactly what ADR-011's closure criterion asks it to confirm.
 - **GAP-009** (the formula-field contrast's blind spot) is a `destinations-mapping`
   and `ninox-send` concern, but it is recorded here too because stage 7 of the
@@ -518,7 +518,7 @@ timestamp, and SHALL be read from the document itself.
   `derive-by-identity-never-invent-a-rate` protect against that, which is why they
   are written as requirements rather than left to the check.
 - **Settled before writing.** Four boundaries that the functional states more than
-  once are recorded in `openspec/project.md` Â§3.3: the legal-rate check versus the
+  once are recorded in `openspec/project.md` §3.3: the legal-rate check versus the
   gate that consumes it, currency reading versus currency confidence, format
   inference versus date coherence versus the `doc_date` source rule, and producing
   `not_in_xml` versus knowing what it means. Without those rows, three of these
@@ -526,4 +526,4 @@ timestamp, and SHALL be read from the document itself.
 - **The `surcharges[]` shape is not specified here.** `negative-context-suppresses-non-tax-figures`
   requires that a suppressed surcharge-like amount is captured with an appropriate
   label where the document supports it; the entry's field structure belongs to the
-  canonical data model in Â§6.1 of the functional, not to this capability.
+  canonical data model in §6.1 of the functional, not to this capability.
