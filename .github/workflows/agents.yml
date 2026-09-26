@@ -1,0 +1,24 @@
+# The agent team's tooling (plan v0.2, T0.9): the committed skill copies match agents/roles.yaml,
+# and the lane runner's guarantees hold. No model API is called and no secret is used: the
+# repository is public and the tokens never enter CI (plan §7.2).
+name: agents
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  agents:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r agents/requirements.txt
+      - run: python agents/tools/sync_skills.py --check
+      - run: python -m pytest agents/tests -q

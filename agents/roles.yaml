@@ -7,9 +7,10 @@
 # Editing this file is a change to what an agent is told: record it in
 # openspec/product-decisions.md like any other tooling decision (DEC-011).
 #
-# `model.id` values marked TO-CONFIRM must be checked against the provider's documentation
-# before first use (plan v0.2, T0.9). API keys are read from the Windows user environment,
-# never from a file, exactly like NINOX_API_KEY (AGENTS.md §1.3).
+# `model.id` values confirmed on 2026-09-26 (plan v0.2, T0.9) against each provider's model
+# listing (GET .../models) and documentation. `name` is the model the PO chose; `id` is what the
+# API accepts. API keys are read from the Windows user environment, never from a file, exactly
+# like NINOX_API_KEY (AGENTS.md §1.3). agents/lanes/models.py turns an entry into a chat model.
 
 version: 1
 skills_root: agents/skills
@@ -27,14 +28,17 @@ roles:
 
   spec:
     runtime: langgraph
-    model: {name: "Atria Dawn Preview", provider: TO-CONFIRM, id: TO-CONFIRM, api_key_env: ATRIA_API_KEY}
+    # OpenAI-compatible API; the id is case-sensitive. Listed by GET /v1/models on 2026-09-26.
+    model: {name: "Atria Dawn Preview", provider: atria, id: "Atria-Dawn-Preview",
+            base_url: "https://api.atria-asi.ai/v1", api_key_env: ATRIA_API_KEY}
     skills:
       - ninox                      # API facts decide spec wording (GAP-022 was one)
     writes: ["/openspec/**"]
 
   core:
     runtime: langgraph
-    model: {name: "DeepSeek-V4-Pro-0813", provider: deepseek, id: TO-CONFIRM, api_key_env: DEEPSEEK_API_KEY}
+    # api-docs.deepseek.com: `deepseek-v4-pro` is served by DeepSeek-V4-Pro-0813.
+    model: {name: "DeepSeek-V4-Pro-0813", provider: deepseek, id: "deepseek-v4-pro", api_key_env: DEEPSEEK_API_KEY}
     skills:
       - dart-add-unit-test
       - dart-generate-test-mocks
@@ -48,7 +52,9 @@ roles:
 
   ninox:
     runtime: langgraph
-    model: {name: "DeepSeek-V4.1-Flash", provider: deepseek, id: TO-CONFIRM, api_key_env: DEEPSEEK_API_KEY}
+    # api-docs.deepseek.com: `deepseek-flash` is served by DeepSeek-V4.1-Flash; the older
+    # `deepseek-v4-flash` is deprecated (still accepted, same model).
+    model: {name: "DeepSeek-V4.1-Flash", provider: deepseek, id: "deepseek-flash", api_key_env: DEEPSEEK_API_KEY}
     skills:
       - ninox
       - flutter-use-http-package
@@ -63,7 +69,7 @@ roles:
 
   mobile:
     runtime: langgraph
-    model: {name: "DeepSeek-V4.1-Flash", provider: deepseek, id: TO-CONFIRM, api_key_env: DEEPSEEK_API_KEY}
+    model: {name: "DeepSeek-V4.1-Flash", provider: deepseek, id: "deepseek-flash", api_key_env: DEEPSEEK_API_KEY}
     skills:
       - flutter-apply-architecture-best-practices
       - flutter-add-widget-test
@@ -81,7 +87,8 @@ roles:
 
   qa:
     runtime: langgraph
-    model: {name: "Sonnet 5", provider: anthropic, id: TO-CONFIRM, api_key_env: ANTHROPIC_API_KEY}
+    # Anthropic's published id. Not yet confirmed by the API: ANTHROPIC_API_KEY answered 401 on 2026-09-26.
+    model: {name: "Sonnet 5", provider: anthropic, id: "claude-sonnet-5", api_key_env: ANTHROPIC_API_KEY}
     skills:
       - ninox                      # verifies the Ninox lane against the verified contract
       - dart-add-unit-test
