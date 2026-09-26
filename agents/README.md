@@ -70,8 +70,12 @@ A run:
   only, and needs the PO's approval; `NINOX_DB_ID` never reaches a lane;
 * checkpoints to `agents/.build/checkpoints.sqlite`, thread `<role>:<change>`;
 * writes a JSON report to `agents/.build/reports/`: files touched since `main`, those outside the
-  role's `writes`, commits, token usage, and the lane's own report block. Any file outside `writes`
-  makes the verdict `reject`.
+  role's `writes` (or inside its `denies`), commits, token usage, and the lane's own report block.
+  Any such file makes the verdict `reject`.
+
+A role's `denies` (roles.yaml) is checked before its `writes`: Mobile writes `app/**` except the
+Ninox lane's wizard and send folders. `--model-from <role>` runs a lane on another lane's model —
+a substitution the PO must know about; the report records it as `model_substituted_from`.
 
 Verified on 2026-09-26: `pytest agents/tests` 28 passed; smoke test green on Spec, Core, Ninox and
 Mobile with their real models (a shell call, then a one-line answer naming one of the lane's skills).

@@ -176,7 +176,7 @@ Written down so the next session starts from the truth instead of from a guess.
 | Specifications | **Complete.** 12 specs in `openspec/specs/`, all changes archived, validated by `openspec validate --all --strict`. Amended on 2026-09-25 by `resolve-mvp-planning-gaps` (GAP-018, GAP-019, GAP-022); text encoding repaired (GAP-024) |
 | Formula fields in the Ninox schema | **Measured** on 2026-09-25: `.../tables` omits them, `.../schema` marks them with `fn`; no read-only marker exists. `docs/Plan/SPIKE_GAP-022_schema_formula_fields.md` |
 | Privacy gate | **Closed** on 2026-09-23. Section 6 |
-| Residue of real personal data in excluded material | Open, and protected by the `.gitignore` alone. GAP-017, §6 |
+| Residue of real personal data in excluded material | Moved out of the repository tree to the private corpus on 2026-09-26 (T0.4). GAP-017, §6 |
 
 ---
 
@@ -215,14 +215,16 @@ person's data is reproduced is now true.
 
 Recorded as **DEC-001** in `openspec/product-decisions.md`; closed as **GAP-010**.
 
-**Known residue, and it is not covered by anything but the `.gitignore`.**
+**Known residue — moved out of the tree on 2026-09-26.**
 `tools/load_db.py`, `tools/taxi_extract.py` and `sql/schema.sql` still hold that
-person's name, identifier, plate and licence. They are excluded from the
-repository and verified ignored, and they are the working record of a real
+person's name, identifier, plate and licence. They are the working record of a real
 analysis — changing the plate would break code that validates its format against a
-real document — so they were deliberately left alone. **Anyone who later wants to
-publish the prototype, or who edits `.gitignore`, re-exposes that data.** Tracked
-as GAP-017.
+real document — so their content was deliberately left alone. They no longer live
+in the repository: both folders were moved, unchanged, to
+`C:\Users\admin\proyectos\Paperdrop_corpus\prototype\` (plan T0.4, D-7). The
+`.gitignore` rules for `/tools/` and `sql/` stay, so a copy brought back by mistake
+is still not published. **Anyone who later wants to publish the prototype
+re-exposes that data.** Tracked as GAP-017.
 
 ---
 
