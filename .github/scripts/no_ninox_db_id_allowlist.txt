@@ -22,12 +22,11 @@ docs/Plan/SPIKE_GAP-022_schema_formula_fields.md | `NINOX_DB_ID` was **not** con
 docs/Plan/status/2026-09-26.md | `NINOX_DB_ID` never. | the status file records the lane rule
 openspec/changes/archive/2026-09-23-add-product-invariants/proposal.md | `NINOX_DB_ID` pointed at a production database | the archived proposal records GAP-012
 openspec/changes/archive/2026-09-23-add-product-invariants/specs/product-invariants/spec.md | `NINOX_DB_ID` pointed at a production database in the test | the archived spec records GAP-012
-openspec/changes/setup-mvp-foundations/design.md | the string `NINOX_DB_ID` appears in any tracked file outside an explicit allowlist | the design specifies this check
+openspec/changes/archive/2026-09-28-setup-mvp-foundations/design.md | the string `NINOX_DB_ID` appears in any tracked file outside an explicit allowlist | the design specifies this check
 openspec/gaps-register.md | NINOX_DB_ID | the gap register records GAP-012
 openspec/prompt_orquestador_inicio.md | Nunca NINOX_DB_ID. | the orchestrator prompt enforces the rule
 openspec/specs/product-invariants/spec.md | `NINOX_DB_ID` pointed at a production database in the test | the living spec records GAP-012
 .github/scripts/no_ninox_db_id.py | * | the check itself names the forbidden variable
 .github/scripts/no_ninox_db_id_allowlist.txt | * | the allowlist names the forbidden variable to describe each allowed line
 .github/scripts/tests/test_no_ninox_db_id.py | * | the test plants the forbidden variable to prove the check fails
-openspec/changes/setup-mvp-foundations/proposal.md | (`NINOX_DB_ID` pointed at a production database | the proposal describes GAP-012, which the CI check mitigates
-openspec/changes/archive/2026-09-26-setup-mvp-foundations/proposal.md | (`NINOX_DB_ID` pointed at a production database | the same line once the change is archived
+openspec/changes/archive/2026-09-28-setup-mvp-foundations/proposal.md | (`NINOX_DB_ID` pointed at a production database | the archived proposal describes GAP-012, which the CI check mitigates
