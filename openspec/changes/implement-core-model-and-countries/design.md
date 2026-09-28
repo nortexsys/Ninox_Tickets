@@ -107,7 +107,7 @@ rules that assign it are T1.7.
 * Core fields, §6.1.1, in this order: `docDate` (`FieldValue<CalendarDate>`), `supplierName`,
   `supplierTaxId`, `docNumber` (text), `grossTotal` (`FieldValue<Money>`), `currency`
   (`FieldValue<CurrencyCode>`).
-* Extended groups, §6.1.2: `docType`, `docTime` (`HH:MM` as a small value type, not a `DateTime`),
+* Extended groups, §6.1.2: `docTime` (`HH:MM` as a small value type, not a `DateTime`),
   `docSeries`, `controlCode`; `supplierAddress`, `supplierCity`, `supplierCountry` (ISO 3166-1
   alpha-2, validated shape); `netTotal`, `taxTotal`, `discountTotal` (`Money`); `taxSlots` — a list
   of `TaxSlot { FieldValue<RateBp> rate, FieldValue<Money> base, FieldValue<Money> amount }`, one per
@@ -129,6 +129,9 @@ rules that assign it are T1.7.
   governs over PRE-006 (GAP-027 closed, DEC-013) — but no MVP surface uses them: the MVP maps the six
   core fields plus `net_total` and `tax_total`, and no `choice` field (plan v0.2 §2, §4, FR-DST-007).
   They are added after the MVP, in R1. Do not add them now, and do not add placeholders.
+* **Deferred to R1: `docType`.** Funcional §6.1.2 types it as an enum and lists no values (GAP-029).
+  Nothing in the MVP fills, shows or maps it, and a free-text field would invite invented values.
+  The product owner decided on 2026-09-28 to leave it out until its values are defined in R1.
 * **The attachment is not part of the model** (BR-22).
 * Currency invariant: when `currency` is `Present`, every `Present` amount in the document must be in
   that currency; the constructor throws otherwise. When `currency` is not `Present`, amounts keep the
