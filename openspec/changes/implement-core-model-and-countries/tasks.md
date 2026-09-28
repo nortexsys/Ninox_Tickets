@@ -34,6 +34,12 @@ is run from the repository root on Flutter 3.47.5 / Dart 3.13.4:
       *Done when* the four checks at the top of this file are green, and the lane report lists the
       public API (type names and constructors) for the orchestrator's review.
 
+- [ ] 1.7 **The `Edited` case** (design §3, PO decision 2026-09-28), replacing `copyWithEdit` and the
+      `user` source and `edited` flag on `Present`. *Done when* `FieldValue.edit` turns each of
+      `Present`, `Absent` and `NotInXml` into an `Edited` holding only the value; `Present` refuses
+      `source: user`; an `Edited` has no provenance and no confidence and its JSON has neither key;
+      and the round-trip test covers it.
+
 ## 2. Core — second dispatch (T1.3–T1.4)
 
 Detailed in design §4–§5 before dispatch, after the product owner has reviewed §1's public API.
