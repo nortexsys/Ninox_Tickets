@@ -17,7 +17,7 @@ is run from the repository root on Flutter 3.47.5 / Dart 3.13.4:
       rounding function in the public API.
 - [ ] 1.4 **Canonical model** (design §3): `Provenance`, `ValueSource`, `ConfidenceState`,
       `FieldValue` (`Present`, `Absent`, `NotInXml`), `CalendarDate`, `CanonicalDocument` with
-      `TaxSlot` and `Surcharge`, JSON round-trip. The three GAP-027 fields are **not** present.
+      `TaxSlot` and `Surcharge`, JSON round-trip. The three fields deferred to R1 (design §3, GAP-027) are **not** present.
       *Done when*:
       * a test named `[extraction-pipeline/provenance-on-every-value] every value is tagged` builds a
         fully populated document and proves every `Present` value carries one of the four tags;

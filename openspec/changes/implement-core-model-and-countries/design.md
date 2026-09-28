@@ -73,11 +73,11 @@ lib/src/model/canonical_document.dart  CanonicalDocument, TaxSlot, Surcharge, Su
 `bool get mayConfirm` is `true` for `read` and `fromXml` only — this is the fact FR-VAL-002 consumes.
 Wire names for serialisation: `read`, `from_xml`, `derived`, `repaired`.
 
-**`ValueSource`** — `document`, `memory`, `user`. Separate from provenance on purpose (GAP-028): the
-four tags describe how a value was obtained *from the document*; a supplier name filled from memory
-or a value typed by the user is recorded here. Which provenance a memory-supplied value carries is
-not decided in this change: `FieldValue` for `ValueSource.memory` is constructible, and the
-supplier-memory change will fix the rule.
+**`ValueSource`** — `document`, `memory`, `user`. Separate from provenance on purpose: the four tags
+of Funcional §6.2.1 describe how a value was obtained *from the document*, and §6.1.1's "memory" for
+`supplier_name` is recorded here, so both statements of the functional hold without changing either
+(GAP-028 closed 2026-09-28: the functional is the source of truth, no document is changed). Supplier
+memory is R1 (UC-15); in the MVP no value is built with `ValueSource.memory`.
 
 **`ConfidenceState`** — `green`, `amber`, `red` (Funcional §6.2.2). The model holds the state; the
 rules that assign it are T1.7.
@@ -116,9 +116,11 @@ rules that assign it are T1.7.
 * Metadata: `needsReview` (bool), `recognitionEngine` (text, includes the route), `sourceHash`
   (text). The per-field `confidence` metadatum of §6.1.2 is read from the `FieldValue`s, not stored
   twice.
-* **Held out, GAP-027:** `docSubtype`, `grossTotalDocumentCurrency`, `grossTotalCardCurrency`. Do
-  not add them, and do not add placeholders. The product owner decides; adding them later is a
-  small follow-up.
+* **Deferred to R1:** `docSubtype`, `grossTotalDocumentCurrency`, `grossTotalCardCurrency`. They
+  belong to the canonical model — the product owner ruled on 2026-09-28 that Funcional §6.1.2
+  governs over PRE-006 (GAP-027 closed, DEC-013) — but no MVP surface uses them: the MVP maps the six
+  core fields plus `net_total` and `tax_total`, and no `choice` field (plan v0.2 §2, §4, FR-DST-007).
+  They are added after the MVP, in R1. Do not add them now, and do not add placeholders.
 * **The attachment is not part of the model** (BR-22).
 * Currency invariant: when `currency` is `Present`, every `Present` amount in the document must be in
   that currency; the constructor throws otherwise. When `currency` is not `Present`, amounts keep the

@@ -43,15 +43,16 @@ in `openspec/specs/`.
 ## Gaps and decisions this change acts on
 
 * **GAP-020** (closed) — `surcharges[]` implemented exactly as Funcional §6.1.2.
-* **GAP-027** (opened by this change, blocking three fields only) — PRE-006 says the canonical model
-  is *not* extended with a document subtype or a double currency, and that this is already in the
-  functional; Funcional §6.1.2 and two living specs do carry `doc_subtype`,
-  `gross_total_document_currency` and `gross_total_card_currency`. Those three fields are held out
-  of the model until the product owner decides; everything else proceeds.
-* **GAP-028** (opened by this change, non-blocking) — Funcional §6.1.1 lists "memory" as a
-  provenance of `supplier_name`, while FR-EXT-011 and §6.2.1 define exactly four tags. The model
-  keeps the four tags and records the source (document, memory, user) separately; which tag a
-  memory-supplied value carries is decided with `supplier-memory`.
+* **GAP-027** (opened and closed 2026-09-28, DEC-013) — PRE-006 said the canonical model is *not*
+  extended with a document subtype or a double currency; Funcional §6.1.2 and two living specs carry
+  `doc_subtype`, `gross_total_document_currency` and `gross_total_card_currency`. The product owner
+  ruled that the functional governs. The three fields are outside the MVP cut (plan v0.2 §2: the MVP
+  maps the six core fields plus `net_total` and `tax_total`, no `choice` field), so they are added
+  in R1, after the MVP.
+* **GAP-028** (opened and closed 2026-09-28) — Funcional §6.1.1 lists "memory" as a provenance of
+  `supplier_name`, while FR-EXT-011 and §6.2.1 define four tags. The product owner ruled that the
+  functional is the source of truth and nothing is changed; the model keeps the four tags and records
+  the value's source (document, memory, user) apart, which satisfies both statements.
 
 ## Deferred
 
