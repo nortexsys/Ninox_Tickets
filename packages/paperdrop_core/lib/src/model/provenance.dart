@@ -51,21 +51,19 @@ enum Provenance {
   }
 }
 
-/// The separate origin of a value: from the document, from memory, or typed by
-/// the user.
+/// The separate origin of an extracted value: from the document or from
+/// memory.
 ///
 /// This is deliberately separate from [Provenance] (GAP-028): the four tags
-/// describe how a value was obtained *from the document*; a supplier name
-/// filled from memory or a value typed by the user is recorded here.
+/// describe how a value was obtained *from the document*, and §6.1.1's
+/// "memory" for `supplier_name` is recorded here. A value typed or corrected
+/// by the user is the `Edited` case of `FieldValue`, not a source.
 enum ValueSource {
   /// The value came from the document.
   document,
 
   /// The value came from supplier memory.
-  memory,
-
-  /// The value was typed or confirmed by the user.
-  user;
+  memory;
 
   /// Serialises this source by its name.
   String toJson() => name;

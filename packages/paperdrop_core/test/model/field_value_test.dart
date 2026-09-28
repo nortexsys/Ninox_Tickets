@@ -5,36 +5,73 @@ void main() {
   final eur = CurrencyCode.parse('EUR')!;
 
   group('FieldValue cases', () {
-    test('Present carries provenance, confidence, source and edited', () {
+    test('Present carries provenance, confidence and source', () {
       final value = Present<Money>(
         Money(1999, eur),
         Provenance.fromXml,
         ConfidenceState.green,
         source: ValueSource.memory,
-        edited: true,
       );
 
       expect(value.value, Money(1999, eur));
       expect(value.provenance, Provenance.fromXml);
       expect(value.confidence, ConfidenceState.green);
       expect(value.source, ValueSource.memory);
-      expect(value.edited, isTrue);
     });
 
-    test('copyWithEdit keeps provenance and confidence but marks the edit', () {
-      final value = Present<Money>(
-        Money(1999, eur),
-        Provenance.fromXml,
-        ConfidenceState.green,
+    test('Present only accepts document or memory as its source', () {
+      expect(ValueSource.values, <ValueSource>[
+        ValueSource.document,
+        ValueSource.memory,
+      ]);
+
+      expect(
+        Present<Money>(
+          Money(1, eur),
+          Provenance.read,
+          ConfidenceState.amber,
+          source: ValueSource.document,
+        ).source,
+        ValueSource.document,
       );
+      expect(
+        Present<Money>(
+          Money(1, eur),
+          Provenance.read,
+          ConfidenceState.amber,
+          source: ValueSource.memory,
+        ).source,
+        ValueSource.memory,
+      );
+    });
 
-      final edited = value.copyWithEdit(Money(2000, eur));
+    test(
+      'FieldValue.edit turns every case into an Edited holding only value',
+      () {
+        final fromPresent = Present<Money>(
+          Money(1, eur),
+          Provenance.read,
+          ConfidenceState.green,
+        ).edit(Money(2, eur));
+        final fromAbsent = Absent<Money>().edit(Money(2, eur));
+        final fromNotInXml = NotInXml<Money>().edit(Money(2, eur));
 
-      expect(edited.value, Money(2000, eur));
-      expect(edited.provenance, Provenance.fromXml);
-      expect(edited.confidence, ConfidenceState.green);
-      expect(edited.source, ValueSource.user);
-      expect(edited.edited, isTrue);
+        expect(fromPresent, isA<Edited<Money>>());
+        expect(fromAbsent, isA<Edited<Money>>());
+        expect(fromNotInXml, isA<Edited<Money>>());
+
+        expect(fromPresent.value, Money(2, eur));
+        expect(fromAbsent.value, Money(2, eur));
+        expect(fromNotInXml.value, Money(2, eur));
+      },
+    );
+
+    test('Edited has no provenance and no confidence', () {
+      final edited = Edited<Money>(Money(1, eur));
+
+      expect(edited, isA<Edited<Money>>());
+      expect(edited.value, Money(1, eur));
+      expect(edited, isNot(isA<Present<Money>>()));
     });
 
     test('Absent, NotInXml and Present(0) are three unequal values', () {
@@ -63,13 +100,26 @@ void main() {
         Provenance.fromXml,
         ConfidenceState.green,
         source: ValueSource.memory,
-        edited: true,
       );
 
       final decoded = FieldValue.fromJson<Money>(
         value.toJson(moneyCodec),
         moneyCodec,
       );
+
+      expect(decoded, value);
+    });
+
+    test('Edited round-trips with no provenance or confidence key', () {
+      final value = Edited<Money>(Money(1999, eur));
+      final json = value.toJson(moneyCodec) as Map<String, Object?>;
+
+      expect(json['state'], 'edited');
+      expect(json['value'], Money(1999, eur).toJson());
+      expect(json.containsKey('provenance'), isFalse);
+      expect(json.containsKey('confidence'), isFalse);
+
+      final decoded = FieldValue.fromJson<Money>(json, moneyCodec);
 
       expect(decoded, value);
     });
