@@ -5,5 +5,9 @@
 /// (setup-mvp-foundations, design §2).
 library;
 
+export 'src/money/currency.dart';
+export 'src/money/money.dart';
+export 'src/money/rate.dart';
+
 /// The package's name, so the workspace can prove it resolves before any real API exists.
 const String packageName = 'paperdrop_core';
