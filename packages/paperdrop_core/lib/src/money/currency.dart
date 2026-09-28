@@ -206,6 +206,7 @@ class CurrencyCode {
   @override
   String toString() => code;
 
+  /// Value equality: same code and same exponent.
   @override
   bool operator ==(Object other) =>
       other is CurrencyCode && other.code == code && other.exponent == exponent;

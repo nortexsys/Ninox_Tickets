@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:paperdrop_core/paperdrop_core.dart';
 import 'package:test/test.dart';
 
@@ -285,7 +287,9 @@ void main() {
 
       _assertEveryMoneyIsAnInteger(json);
 
-      final decoded = CanonicalDocument.fromJson(json);
+      final encoded = jsonEncode(json);
+      final decodedJson = jsonDecode(encoded) as Map<String, Object?>;
+      final decoded = CanonicalDocument.fromJson(decodedJson);
 
       expect(decoded, document);
     });

@@ -11,11 +11,13 @@ import 'rate.dart';
 /// Thrown when two money values in different currencies are combined or
 /// compared. There is no implicit conversion anywhere.
 class CurrencyMismatchError extends ArgumentError {
+  /// Creates a currency mismatch error with [message].
   CurrencyMismatchError(super.message);
 }
 
 /// Thrown when a money value falls outside the representable range.
 class MoneyRangeError extends ArgumentError {
+  /// Creates a money range error with [message].
   MoneyRangeError(super.message);
 }
 
@@ -32,14 +34,17 @@ class ExactDistance {
   /// The denominator of the exact distance; always 10000.
   final int denominator;
 
+  /// Creates an exact distance from its [numerator] and [denominator].
   ExactDistance(this.numerator, this.denominator);
 
   /// Whether the distance is exactly zero minor units.
   bool get isZero => numerator == BigInt.zero;
 
+  /// The rational value, as `numerator/denominator`.
   @override
   String toString() => '$numerator/$denominator';
 
+  /// Value equality on numerator and denominator.
   @override
   bool operator ==(Object other) =>
       other is ExactDistance &&
@@ -85,9 +90,11 @@ class ExactAmount {
     return ExactDistance(difference, denominator);
   }
 
+  /// The exact product, as `numerator/denominator currency`.
   @override
   String toString() => '$numerator/$denominator ${currency.code}';
 
+  /// Value equality on numerator and currency.
   @override
   bool operator ==(Object other) =>
       other is ExactAmount &&
@@ -111,6 +118,7 @@ class Money implements Comparable<Money> {
 
   static final RegExp _decimalPattern = RegExp(r'^-?([0-9]+)(?:\.([0-9]+))?$');
 
+  /// Creates an amount in [currency]'s minor unit, bounded to [maxMinorUnits].
   Money(this.minor, this.currency) {
     if (minor < -maxMinorUnits || minor > maxMinorUnits) {
       throw MoneyRangeError('minor units out of range: $minor');
@@ -206,9 +214,11 @@ class Money implements Comparable<Money> {
   ExactAmount timesRate(RateBp rate) =>
       ExactAmount._(BigInt.from(minor) * BigInt.from(rate.bp), currency);
 
+  /// The amount as `minor currency`, and nothing more.
   @override
   String toString() => '$minor ${currency.code}';
 
+  /// Value equality on minor units and currency.
   @override
   bool operator ==(Object other) =>
       other is Money && other.minor == minor && other.currency == currency;

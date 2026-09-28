@@ -71,12 +71,14 @@ class CalendarDate {
     return parse(json);
   }
 
+  /// The date in its `YYYY-MM-DD` form.
   @override
   String toString() =>
       '${year.toString().padLeft(4, '0')}-'
       '${month.toString().padLeft(2, '0')}-'
       '${day.toString().padLeft(2, '0')}';
 
+  /// Value equality on year, month and day.
   @override
   bool operator ==(Object other) =>
       other is CalendarDate &&

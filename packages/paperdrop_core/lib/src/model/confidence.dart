@@ -6,8 +6,13 @@ library;
 
 /// The three confidence states of Funcional §6.2.2.
 enum ConfidenceState {
+  /// Confirmed by redundancy between independently read values.
   green,
+
+  /// Read, and either check-digit-consistent, repaired or un-cross-checked.
   amber,
+
+  /// Not read at all, or read and rejected by a constraint.
   red;
 
   /// Serialises this state by its name.

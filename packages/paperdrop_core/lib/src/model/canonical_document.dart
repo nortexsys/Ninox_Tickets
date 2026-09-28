@@ -14,12 +14,22 @@ import 'field_value.dart';
 
 /// The payment methods the model recognises.
 enum PaymentMethod {
+  /// Card payment.
   card('card'),
+
+  /// Cash payment.
   cash('cash'),
+
+  /// Bank transfer.
   transfer('transfer'),
+
+  /// Direct debit.
   directDebit('direct_debit'),
+
+  /// A payment method outside the fixed list.
   other('other');
 
+  /// Creates a payment method with its [wireName].
   const PaymentMethod(this.wireName);
 
   /// The wire name used for serialisation.
@@ -46,12 +56,22 @@ enum PaymentMethod {
 
 /// The labels a surcharge entry may carry.
 enum SurchargeLabel {
+  /// A dynamic currency conversion mark-up.
   dccMarkup('dcc_markup'),
+
+  /// A service charge.
   serviceCharge('service_charge'),
+
+  /// A tip.
   tip('tip'),
+
+  /// A rounding adjustment.
   roundingAdjustment('rounding_adjustment'),
+
+  /// Any surcharge label outside the fixed list.
   other('other');
 
+  /// Creates a surcharge label with its [wireName].
   const SurchargeLabel(this.wireName);
 
   /// The wire name used for serialisation.
@@ -78,18 +98,26 @@ enum SurchargeLabel {
 
 /// One printed tax rate and its base and amount, all as field values.
 class TaxSlot {
+  /// The printed tax rate.
   final FieldValue<RateBp> rate;
+
+  /// The printed tax base.
   final FieldValue<Money> base;
+
+  /// The printed or derived tax amount.
   final FieldValue<Money> amount;
 
+  /// Creates a tax slot from [rate], [base] and [amount].
   const TaxSlot({required this.rate, required this.base, required this.amount});
 
+  /// Serialises this slot using the shared JSON shape.
   Map<String, Object?> toJson() => <String, Object?>{
     'rate': rate.toJson(rateBpCodec),
     'base': base.toJson(moneyCodec),
     'amount': amount.toJson(moneyCodec),
   };
 
+  /// Reads a tax slot from its JSON object.
   static TaxSlot fromJson(Object? json) {
     final map = _asMap(json);
     return TaxSlot(
@@ -99,9 +127,11 @@ class TaxSlot {
     );
   }
 
+  /// The slot's three field values, and nothing more.
   @override
   String toString() => 'TaxSlot(rate: $rate, base: $base, amount: $amount)';
 
+  /// Value equality on rate, base and amount.
   @override
   bool operator ==(Object other) =>
       other is TaxSlot &&
@@ -116,16 +146,22 @@ class TaxSlot {
 /// A surcharge-like amount that is not a tax line (FR-EXT-010, Funcional
 /// §6.1.2).
 class Surcharge {
+  /// The surcharge label.
   final SurchargeLabel label;
+
+  /// The surcharge amount.
   final FieldValue<Money> amount;
 
+  /// Creates a surcharge entry from [label] and [amount].
   const Surcharge({required this.label, required this.amount});
 
+  /// Serialises this surcharge entry using the shared JSON shape.
   Map<String, Object?> toJson() => <String, Object?>{
     'label': label.toJson(),
     'amount': amount.toJson(moneyCodec),
   };
 
+  /// Reads a surcharge entry from its JSON object.
   static Surcharge fromJson(Object? json) {
     final map = _asMap(json);
     return Surcharge(
@@ -134,9 +170,11 @@ class Surcharge {
     );
   }
 
+  /// The label and amount, and nothing more.
   @override
   String toString() => 'Surcharge(label: ${label.wireName}, amount: $amount)';
 
+  /// Value equality on label and amount.
   @override
   bool operator ==(Object other) =>
       other is Surcharge && other.label == label && other.amount == amount;
@@ -147,45 +185,110 @@ class Surcharge {
 
 /// The immutable canonical model of one extracted document.
 class CanonicalDocument {
-  // Core fields, in the fixed order of Funcional §6.1.1.
+  /// The document date, as `YYYY-MM-DD` without a time zone.
   final FieldValue<CalendarDate> docDate;
+
+  /// The supplier name.
   final FieldValue<String> supplierName;
+
+  /// The supplier tax identifier, normalised text.
   final FieldValue<String> supplierTaxId;
+
+  /// The document number.
   final FieldValue<String> docNumber;
+
+  /// The gross total in minor units.
   final FieldValue<Money> grossTotal;
+
+  /// The document currency.
   final FieldValue<CurrencyCode> currency;
 
-  // Extended groups, Funcional §6.1.2.
+  /// The document class.
   final FieldValue<String> docType;
+
+  /// The document time, as `HH:MM`.
   final FieldValue<DocTime> docTime;
+
+  /// The invoice series prefix.
   final FieldValue<String> docSeries;
+
+  /// The fiscal control code, where printed.
   final FieldValue<String> controlCode;
+
+  /// The supplier address.
   final FieldValue<String> supplierAddress;
+
+  /// The supplier city.
   final FieldValue<String> supplierCity;
+
+  /// The supplier country, as an ISO 3166-1 alpha-2 code.
   final FieldValue<String> supplierCountry;
+
+  /// The net total in minor units.
   final FieldValue<Money> netTotal;
+
+  /// The tax total in minor units.
   final FieldValue<Money> taxTotal;
+
+  /// The discount total in minor units.
   final FieldValue<Money> discountTotal;
+
+  /// One slot per printed tax rate.
   final List<TaxSlot> taxSlots;
+
+  /// The exchange rate, kept as the printed text.
   final FieldValue<String> exchangeRate;
+
+  /// The payment method.
   final FieldValue<PaymentMethod> paymentMethod;
+
+  /// The card brand.
   final FieldValue<String> cardBrand;
+
+  /// The masked card number; at most four digits, optionally preceded by mask
+  /// characters.
   final FieldValue<String> cardMasked;
+
+  /// The authorisation code.
   final FieldValue<String> authCode;
+
+  /// The normalised IBAN text.
   final FieldValue<String> iban;
+
+  /// Surcharge-like amounts that are not tax lines.
   final List<Surcharge> surcharges;
+
+  /// A travel or transport licence number.
   final FieldValue<String> licenceNumber;
+
+  /// A vehicle plate.
   final FieldValue<String> vehiclePlate;
+
+  /// The trip origin.
   final FieldValue<String> tripFrom;
+
+  /// The trip destination.
   final FieldValue<String> tripTo;
+
+  /// The trip distance in kilometres.
   final FieldValue<int> distanceKm;
+
+  /// The trip duration in minutes.
   final FieldValue<int> durationMin;
 
-  // Metadata.
+  /// Whether the review screen must show this document before it is sent.
   final bool needsReview;
+
+  /// The recognition engine and route that produced the values.
   final String recognitionEngine;
+
+  /// The document hash, which feeds duplicate detection.
   final String sourceHash;
 
+  /// Creates an immutable document. Optional fields default to [Absent].
+  ///
+  /// When [currency] is present, every present amount must be in that currency;
+  /// the constructor throws [CurrencyMismatchError] otherwise.
   CanonicalDocument({
     this.docDate = const Absent<CalendarDate>(),
     this.supplierName = const Absent<String>(),
@@ -282,6 +385,7 @@ class CanonicalDocument {
     }
   }
 
+  /// Serialises this document using the shared JSON shape.
   Map<String, Object?> toJson() => <String, Object?>{
     'docDate': docDate.toJson(calendarDateCodec),
     'supplierName': supplierName.toJson(stringCodec),
@@ -318,6 +422,7 @@ class CanonicalDocument {
     'sourceHash': sourceHash,
   };
 
+  /// Reads a document from its shared JSON shape.
   static CanonicalDocument fromJson(Map<String, Object?> json) {
     FieldValue<T> field<T>(
       String key,
@@ -443,6 +548,7 @@ class CanonicalDocument {
     return List<T>.unmodifiable(json.map(decode));
   }
 
+  /// A compact rendering of the document's field values.
   @override
   String toString() =>
       'CanonicalDocument(docDate: $docDate, supplierName: $supplierName, '
@@ -455,6 +561,7 @@ class CanonicalDocument {
       'surcharges: ${surcharges.length}, needsReview: $needsReview, '
       'recognitionEngine: $recognitionEngine, sourceHash: $sourceHash)';
 
+  /// Value equality on every field and list entry.
   @override
   bool operator ==(Object other) {
     if (other is! CanonicalDocument) {
@@ -496,6 +603,7 @@ class CanonicalDocument {
         other.sourceHash == sourceHash;
   }
 
+  /// Hash of every field and list entry.
   @override
   int get hashCode => Object.hashAll(<Object?>[
     docDate,
