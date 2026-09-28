@@ -25,11 +25,7 @@ void main() {
         Provenance.repaired,
         ConfidenceState.amber,
       ),
-      docNumber: Present<String>(
-        'INV-2026-001',
-        Provenance.read,
-        ConfidenceState.green,
-      ),
+      docNumber: Edited<String>('INV-2026-001'),
       grossTotal: Present<Money>(
         Money(1999, eur),
         Provenance.read,

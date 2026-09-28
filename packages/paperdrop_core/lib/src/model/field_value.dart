@@ -1,8 +1,9 @@
-/// The three-state field value every canonical field carries.
+/// The field value every canonical field carries.
 ///
 /// Requirement served: FR-EXT-011 (`provenance-on-every-value`) — an untagged
-/// value cannot be built, and absent is distinct from zero and from
-/// `not_in_xml` (BR-13, FR-EXT-003).
+/// extracted value cannot be built, and absent is distinct from zero and from
+/// `not_in_xml` (BR-13, FR-EXT-003). The [Edited] case is a user-typed value,
+/// not an extracted value.
 library;
 
 import '../money/currency.dart';
@@ -73,13 +74,19 @@ final FieldCodec<DocTime> docTimeCodec = FieldCodec<DocTime>(
   DocTime.fromJson,
 );
 
-/// A field value: either [Present], [Absent] or [NotInXml].
+/// A field value: [Present], [Absent], [NotInXml] or [Edited].
 sealed class FieldValue<T> {
   /// Creates a field value. The sealed subclasses are the public cases.
   const FieldValue();
 
   /// Serialises this field value using [codec] for the inner value.
   Object? toJson(FieldCodec<T> codec);
+
+  /// Returns an [Edited] holding only [value], from any case.
+  ///
+  /// A typed or corrected value is not an extracted value: it carries no
+  /// provenance and no confidence, and it can never confirm anything.
+  Edited<T> edit(T value) => Edited<T>(value);
 
   /// Reads a field value serialised with [codec].
   static FieldValue<T> fromJson<T>(Object? json, FieldCodec<T> codec) {
@@ -93,9 +100,12 @@ sealed class FieldValue<T> {
           codec.decode(json['value']),
           Provenance.fromJson(json['provenance']),
           ConfidenceState.fromJson(json['confidence']),
-          source: ValueSource.fromJson(json['source']),
-          edited: json['edited'] == true,
+          source: json['source'] == null
+              ? ValueSource.document
+              : ValueSource.fromJson(json['source']),
         );
+      case 'edited':
+        return Edited<T>(codec.decode(json['value']));
       case 'absent':
         return Absent<T>();
       case 'not_in_xml':
@@ -106,7 +116,7 @@ sealed class FieldValue<T> {
   }
 }
 
-/// A value that was read, derived, repaired or taken from XML.
+/// An extracted value that was read, derived, repaired or taken from XML.
 final class Present<T> extends FieldValue<T> {
   /// The value itself.
   final T value;
@@ -117,33 +127,19 @@ final class Present<T> extends FieldValue<T> {
   /// The confidence state the model holds.
   final ConfidenceState confidence;
 
-  /// The separate origin of the value: document, memory or user.
+  /// The separate origin of the value: document or memory.
   final ValueSource source;
 
-  /// Whether the value was edited on the review screen.
-  final bool edited;
-
-  /// Creates a present value with a required [provenance].
+  /// Creates an extracted value with a required [provenance].
+  ///
+  /// [source] is `document` or `memory`; `user` is the [Edited] case and is not
+  /// accepted here.
   const Present(
     this.value,
     this.provenance,
     this.confidence, {
     this.source = ValueSource.document,
-    this.edited = false,
   });
-
-  /// Returns a [Present] with [value] recorded as a user edit.
-  ///
-  /// The original provenance and confidence are kept. Editing never re-imposes
-  /// a colour, and which provenance an edited value carries is not specified in
-  /// this change.
-  Present<T> copyWithEdit(T value) => Present<T>(
-    value,
-    provenance,
-    confidence,
-    source: ValueSource.user,
-    edited: true,
-  );
 
   @override
   Object? toJson(FieldCodec<T> codec) => <String, Object?>{
@@ -152,14 +148,13 @@ final class Present<T> extends FieldValue<T> {
     'provenance': provenance.toJson(),
     'confidence': confidence.toJson(),
     'source': source.toJson(),
-    'edited': edited,
   };
 
   /// The present value and its tags, and nothing more.
   @override
   String toString() =>
       'Present($value, ${provenance.wireName}, ${confidence.name}, '
-      'source: ${source.name}, edited: $edited)';
+      'source: ${source.name})';
 
   /// Value equality on value and every tag.
   @override
@@ -168,12 +163,41 @@ final class Present<T> extends FieldValue<T> {
       other.value == value &&
       other.provenance == provenance &&
       other.confidence == confidence &&
-      other.source == source &&
-      other.edited == edited;
+      other.source == source;
 
   @override
-  int get hashCode =>
-      Object.hash(value, provenance, confidence, source, edited);
+  int get hashCode => Object.hash(value, provenance, confidence, source);
+}
+
+/// A value the user typed or corrected on the review screen.
+///
+/// It carries no provenance tag and no confidence state: it is not an
+/// extracted value (FR-EXT-011), and the edited marker replaces the colour
+/// (DEC-007). It is always the value sent, and it can never confirm anything
+/// (BR-02).
+final class Edited<T> extends FieldValue<T> {
+  /// The value the user typed or corrected.
+  final T value;
+
+  /// Creates an edited value holding only [value].
+  const Edited(this.value);
+
+  @override
+  Object? toJson(FieldCodec<T> codec) => <String, Object?>{
+    'state': 'edited',
+    'value': codec.encode(value),
+  };
+
+  /// The edited value, and nothing more.
+  @override
+  String toString() => 'Edited($value)';
+
+  /// Value equality on the edited value.
+  @override
+  bool operator ==(Object other) => other is Edited<T> && other.value == value;
+
+  @override
+  int get hashCode => value.hashCode;
 }
 
 /// Nothing was read. Distinct from zero.
