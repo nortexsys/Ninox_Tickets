@@ -8,10 +8,10 @@ import subprocess
 import sys
 
 import pytest
-from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 
 from agents.lanes.factory import build_lane_agent, may_write
-from agents.lanes.models import _deepseek_class, make_model
+from agents.lanes.models import _atria_class, _deepseek_class, make_model
 from agents.lanes.runner import lane_env, lane_report_block, touched_files
 from agents.tests.test_skills_loading import Recorder
 from agents.tools.sync_skills import load_roles
@@ -180,6 +180,17 @@ def test_deepseek_passes_reasoning_back():
     ]
     wire = [m for m in model._get_request_payload(history)["messages"] if m["role"] == "assistant"]
     assert [m.get("reasoning_content") for m in wire] == ["thought-1", "thought-2"]
+
+
+def test_atria_gets_the_system_prompt_as_text():
+    model = _atria_class()(model="Atria-Dawn-Preview", api_key="not-a-key", base_url="http://localhost")
+    history = [
+        SystemMessage(content=[{"type": "text", "text": "part one"}, {"type": "text", "text": "Skills: ninox"}]),
+        HumanMessage("hi"),
+    ]
+    wire = model._get_request_payload(history)["messages"]
+    assert wire[0] == {"role": "system", "content": "part one\n\nSkills: ninox"}
+    assert wire[1]["content"] == "hi"
 
 
 def test_unconfirmed_model_is_refused():
