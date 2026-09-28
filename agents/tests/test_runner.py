@@ -136,8 +136,13 @@ def test_a_path_outside_the_worktree_is_an_error_message_not_a_crash(tmp_path):
                              resync=False)
     out = agent.invoke({"messages": [{"role": "user", "content": "read"}]})
     tool_msg = [m for m in out["messages"] if m.type == "tool"][0]
-    assert "stay inside the worktree" in str(tool_msg.content)
-    assert out["messages"][-1].content == "done"
+    assert out["messages"][-1].content == "done"  # the run survives the bad path, on every platform
+    if sys.platform == "win32":
+        # Only a drive-letter path makes deepagents raise; our handler turns that into this message.
+        assert "stay inside the worktree" in str(tool_msg.content)
+    else:
+        # On Linux (CI) the same path is just a missing file, which deepagents reports itself.
+        assert "Error" in str(tool_msg.content)
 
 
 def test_shell_runs_in_the_worktree_without_secrets(tmp_path, monkeypatch):
