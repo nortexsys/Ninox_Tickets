@@ -52,6 +52,31 @@ def _deepseek_class():
     return ReasoningChatDeepSeek
 
 
+def _atria_class():
+    from langchain_openai import ChatOpenAI
+
+    class TextOnlyChatOpenAI(ChatOpenAI):
+        """ChatOpenAI that sends every all-text message as a plain string, for Atria's gateway.
+
+        deepagents builds the system prompt as a list of content blocks. Atria's gateway mostly does
+        not see a system prompt in that shape: measured on 2026-09-28, asked to name a skill from its
+        Skills section, the model answered 4/4 correctly with the prompt as a string and 1/4 with the
+        same prompt as blocks ("I don't have a Skills section"), and the smoke test failed twice in a
+        row naming a skill that does not exist.
+        """
+
+        def _get_request_payload(self, input_, *, stop=None, **kwargs):
+            payload = super()._get_request_payload(input_, stop=stop, **kwargs)
+            for message in payload["messages"]:
+                content = message.get("content")
+                if isinstance(content, list) and content and all(
+                        isinstance(b, dict) and b.get("type") == "text" for b in content):
+                    message["content"] = "\n\n".join(b.get("text", "") for b in content)
+            return payload
+
+    return TextOnlyChatOpenAI
+
+
 def make_model(spec: dict, *, api_key: str | None = None):
     """The chat model for one role's `model` entry in roles.yaml. `api_key` overrides the registry (tests)."""
     provider, model_id = spec.get("provider"), spec.get("id")
@@ -66,7 +91,6 @@ def make_model(spec: dict, *, api_key: str | None = None):
     if provider == "deepseek":
         return _deepseek_class()(model=model_id, api_key=key, timeout=DEFAULT_TIMEOUT_S, max_retries=2)
     if provider == "atria":
-        from langchain_openai import ChatOpenAI
-        return ChatOpenAI(model=model_id, api_key=key, base_url=spec["base_url"], streaming=True,
-                          timeout=ATRIA_TIMEOUT_S, max_retries=2)
+        return _atria_class()(model=model_id, api_key=key, base_url=spec["base_url"], streaming=True,
+                              timeout=ATRIA_TIMEOUT_S, max_retries=2)
     raise ValueError(f"unknown provider {provider!r}")
