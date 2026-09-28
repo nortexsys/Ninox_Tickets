@@ -203,9 +203,6 @@ class CanonicalDocument {
   /// The document currency.
   final FieldValue<CurrencyCode> currency;
 
-  /// The document class.
-  final FieldValue<String> docType;
-
   /// The document time, as `HH:MM`.
   final FieldValue<DocTime> docTime;
 
@@ -296,7 +293,6 @@ class CanonicalDocument {
     this.docNumber = const Absent<String>(),
     this.grossTotal = const Absent<Money>(),
     this.currency = const Absent<CurrencyCode>(),
-    this.docType = const Absent<String>(),
     this.docTime = const Absent<DocTime>(),
     this.docSeries = const Absent<String>(),
     this.controlCode = const Absent<String>(),
@@ -393,7 +389,6 @@ class CanonicalDocument {
     'docNumber': docNumber.toJson(stringCodec),
     'grossTotal': grossTotal.toJson(moneyCodec),
     'currency': currency.toJson(currencyCodec),
-    'docType': docType.toJson(stringCodec),
     'docTime': docTime.toJson(docTimeCodec),
     'docSeries': docSeries.toJson(stringCodec),
     'controlCode': controlCode.toJson(stringCodec),
@@ -460,7 +455,6 @@ class CanonicalDocument {
         currencyCodec,
         const Absent<CurrencyCode>(),
       ),
-      docType: field<String>('docType', stringCodec, const Absent<String>()),
       docTime: field<DocTime>('docTime', docTimeCodec, const Absent<DocTime>()),
       docSeries: field<String>(
         'docSeries',
@@ -553,7 +547,7 @@ class CanonicalDocument {
   String toString() =>
       'CanonicalDocument(docDate: $docDate, supplierName: $supplierName, '
       'supplierTaxId: $supplierTaxId, docNumber: $docNumber, '
-      'grossTotal: $grossTotal, currency: $currency, docType: $docType, '
+      'grossTotal: $grossTotal, currency: $currency, '
       'docTime: $docTime, netTotal: $netTotal, taxTotal: $taxTotal, '
       'discountTotal: $discountTotal, taxSlots: ${taxSlots.length}, '
       'exchangeRate: $exchangeRate, paymentMethod: $paymentMethod, '
@@ -574,7 +568,6 @@ class CanonicalDocument {
         other.docNumber == docNumber &&
         other.grossTotal == grossTotal &&
         other.currency == currency &&
-        other.docType == docType &&
         other.docTime == docTime &&
         other.docSeries == docSeries &&
         other.controlCode == controlCode &&
@@ -612,7 +605,6 @@ class CanonicalDocument {
     docNumber,
     grossTotal,
     currency,
-    docType,
     docTime,
     docSeries,
     controlCode,

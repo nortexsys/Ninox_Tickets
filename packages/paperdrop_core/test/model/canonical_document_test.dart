@@ -36,11 +36,6 @@ void main() {
         Provenance.read,
         ConfidenceState.green,
       ),
-      docType: Present<String>(
-        'invoice',
-        Provenance.fromXml,
-        ConfidenceState.green,
-      ),
       docTime: Present<DocTime>(
         DocTime(14, 30),
         Provenance.read,
@@ -178,7 +173,6 @@ void main() {
           document.docNumber,
           document.grossTotal,
           document.currency,
-          document.docType,
           document.docTime,
           document.docSeries,
           document.controlCode,
