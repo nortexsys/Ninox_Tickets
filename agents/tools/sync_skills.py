@@ -129,7 +129,11 @@ def check(data: dict) -> int:
     for role, (target, skills) in t.items():
         mf = target / MANIFEST
         if not mf.exists():
-            problems.append(f"{role}: {target.relative_to(REPO).as_posix()} not materialised"); continue
+            # agents/.build/ is git-ignored and regenerated at every lane start, so a clean checkout
+            # (CI) has none of it; only a committed target (.claude/skills) must already exist.
+            if not target.is_relative_to(BUILD):
+                problems.append(f"{role}: {target.relative_to(REPO).as_posix()} not materialised")
+            continue
         recorded = json.loads(mf.read_text(encoding="utf-8"))["skills"]
         if sorted(recorded) != sorted(skills):
             problems.append(f"{role}: skills differ from roles.yaml")
