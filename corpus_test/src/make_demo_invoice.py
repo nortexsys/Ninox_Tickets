@@ -19,7 +19,7 @@ the document refuse to exist if the numbers stop adding up.
 Usage:
 
     python corpus_test/src/make_demo_invoice.py
-    python corpus_test/src/make_demo_invoice.py --out corpus_test/inbox/otro.pdf
+    python corpus_test/src/make_demo_invoice.py --out <path>.pdf
 """
 
 from __future__ import annotations
