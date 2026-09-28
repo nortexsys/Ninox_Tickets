@@ -21,6 +21,7 @@ enum Provenance {
   /// admits.
   repaired('repaired');
 
+  /// Creates a provenance tag with its [wireName].
   const Provenance(this.wireName);
 
   /// The wire name used for serialisation.
@@ -57,8 +58,13 @@ enum Provenance {
 /// describe how a value was obtained *from the document*; a supplier name
 /// filled from memory or a value typed by the user is recorded here.
 enum ValueSource {
+  /// The value came from the document.
   document,
+
+  /// The value came from supplier memory.
   memory,
+
+  /// The value was typed or confirmed by the user.
   user;
 
   /// Serialises this source by its name.

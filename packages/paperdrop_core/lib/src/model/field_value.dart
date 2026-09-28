@@ -15,9 +15,13 @@ import 'provenance.dart';
 
 /// Encodes and decodes a field value's inner value for JSON.
 class FieldCodec<T> {
+  /// Encodes a value into a JSON-compatible object.
   final Object? Function(T value) encode;
+
+  /// Decodes a JSON-compatible object back into a value.
   final T Function(Object? json) decode;
 
+  /// Creates a codec from [encode] and [decode].
   FieldCodec(this.encode, this.decode);
 }
 
@@ -71,6 +75,7 @@ final FieldCodec<DocTime> docTimeCodec = FieldCodec<DocTime>(
 
 /// A field value: either [Present], [Absent] or [NotInXml].
 sealed class FieldValue<T> {
+  /// Creates a field value. The sealed subclasses are the public cases.
   const FieldValue();
 
   /// Serialises this field value using [codec] for the inner value.
@@ -103,12 +108,22 @@ sealed class FieldValue<T> {
 
 /// A value that was read, derived, repaired or taken from XML.
 final class Present<T> extends FieldValue<T> {
+  /// The value itself.
   final T value;
+
+  /// The provenance tag every present value must carry.
   final Provenance provenance;
+
+  /// The confidence state the model holds.
   final ConfidenceState confidence;
+
+  /// The separate origin of the value: document, memory or user.
   final ValueSource source;
+
+  /// Whether the value was edited on the review screen.
   final bool edited;
 
+  /// Creates a present value with a required [provenance].
   const Present(
     this.value,
     this.provenance,
@@ -140,11 +155,13 @@ final class Present<T> extends FieldValue<T> {
     'edited': edited,
   };
 
+  /// The present value and its tags, and nothing more.
   @override
   String toString() =>
       'Present($value, ${provenance.wireName}, ${confidence.name}, '
       'source: ${source.name}, edited: $edited)';
 
+  /// Value equality on value and every tag.
   @override
   bool operator ==(Object other) =>
       other is Present<T> &&
@@ -166,9 +183,11 @@ final class Absent<T> extends FieldValue<T> {
   @override
   Object? toJson(FieldCodec<T> codec) => <String, Object?>{'state': 'absent'};
 
+  /// The absent marker.
   @override
   String toString() => 'Absent()';
 
+  /// Absent values of the same field type are equal.
   @override
   bool operator ==(Object other) => other is Absent<T>;
 
@@ -186,9 +205,11 @@ final class NotInXml<T> extends FieldValue<T> {
     'state': 'not_in_xml',
   };
 
+  /// The not-in-XML marker.
   @override
   String toString() => 'NotInXml()';
 
+  /// Not-in-XML values of the same field type are equal.
   @override
   bool operator ==(Object other) => other is NotInXml<T>;
 

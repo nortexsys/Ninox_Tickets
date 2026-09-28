@@ -60,6 +60,7 @@ class RateBp {
   @override
   String toString() => '$bp';
 
+  /// Value equality on basis points.
   @override
   bool operator ==(Object other) => other is RateBp && other.bp == bp;
 

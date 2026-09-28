@@ -43,10 +43,12 @@ class DocTime {
     return parse(json);
   }
 
+  /// The time in its `HH:MM` form.
   @override
   String toString() =>
       '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
 
+  /// Value equality on hour and minute.
   @override
   bool operator ==(Object other) =>
       other is DocTime && other.hour == hour && other.minute == minute;
