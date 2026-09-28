@@ -17,7 +17,7 @@ is run from the repository root on Flutter 3.47.5 / Dart 3.13.4:
       rounding function in the public API.
 - [ ] 1.4 **Canonical model** (design §3): `Provenance`, `ValueSource`, `ConfidenceState`,
       `FieldValue` (`Present`, `Absent`, `NotInXml`), `CalendarDate`, `CanonicalDocument` with
-      `TaxSlot` and `Surcharge`, JSON round-trip. The three GAP-027 fields are **not** present.
+      `TaxSlot` and `Surcharge`, JSON round-trip. The three fields deferred to R1 (design §3, GAP-027) are **not** present.
       *Done when*:
       * a test named `[extraction-pipeline/provenance-on-every-value] every value is tagged` builds a
         fully populated document and proves every `Present` value carries one of the four tags;
@@ -33,6 +33,12 @@ is run from the repository root on Flutter 3.47.5 / Dart 3.13.4:
 - [ ] 1.6 **Public API** exported from `lib/paperdrop_core.dart`, dartdoc on every public member.
       *Done when* the four checks at the top of this file are green, and the lane report lists the
       public API (type names and constructors) for the orchestrator's review.
+
+- [ ] 1.7 **The `Edited` case** (design §3, PO decision 2026-09-28), replacing `copyWithEdit` and the
+      `user` source and `edited` flag on `Present`. *Done when* `FieldValue.edit` turns each of
+      `Present`, `Absent` and `NotInXml` into an `Edited` holding only the value; `Present` refuses
+      `source: user`; an `Edited` has no provenance and no confidence and its JSON has neither key;
+      and the round-trip test covers it.
 
 ## 2. Core — second dispatch (T1.3–T1.4)
 

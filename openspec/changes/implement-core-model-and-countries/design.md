@@ -48,7 +48,9 @@ GBP 2, CHF 2, MAD 2, SEK 2, JPY 0, KRW 0, KWD 3, BHD 3, TND 3, CLF 4; `XXX` and 
 * `toDecimalString()` → canonical text (`1999` EUR → `'19.99'`, `-5` EUR → `'-0.05'`,
   `100` JPY → `'100'`). For logs and tests only; never used to compute.
 * Overflow: amounts are bounded to `|minor| ≤ 10^15`; construction and every operation throw
-  `MoneyRangeError` outside it, so `minor × basis points` (§ below) stays inside a 64-bit `int`.
+  `MoneyRangeError` outside it. `minor × basis points` can reach 10^19, beyond a signed 64-bit
+  `int`, so the exact product below is computed with `BigInt` (`dart:core`). Corrected after the
+  first dispatch, where the Core lane found the overflow in this design.
 
 **`RateBp`** — an integer number of basis points, `0 ≤ bp ≤ 10000` (a tax rate above 100 % is
 rejected). `RateBp.parsePercent('21')` → 2100, `'5.5'` → 550, `'2.75'` → 275, `'5.555'` → error
@@ -73,23 +75,29 @@ lib/src/model/canonical_document.dart  CanonicalDocument, TaxSlot, Surcharge, Su
 `bool get mayConfirm` is `true` for `read` and `fromXml` only — this is the fact FR-VAL-002 consumes.
 Wire names for serialisation: `read`, `from_xml`, `derived`, `repaired`.
 
-**`ValueSource`** — `document`, `memory`, `user`. Separate from provenance on purpose (GAP-028): the
-four tags describe how a value was obtained *from the document*; a supplier name filled from memory
-or a value typed by the user is recorded here. Which provenance a memory-supplied value carries is
-not decided in this change: `FieldValue` for `ValueSource.memory` is constructible, and the
-supplier-memory change will fix the rule.
+**`ValueSource`** — `document`, `memory` (a user value is the `Edited` case below, not a source). Separate from provenance on purpose: the four tags
+of Funcional §6.2.1 describe how a value was obtained *from the document*, and §6.1.1's "memory" for
+`supplier_name` is recorded here, so both statements of the functional hold without changing either
+(GAP-028 closed 2026-09-28: the functional is the source of truth, no document is changed). Supplier
+memory is R1 (UC-15); in the MVP no value is built with `ValueSource.memory`.
 
 **`ConfidenceState`** — `green`, `amber`, `red` (Funcional §6.2.2). The model holds the state; the
 rules that assign it are T1.7.
 
-**`FieldValue<T>`** — a sealed class with three cases:
+**`FieldValue<T>`** — a sealed class with four cases:
 * `Present<T>(T value, Provenance provenance, ConfidenceState confidence, {ValueSource source =
-  document, bool edited = false})`. `provenance` is required and non-nullable: an untagged value
-  cannot be built. `edited` is the review screen's marker (DEC-007, `review-screen` ·
-  `user-edits-are-authoritative`); `copyWithEdit(T value)` returns a `Present` with
-  `source: user`, `edited: true`, and **the confidence state unchanged** (editing never re-imposes a
-  colour) — note: *which* provenance an edited value carries is not specified anywhere; keep the
-  original provenance and flag it in the lane report rather than choose.
+  document})` — an **extracted** value. `provenance` is required and non-nullable: an untagged
+  extracted value cannot be built (FR-EXT-011). `source` is `document` or `memory`; `user` is not
+  accepted here.
+* `Edited<T>(T value)` — a value the user typed or corrected on the review screen, **whatever the
+  field held before** (`Present`, `Absent` or `NotInXml`). It carries **no provenance tag and no
+  confidence state**: it is not an extracted value, so FR-EXT-011's tag does not apply, and DEC-007
+  makes the "edited" marker replace the confidence colour (`review-screen` ·
+  `user-edits-are-authoritative`). It is always the value sent, and **it can never confirm
+  anything**: no check may treat it as `read` (BR-02). `FieldValue.edit(T value)` returns an
+  `Edited` from any case. Decided by the product owner on 2026-09-28; it replaces the first
+  dispatch's `copyWithEdit`, which kept the original tag and colour and could not represent a field
+  the user filled from empty.
 * `Absent()` — nothing was read. Distinct from zero: there is no `Present(0)` shortcut and no
   getter that turns `Absent` into `0` (BR-13, `validation-confidence` · `absent-is-not-zero`).
 * `NotInXml()` — the structured e-invoice route's status for a field its profile does not carry
@@ -116,9 +124,11 @@ rules that assign it are T1.7.
 * Metadata: `needsReview` (bool), `recognitionEngine` (text, includes the route), `sourceHash`
   (text). The per-field `confidence` metadatum of §6.1.2 is read from the `FieldValue`s, not stored
   twice.
-* **Held out, GAP-027:** `docSubtype`, `grossTotalDocumentCurrency`, `grossTotalCardCurrency`. Do
-  not add them, and do not add placeholders. The product owner decides; adding them later is a
-  small follow-up.
+* **Deferred to R1:** `docSubtype`, `grossTotalDocumentCurrency`, `grossTotalCardCurrency`. They
+  belong to the canonical model — the product owner ruled on 2026-09-28 that Funcional §6.1.2
+  governs over PRE-006 (GAP-027 closed, DEC-013) — but no MVP surface uses them: the MVP maps the six
+  core fields plus `net_total` and `tax_total`, and no `choice` field (plan v0.2 §2, §4, FR-DST-007).
+  They are added after the MVP, in R1. Do not add them now, and do not add placeholders.
 * **The attachment is not part of the model** (BR-22).
 * Currency invariant: when `currency` is `Present`, every `Present` amount in the document must be in
   that currency; the constructor throws otherwise. When `currency` is not `Present`, amounts keep the
@@ -129,7 +139,8 @@ years), not `DateTime`: a document date has no time zone, and `DateTime` invites
 
 **JSON.** `toJson`/`fromJson` for every type, so Mobile's store and QA's fixtures share one shape:
 money as `{"minor": 1999, "currency": "EUR"}`, rates as integers, provenance by wire name, `Absent`
-and `NotInXml` as `{"state": "absent"}` / `{"state": "not_in_xml"}`. A round-trip test over a fully
+and `NotInXml` as `{"state": "absent"}` / `{"state": "not_in_xml"}`, `Edited` as
+`{"state": "edited", "value": …}` with no provenance or confidence key. A round-trip test over a fully
 populated document proves no value changes type (**no amount ever becomes a JSON number with a
 fraction or a string**). This is the core's side of BR-09; the store and the payload are proven by
 their own lanes.

@@ -96,3 +96,7 @@ desktop.ini
 # `.claude/skills/` (el subconjunto del orquestador) sí se versiona: Claude Code
 # lo descubre al abrir la sesión, antes de que se pueda ejecutar nada.
 agents/.build/
+
+# deepagents offloads a large tool result to this folder at a lane's worktree root. It is scratch
+# output of the lane run, never part of a change.
+/large_tool_results/
