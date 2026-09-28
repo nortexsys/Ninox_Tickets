@@ -94,7 +94,10 @@ immediate refusal instead of a rejection at review.
 **DeepSeek's thinking mode** is on by default and rejects (HTTP 400) a tool-calling history without
 each assistant turn's `reasoning_content`; `lanes/models.py` sends it back, which langchain-deepseek
 1.1.1 does not. **Atria** is always streamed with a long socket timeout: its gateway cuts long
-non-streamed requests (measured on BearingWorld).
+non-streamed requests (measured on BearingWorld). Atria also gets every all-text message as a plain
+string: deepagents sends the system prompt as content blocks, and in that shape Atria's gateway mostly
+misses it — measured on 2026-09-28, the Spec lane named its skill 1 time in 4 with blocks and 4 in 4
+with a string, and before the fix it had been running without its system prompt most of the time.
 
 ## Rules
 
