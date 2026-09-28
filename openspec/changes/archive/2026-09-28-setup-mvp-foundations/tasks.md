@@ -14,8 +14,9 @@ done when its check passes, not when its files exist.
       every dependency in the three `pubspec.yaml` files appears in it with its licence.
 - [x] 1.3 **T0.5 — Android build.** `flutter build apk --debug`: built 2026-09-28, green
       (`app/build/app/outputs/flutter-apk/app-debug.apk`, ~143 MB). SDK licences accepted by the
-      PO the same day. *Still open*: installing it on the PO's phone — no device has connected
-      over adb yet.
+      PO the same day. Installed and run on the PO's phone (Samsung Galaxy S22, SM-S901B,
+      Android 16 / API 36) over wireless adb debugging: launches, shows "Paperdrop for Ninox",
+      screenshot verified.
 - [x] 1.4 **Lane boundaries** (design §5): `denies` in `agents/roles.yaml` and in
       `agents/lanes/factory.py`; runner's bounds check honours it. *Done when* a test proves Mobile
       cannot write `app/lib/features/wizard/` by file tool nor pass the bounds check with it.
@@ -56,9 +57,9 @@ done when its check passes, not when its files exist.
 - [x] 4.1 Approve this design (plan §9.2, Tue 29 Sep). **Approved 2026-09-26.**
 - [ ] 4.2 **T0.8 — confirm the ground truth** of the 16 documents, drafted by the orchestrator in
       the private corpus from `corpus_test/REPORT_after_review.md` (by Fri 2 Oct).
-- [x] 4.3 Install the Android SDK (accepting its licences) — **done 2026-09-28**: Android Studio
-      was already installed; `cmdline-tools` added and licences accepted. *Still open*: connect
-      the phone over adb.
-- [ ] 4.4 Move `ANTHROPIC_API_KEY` from the repository's `.env` into the Windows user environment
-      and delete the `.env` (`AGENTS.md` §1.3).
+- [x] 4.3 Install the Android SDK (accepting its licences) and connect the phone — **done
+      2026-09-28**: Android Studio was already installed; `cmdline-tools` added and licences
+      accepted; phone connected over wireless adb debugging.
+- [x] 4.4 Move `ANTHROPIC_API_KEY` from the repository's `.env` into the Windows user environment
+      and delete the `.env` (`AGENTS.md` §1.3). **Done 2026-09-28** (PO).
 - [ ] 4.5 First push, which runs CI for the first time.
