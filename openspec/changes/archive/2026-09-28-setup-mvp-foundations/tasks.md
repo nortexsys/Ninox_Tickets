@@ -12,8 +12,10 @@ done when its check passes, not when its files exist.
       are green on Flutter 3.47.5.
 - [x] 1.2 **T0.5 — README** with the Dependencies table (design §9, NFR-LIC-001). *Done when*
       every dependency in the three `pubspec.yaml` files appears in it with its licence.
-- [ ] 1.3 **T0.5 — Android build.** `flutter build apk --debug` and install on the PO's phone.
-      *Blocked on the PO*: Android SDK licences and a connected phone (design §11).
+- [x] 1.3 **T0.5 — Android build.** `flutter build apk --debug`: built 2026-09-28, green
+      (`app/build/app/outputs/flutter-apk/app-debug.apk`, ~143 MB). SDK licences accepted by the
+      PO the same day. *Still open*: installing it on the PO's phone — no device has connected
+      over adb yet.
 - [x] 1.4 **Lane boundaries** (design §5): `denies` in `agents/roles.yaml` and in
       `agents/lanes/factory.py`; runner's bounds check honours it. *Done when* a test proves Mobile
       cannot write `app/lib/features/wizard/` by file tool nor pass the bounds check with it.
@@ -22,9 +24,9 @@ done when its check passes, not when its files exist.
       on a planted double-encoded section sign in a `.md` and inside a `.docx` (proved by a test).
 - [x] 1.6 **T0.4 — move `tools/` and `sql/`** to `Paperdrop_corpus\prototype\` (D-7, GAP-017).
       *Done when* neither folder exists in the tree. **Done 2026-09-26.**
-- [ ] 1.7 Integrate the lanes' branches, run every CI command locally, archive the change with
-      OpenSpec 1.13.2, and write the status file. *Integrated and verified 2026-09-26; archive waits*
-      *for 1.3 and the PO's approval (4.1).*
+- [x] 1.7 Integrate the lanes' branches, run every CI command locally, archive the change with
+      OpenSpec 1.13.2, and write the status file. Integrated and verified 2026-09-26, approved the
+      same day; 1.3 done 2026-09-28. Archived 2026-09-28.
 
 ## 2. QA
 
@@ -51,11 +53,12 @@ done when its check passes, not when its files exist.
 
 ## 4. Product owner
 
-- [ ] 4.1 Approve this design (plan §9.2, Tue 29 Sep).
+- [x] 4.1 Approve this design (plan §9.2, Tue 29 Sep). **Approved 2026-09-26.**
 - [ ] 4.2 **T0.8 — confirm the ground truth** of the 16 documents, drafted by the orchestrator in
       the private corpus from `corpus_test/REPORT_after_review.md` (by Fri 2 Oct).
-- [ ] 4.3 Install the Android SDK (accepting its licences) and connect the phone, so task 1.3 can
-      run.
+- [x] 4.3 Install the Android SDK (accepting its licences) — **done 2026-09-28**: Android Studio
+      was already installed; `cmdline-tools` added and licences accepted. *Still open*: connect
+      the phone over adb.
 - [ ] 4.4 Move `ANTHROPIC_API_KEY` from the repository's `.env` into the Windows user environment
       and delete the `.env` (`AGENTS.md` §1.3).
 - [ ] 4.5 First push, which runs CI for the first time.
