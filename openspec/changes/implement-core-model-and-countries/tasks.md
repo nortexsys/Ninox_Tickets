@@ -40,6 +40,10 @@ is run from the repository root on Flutter 3.47.5 / Dart 3.13.4:
       `source: user`; an `Edited` has no provenance and no confidence and its JSON has neither key;
       and the round-trip test covers it.
 
+- [ ] 1.8 **Remove `docType`** from `CanonicalDocument`, its JSON and its tests (design §3, GAP-029,
+      PO decision 2026-09-28). *Done when* no `docType` / `doc_type` remains in
+      `packages/paperdrop_core/` and the checks at the top of this file are green.
+
 ## 2. Core — second dispatch (T1.3–T1.4)
 
 Detailed in design §4–§5 before dispatch, after the product owner has reviewed §1's public API.
