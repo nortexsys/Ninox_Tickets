@@ -52,6 +52,12 @@ ClassicNinoxAdapter _adapter(
 MockClient _routing(List<http.Request> seen) => MockClient((request) async {
   seen.add(request);
   final path = request.url.path;
+  if (request.method == 'POST') {
+    if (path.endsWith('/records')) {
+      return http.Response(classicFixture('create-response.json'), 200);
+    }
+    return http.Response('File Uploaded Successfully', 200);
+  }
   if (path.endsWith('/teams')) {
     return http.Response(classicFixture('teams.json'), 200);
   }
@@ -454,6 +460,11 @@ void main() {
         0x0A, 0x00, 0xFF, 0xFE, 0x0D, 0x0A,
       ]);
 
+      // `ninox-send/attachment-upload`, scenario "the upload succeeds and is readable": partial
+      // proof, untagged (design §1) — this layer proves the single multipart call to the record's
+      // files endpoint; that the read-back returns the name, size and content type matching what
+      // was uploaded is proved as a parse here and against a real record in T1.9, and "no record is
+      // created without its document" is the send pipeline's (T1.11).
       await adapter.uploadFile(
         _ref,
         const RecordId('1416'),
@@ -539,6 +550,72 @@ void main() {
         throwsA(isA<ArgumentError>()),
       );
       expect(seen, isEmpty);
+    });
+  });
+
+  group('the requests this layer can make', () {
+    test('are the eight calls of the port: no schema is touched and nothing is deleted', () async {
+      final seen = <http.Request>[];
+      final adapter = _adapter(_routing(seen));
+
+      // BR-16, `product-invariants/never-touch-schema-or-foreign-records`: the half this layer
+      // owns is that no request it can build mutates a schema or deletes a record. Partial proof,
+      // untagged (design §1) — the other half, "the live writes delete only the records they
+      // created", is T1.9's and needs the product owner.
+      await adapter.listTeams();
+      await adapter.listDatabases('t1a2b3c4d5e6f7g8h');
+      await adapter.listTables('t1a2b3c4d5e6f7g8h', 'db1a2b3c4d');
+      await adapter.readRecord(_ref, const RecordId('1413'));
+      await adapter.listFiles(_ref, const RecordId('1416'));
+      await adapter.listRecords(_ref);
+      await adapter.createRecord(_ref, const {'Amount': 1999});
+      await adapter.uploadFile(
+        _ref,
+        const RecordId('1416'),
+        filename: 'receipt.pdf',
+        bytes: Uint8List.fromList(const [1, 2, 3]),
+        contentType: 'application/pdf',
+      );
+
+      expect(seen.map((request) => request.method), [
+        'GET',
+        'GET',
+        'GET',
+        'GET',
+        'GET',
+        'GET',
+        'POST',
+        'POST',
+      ]);
+      for (final request in seen) {
+        expect(
+          request.method,
+          anyOf('GET', 'POST'),
+          reason:
+              'the port has no PUT, PATCH or DELETE: the update primitive is blocked and '
+              'the classic API has no delete in this change',
+        );
+        expect(
+          request.url.path,
+          isNot(contains('/schema')),
+          reason: 'the adapter reads .../tables, never .../schema (SPIKE GAP-022 §3)',
+        );
+        expect(
+          request.url.path,
+          isNot(contains('/fields')),
+          reason: '.../tables/{table}/fields does not exist; the fields come with the tables',
+        );
+      }
+      expect(seen.map((request) => request.url.path), [
+        '/v1/teams',
+        '/v1/teams/t1a2b3c4d5e6f7g8h/databases',
+        '/v1/teams/t1a2b3c4d5e6f7g8h/databases/db1a2b3c4d/tables',
+        '/v1/teams/t1a2b3c4d5e6f7g8h/databases/db1a2b3c4d/tables/T1/records/1413',
+        '/v1/teams/t1a2b3c4d5e6f7g8h/databases/db1a2b3c4d/tables/T1/records/1416/files',
+        '/v1/teams/t1a2b3c4d5e6f7g8h/databases/db1a2b3c4d/tables/T1/records',
+        '/v1/teams/t1a2b3c4d5e6f7g8h/databases/db1a2b3c4d/tables/T1/records',
+        '/v1/teams/t1a2b3c4d5e6f7g8h/databases/db1a2b3c4d/tables/T1/records/1416/files',
+      ]);
     });
   });
 
