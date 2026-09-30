@@ -49,6 +49,15 @@ ships in the app: PyMuPDF is used only by the 16-document test harness and iText
 | Flutter SDK (framework, engine, Android embedding) | `app` | BSD-3-Clause | No |
 | `http` | `ninox_client` | BSD-3-Clause | No |
 | AndroidX and Kotlin standard library (through the Flutter Android embedding) | `app` | Apache-2.0 | No |
+| `flutter_localizations` (from the Flutter SDK) | `app` | BSD-3-Clause | No |
+| `go_router` 16.3.0 | `app` — routes | BSD-3-Clause | No |
+| `intl` 0.20.3 | `app` — generated localisations | BSD-3-Clause | No |
+| `crypto` 3.0.7 | `app` — SHA-256 of the originals (FR-CAP-005) | BSD-3-Clause | No |
+| `path` 1.9.1 | `app` — storage paths | BSD-3-Clause | No |
+| `path_provider` 2.1.6 | `app` — the application's documents directory | BSD-3-Clause | No |
+| `file_picker` 10.3.10 | `app` — the file-picker path (FR-CAP-001) | MIT | No |
+| `share_handler` 0.0.25 (with `share_handler_platform_interface` 0.0.6, `share_handler_android` 0.0.11) | `app` — Android share-in | MIT | No |
+| `google_mlkit_document_scanner` 0.6.0 — wrapper only; the scanner is Google Play services | `app` — the platform document scanner (FR-CAP-002, ADR-006) | MIT (wrapper); ML Kit Terms of Service (Google component) | **Yes** (the Google component) |
 
 Development only, not shipped: `lints`, `flutter_lints`, `test`, `flutter_test` (all BSD-3-Clause).
 
@@ -56,7 +65,6 @@ Development only, not shipped: `lints`, `flutter_lints`, `test`, `flutter_test` 
 
 | Dependency | For | Licence | Proprietary |
 | --- | --- | --- | --- |
-| Google ML Kit document scanner (Google Play services) | Capture (ADR-006) | ML Kit Terms of Service | **Yes** |
 | Google ML Kit text recognition | Photo route (ADR-010, proposed) | ML Kit Terms of Service | **Yes** |
 | PDF text extraction with word positions | Invoice route (ADR-011, open) | To be decided — must not be AGPL | — |
 

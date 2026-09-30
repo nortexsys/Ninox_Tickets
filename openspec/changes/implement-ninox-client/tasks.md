@@ -8,30 +8,30 @@ is run from the repository root on Flutter 3.47.5 / Dart 3.13.4:
 
 ## 1. Ninox — first dispatch: port and classic adapter, no token (T1.8)
 
-- [ ] 1.1 **Endpoint and credentials** (design §2). *Done when* every accepted and rejected form of
+- [x] 1.1 **Endpoint and credentials** (design §2). *Done when* every accepted and rejected form of
       design §2 has a test, `api.ninox.com` appears once in `lib/`, and `NinoxCredentials.toString()`
       does not contain the token.
-- [ ] 1.2 **Model, port and failures** (design §3–§4): `TableRef`, the value types, `NinoxPort`,
+- [x] 1.2 **Model, port and failures** (design §3–§4): `TableRef`, the value types, `NinoxPort`,
       `NinoxFailure` and its subtypes, JSON parsing of each response shape. *Done when* each type
       parses its fixture and rejects a malformed body with `UnexpectedResponse`.
-- [ ] 1.3 **Classic adapter — reads** (`listTeams`, `listDatabases`, `listTables`, `readRecord`,
+- [x] 1.3 **Classic adapter — reads** (`listTeams`, `listDatabases`, `listTables`, `readRecord`,
       `listFiles`, `listRecords`) with fixtures and contract tests (design §5). *Done when* each call's
       method, path, query and headers are asserted, and a private-host test proves no request goes to
       `api.ninox.com` (tag `[destinations-mapping/configurable-ninox-host] a private-cloud customer
       needs no fork` only if the scenario is proved whole at this layer; otherwise untagged).
-- [ ] 1.4 **Classic adapter — writes against `MockClient` only** (`createRecord`, `updateRecord`, `uploadFile`).
+- [x] 1.4 **Classic adapter — writes against `MockClient` only** (`createRecord`, `updateRecord`, `uploadFile`).
       *Done when* the body shape, the empty-mapping case, the merge body of `updateRecord` (only the
       given fields), and byte-for-byte multipart upload are
       asserted, and no test can reach the network (the adapter is always built with a `MockClient`).
-- [ ] 1.5 **Failure mapping and token hygiene** (design §1, §4). *Done when* every status of design §4
+- [x] 1.5 **Failure mapping and token hygiene** (design §1, §4). *Done when* every status of design §4
       maps to its failure, a timeout on create yields `CreateOutcomeUncertain`, no non-`NinoxFailure`
       exception escapes a port method, and a test stringifies every failure and the credentials and
       finds no token.
-- [ ] 1.6 **GAP-023 check written, not run** (design §5): the `live`-tagged GET-only test, excluded by
+- [x] 1.6 **GAP-023 check written, not run** (design §5): the `live`-tagged GET-only test, excluded by
       default via `dart_test.yaml`, skipping without `NINOX_API_KEY`. *Done when* `dart test
       packages/ninox_client` runs green without it, and `dart test --run-skipped -t live` is **not**
       executed by the lane.
-- [ ] 1.7 **Public API** exported from `lib/ninox_client.dart`, dartdoc on every public member; the
+- [x] 1.7 **Public API** exported from `lib/ninox_client.dart`, dartdoc on every public member; the
       lane report lists it for the orchestrator's review.
 
 ## 2. Ninox — second dispatch: live tests (T1.9)
@@ -49,6 +49,6 @@ Detailed in design §6 before dispatch; needs the product owner's approval of `-
 
 ## 4. Orchestrator
 
-- [ ] 4.1 Review the lane's report and diff; run the checks at the top of this file; present the
+- [x] 4.1 Review the lane's report and diff; run the checks at the top of this file; present the
       public API to the product owner.
-- [ ] 4.2 Merge `change/implement-ninox-client` with `--no-ff` after the product owner approves.
+- [x] 4.2 Merge `change/implement-ninox-client` with `--no-ff` after the product owner approves.
