@@ -20,6 +20,7 @@ from pathlib import Path
 
 from deepagents import create_deep_agent
 from deepagents.backends import CompositeBackend, FilesystemBackend, LocalShellBackend
+from deepagents.middleware import filesystem as _deepagents_fs
 from deepagents.middleware.filesystem import FilesystemPermission, _check_fs_permission
 from langchain.agents.middleware import ToolErrorMiddleware
 from langchain_core.tools import StructuredTool
@@ -27,6 +28,13 @@ from langchain_core.tools import StructuredTool
 from agents.tools.sync_skills import BUILD, load_roles, sync
 
 SKILLS_MOUNT = "/skills/"
+
+# deepagents 0.7.19 matches permission paths with wcmatch and no DOTGLOB, so `**` skips any path
+# segment that starts with a dot, and a path no rule matches is allowed. Without this, the final
+# `/**` deny missed `.github/` and `.claude/`: on 2026-09-30 the Spec lane wrote
+# `.github/scripts/no_ninox_db_id_allowlist.txt` and neither the file tools nor the bounds check saw
+# it. The flag is read at call time, so setting it here fixes both.
+_deepagents_fs._FS_WCMATCH_FLAGS |= _deepagents_fs.wcglob.DOTGLOB
 
 
 def lane_permissions(writes: list[str], denies: list[str] = ()) -> list[FilesystemPermission]:
