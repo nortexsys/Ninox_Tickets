@@ -61,6 +61,12 @@ python -m agents.lanes.runner run core --change <name> --resume      # continue 
 python -m agents.lanes.runner check core --change <name>             # re-run the bounds check
 ```
 
+**On Windows, run the runner in Python's UTF-8 mode** (`python -X utf8 -m agents.lanes.runner ...`):
+deepagents' shell decodes command output with the locale's code page, and Flutter's UTF-8 output then
+fails to decode and is lost (measured 2026-09-30: the Mobile lane re-ran commands that returned
+nothing until it hit the step limit). **Do not start two lanes in the same second**: each run syncs
+`.claude/skills/` at start, and two syncs at once collide on a locked file.
+
 A run:
 
 * works in `agents/.build/worktrees/<role>`, on branch `change/<name>` cut from `main`; one change
