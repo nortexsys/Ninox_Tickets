@@ -214,11 +214,12 @@ requirement (Annex B.2: "separate code from NIF").
   letter at that index of `JABCDEFGHI`; for every other issuing letter it must be the digit. (Real
   registries accept either form for some letters; the spec does not, and it governs — see §7.)
 
-**`DE_USTID` is blocked (GAP-030, opened 2026-09-30).** The functional and the spec say ISO 7064
-mod-97-10; the published algorithm is ISO 7064 MOD 11,10, and two published valid identifiers fail
-mod-97-10. Until the product owner decides, T1.3 implements the `DE_USTID` shape, the classification
-and the normalisation, and its validator returns `notChecked`, with a dartdoc and a test that cite
-GAP-030. Do not implement either algorithm for it.
+**`DE_USTID` is not validated in the MVP (GAP-030, opened 2026-09-30).** The functional and the
+spec say ISO 7064 mod-97-10; the published algorithm is ISO 7064 MOD 11,10, and two published valid
+identifiers fail mod-97-10. The product owner decided on 2026-09-30 to leave `DE_USTID` unvalidated
+in the MVP, like `DE_STNR`, until R1. T1.3 implements its shape, classification and normalisation, and
+its validator returns `notChecked`, with a dartdoc and a test that cite GAP-030. Neither algorithm is
+implemented for it.
 
 **Standard vectors** (verified by the orchestrator with python-stdnum on 2026-09-30; a test that
 disagrees with one of these is reported, not "fixed"):
@@ -336,8 +337,9 @@ serialisation format decision for the store beyond the JSON shape of §3.
   registries accept either form for some issuing letters (`C D F G J U V`); a genuine CIF printed with
   a letter control for one of those would be rejected. The spec governs; if the corpus shows such a
   CIF, it becomes a gap, not a local fix.
-* **`DE_USTID` (GAP-030).** Blocked on the product owner: the spec's algorithm is not the published
-  one (§4).
+* **`DE_USTID` (GAP-030).** The spec's algorithm is not the published one (§4). Unvalidated in the
+  MVP by the product owner's decision of 2026-09-30; a misread German VAT identifier is therefore
+  never caught by a check digit until R1.
 * **Shape churn.** Ninox and Mobile start against these types on Wed 30 Sep; a rename after that
   costs three lanes. The orchestrator reviews §3's public API with the product owner before those
   lanes are dispatched.
