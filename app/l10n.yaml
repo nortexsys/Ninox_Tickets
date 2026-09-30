@@ -1,0 +1,11 @@
+# String resources (implement-android-capture-and-store, design §2).
+#
+# Every user-facing string lives in `lib/l10n/app_en.arb` and is read through the
+# generated `AppLocalizations` (NFR-I18N-001). English only in the MVP; the German
+# interface is R1 (plan v0.2 §4.8), which is why there is one ARB file and not two.
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-dir: lib/l10n/generated
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+nullable-getter: false
