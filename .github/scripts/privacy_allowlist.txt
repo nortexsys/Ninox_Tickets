@@ -1,8 +1,10 @@
 # Legitimate findings allowed for the privacy check (design §6).
 # Format: path | identifying text (matched against the finding's exact text) | reason
-# `*` as identifying text allowlists the whole file (pubspec.lock and this allowlist itself).
+# `*` as identifying text allowlists the whole file (pubspec.lock, which carries hashes).
+# This file (privacy_allowlist.txt) is scanned like any other file: a finding inside it
+# is allowed only when it is the identifying text of an entry below for a *different*
+# path, and that entry's path still produces that exact finding (qa-m1-week1, task C).
 pubspec.lock | * | pubspec.lock carries sha256 package content hashes (design §6)
-.github/scripts/privacy_allowlist.txt | * | the allowlist lists the findings it allows, so it necessarily contains them
 .claude/skills/.sync-manifest.json | 1666ada211d67d056b66e95a0286ed448422e27b05ca76695d4d8b1c1bbbf786 | sha256 content hash of a vendored skill; not a credential
 .claude/skills/.sync-manifest.json | 53350d23d9afd08b3a8428750a611e24b860d39102522d32f03c482551fa5656 | sha256 content hash of a vendored skill; not a credential
 .claude/skills/.sync-manifest.json | 372688b6467a10ed087ff553cdf41248a29ccb510720da8ae5142e9349ee8445 | sha256 content hash of a vendored skill; not a credential
