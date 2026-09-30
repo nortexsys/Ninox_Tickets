@@ -23,10 +23,19 @@ Usage:
 
 The allowlist format is ``path | identifying text | reason``. For a text file ``path`` is
 the repository-relative path; for a .docx member it is ``relative.docx:word/document.xml``.
-``identifying text`` is matched against the finding's exact text, so an allowlisted line
-does not hide a different kind of finding on the same source line. ``*`` as the
-identifying text allowlists the whole file (used for pubspec.lock and for the allowlist
-itself, which necessarily contains the findings it lists).
+``identifying text`` is matched against the finding's exact text (not a substring), so an
+allowlisted line does not hide a different kind of finding on the same source line. ``*``
+as the identifying text allowlists the whole file (used for pubspec.lock, which carries
+package hashes).
+
+``privacy_allowlist.txt`` itself is scanned like any other file — it is not exempt as a
+whole file. It legitimately quotes the identifying text of its own entries (e.g. a hash),
+which the scanner then finds inside it too. A finding located *inside the allowlist file*
+is allowed only when its exact text is the identifying text of an entry for a *different*
+path, and that entry is justified: the same run finds that exact text at the entry's own
+path as well. An entry that names no real finding (stale — the source changed or the entry
+was miscopied) or a string that merely resembles one, pasted into the file with no entry
+backing it (e.g. in a comment), both fail the check.
 """
 from __future__ import annotations
 
@@ -92,7 +101,7 @@ def load_allowlist(path: Path = ALLOWLIST) -> list[tuple[str, str]]:
 
 
 def allowed(rel: str, finding: str, allow: list[tuple[str, str]]) -> bool:
-    return any(path == rel and (marker == "*" or marker in finding) for path, marker in allow)
+    return any(path == rel and (marker == "*" or marker == finding) for path, marker in allow)
 
 
 def is_text(path: Path) -> bool:
@@ -151,25 +160,90 @@ def findings_in_line(rel: str, where: str, line: str) -> list[str]:
     return out
 
 
-def scan(paths: list[Path], allow: list[tuple[str, str]]) -> list[str]:
-    findings = []
-    for path in paths:
-        rel = rel_for(path)
-        if path.suffix.lower() == ".docx":
-            for name, lineno, text in docx_lines(path):
-                rel_member = f"{rel}:{name}"
-                for item in findings_in_line(rel_member, str(lineno), text):
-                    if not allowed(item[0], item[3], allow):
-                        findings.append(format_finding(item))
+def raw_findings(path: Path, rel: str) -> list[tuple[str, str, str, str]]:
+    """Every finding in `path` (already resolved to `rel`), before the
+    allowlist is applied."""
+    out = []
+    if path.suffix.lower() == ".docx":
+        for name, lineno, text in docx_lines(path):
+            rel_member = f"{rel}:{name}"
+            out.extend(findings_in_line(rel_member, str(lineno), text))
+        return out
+
+    if not is_text(path):
+        return out
+    text = path.read_text(encoding="utf-8", errors="replace")
+    for lineno, line in enumerate(text.splitlines(), 1):
+        out.extend(findings_in_line(rel, str(lineno), line))
+    return out
+
+
+def check_allowlist_self_findings(
+    allowlist_items: list[tuple[str, str, str, str]],
+    raw_by_rel: dict[str, list[tuple[str, str, str, str]]],
+    allow: list[tuple[str, str]],
+    allowlist_rel: str,
+) -> list[str]:
+    """`privacy_allowlist.txt` is not exempt as a whole file: a finding found
+    *inside it* is allowed only if its exact text is the identifying text of
+    an entry for a *different* path, and that entry is justified — the same
+    run finds that exact text at the entry's own path too. A planted string
+    with no backing entry, or an entry whose path no longer produces the
+    finding it names (stale), both fail."""
+    out = []
+    for item in allowlist_items:
+        rel, where, kind, value = item
+        candidates = [
+            (other_path, marker)
+            for other_path, marker in allow
+            if other_path != allowlist_rel and marker == value
+        ]
+        if not candidates:
+            out.append(
+                f"{rel}:{where}: {kind}: {value!r} — appears in the allowlist file with "
+                "no entry for another path naming it (planted text, not a justified entry)"
+            )
             continue
 
-        if not is_text(path):
+        justified = any(
+            any(other_item[3] == marker for other_item in raw_by_rel.get(other_path, []))
+            for other_path, marker in candidates
+        )
+        if not justified:
+            named_paths = ", ".join(sorted({other_path for other_path, _ in candidates}))
+            out.append(
+                f"{rel}:{where}: {kind}: {value!r} — allowlisted for {named_paths!r} but "
+                "that path no longer produces this finding (stale entry)"
+            )
+    return out
+
+
+def scan(paths: list[Path], allow: list[tuple[str, str]]) -> list[str]:
+    # Findings are grouped by their own `path` column (item[0]): the plain
+    # repository-relative path for a text file, or `relative.docx:member.xml`
+    # for a .docx member — the same key the allowlist's `path` column names,
+    # so a lookup by that column (below, and in check_allowlist_self_findings)
+    # finds the right group regardless of how many physical files it spans.
+    allowlist_rel = rel_for(ALLOWLIST)
+    raw_by_rel: dict[str, list[tuple[str, str, str, str]]] = {}
+    for path in paths:
+        rel = rel_for(path)
+        for item in raw_findings(path, rel):
+            raw_by_rel.setdefault(item[0], []).append(item)
+
+    findings = []
+    for key, items in raw_by_rel.items():
+        if key == allowlist_rel:
             continue
-        text = path.read_text(encoding="utf-8", errors="replace")
-        for lineno, line in enumerate(text.splitlines(), 1):
-            for item in findings_in_line(rel, str(lineno), line):
-                if not allowed(item[0], item[3], allow):
-                    findings.append(format_finding(item))
+        for item in items:
+            if not allowed(item[0], item[3], allow):
+                findings.append(format_finding(item))
+
+    if allowlist_rel in raw_by_rel:
+        findings.extend(
+            check_allowlist_self_findings(raw_by_rel[allowlist_rel], raw_by_rel, allow, allowlist_rel)
+        )
+
     return findings
 
 
