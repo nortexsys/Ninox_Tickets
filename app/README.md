@@ -15,7 +15,7 @@ root file is outside the lane's write bounds.
 
 | Dependency | Used for | Licence | Proprietary |
 | --- | --- | --- | --- |
-| Flutter SDK (framework, engine, Android embedding) | The application itself | BSD-3-Clause | No |
+| `flutter` — the SDK's framework, engine and Android embedding | The application itself | BSD-3-Clause | No |
 | `flutter_localizations` (from the Flutter SDK) | Material, widget and Cupertino localisations | BSD-3-Clause | No |
 | `go_router` 16.3.0 | The shell's routes (design §2) | BSD-3-Clause | No |
 | `intl` 0.20.3 | Plural and number formatting in the generated localisations | BSD-3-Clause | No |
