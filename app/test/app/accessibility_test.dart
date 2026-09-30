@@ -28,6 +28,7 @@ void main() {
   setUp(() {
     controller = CaptureController(
       intake: FakeDocumentIntake(root: Directory('paperdrop-a11y-test')),
+      scanner: FakeDocumentScanner(),
       picker: FakeFilePickerSource(),
       shareIn: FakeShareInSource(),
     );
@@ -67,19 +68,13 @@ void main() {
     await pumpCaptureScreen(tester);
 
     // The scan action is wired by task 1.5; until then it is disabled, and a
-    // disabled control is not tappable and carries no tap action to label.
-    final bool scanIsTappable =
-        tester.widget<FilledButton>(find.byType(FilledButton)).onPressed !=
-        null;
-
+    // Both actions are wired (tasks 1.3–1.5), so both are tappable and both
+    // carry a tap action to label.
     final SemanticsNode scan = tester.getSemantics(
       find.widgetWithText(FilledButton, en.captureScanAction),
     );
     expect(scan.label, en.captureScanAction);
-    expect(
-      scan.getSemanticsData().hasAction(SemanticsAction.tap),
-      scanIsTappable,
-    );
+    expect(scan.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
 
     final SemanticsNode chooseFile = tester.getSemantics(
       find.widgetWithText(OutlinedButton, en.captureChooseFileAction),

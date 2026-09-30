@@ -1,4 +1,5 @@
 import 'package:paperdrop/adapters/intake/incoming_document.dart';
+import 'package:paperdrop/adapters/scanner/document_scanner.dart';
 import 'package:paperdrop/intake/document_intake.dart';
 import 'package:paperdrop/intake/intake_failure.dart';
 import 'package:paperdrop/intake/intake_result.dart';
@@ -36,13 +37,34 @@ class CaptureRefused extends CaptureOutcome {
 class CaptureController {
   CaptureController({
     required this.intake,
+    required this.scanner,
     required this.picker,
     required this.shareIn,
   });
 
   final DocumentIntake intake;
+  final DocumentScanner scanner;
   final FilePickerSource picker;
   final ShareInSource shareIn;
+
+  /// The scanner path.
+  Future<CaptureOutcome> scan() async {
+    try {
+      final IncomingDocument? document = await scanner.scan();
+      if (document == null) {
+        return const CaptureCancelled();
+      }
+      return await store(document);
+    } on IntakeFailure catch (failure) {
+      return CaptureRefused(failure);
+    } on Error {
+      rethrow;
+    } catch (_) {
+      return const CaptureRefused(
+        IntakeFailure(IntakeFailureCode.intakeFailed),
+      );
+    }
+  }
 
   /// The file picker path.
   Future<CaptureOutcome> chooseFile() async {

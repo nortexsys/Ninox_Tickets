@@ -24,6 +24,7 @@ void main() {
   setUp(() {
     controller = CaptureController(
       intake: FakeDocumentIntake(root: Directory('paperdrop-shell-test')),
+      scanner: FakeDocumentScanner(),
       picker: FakeFilePickerSource(),
       shareIn: FakeShareInSource(),
     );

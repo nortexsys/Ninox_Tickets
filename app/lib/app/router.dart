@@ -24,17 +24,14 @@ const String intakeRoute = '/intake/:docId';
 String intakeLocationFor(String docId) => '/intake/$docId';
 
 /// Builds the router of the application.
-GoRouter buildAppRouter({
-  required CaptureController controller,
-  Future<void> Function()? onScan,
-}) {
+GoRouter buildAppRouter({required CaptureController controller}) {
   return GoRouter(
     initialLocation: captureRoute,
     routes: <RouteBase>[
       GoRoute(
         path: captureRoute,
         builder: (BuildContext context, GoRouterState state) =>
-            CaptureScreen(controller: controller, onScan: onScan),
+            CaptureScreen(controller: controller),
       ),
       GoRoute(
         path: intakeRoute,

@@ -47,6 +47,7 @@ void main() {
     shareIn = FakeShareInSource();
     controller = CaptureController(
       intake: intake,
+      scanner: FakeDocumentScanner(),
       picker: picker,
       shareIn: shareIn,
     );
