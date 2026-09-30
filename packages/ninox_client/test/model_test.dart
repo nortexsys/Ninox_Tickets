@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:ninox_client/ninox_client.dart';
+import 'package:ninox_client/src/model.dart'
+    show jsonObject, jsonObjectList, recordIdFromJson;
 import 'package:test/test.dart';
 
 import 'fixture_files.dart';
