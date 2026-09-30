@@ -39,6 +39,14 @@ One file per document. It records, per canonical-model field, the expected value
 string **exactly** as the canonical model will hold it, where the value came from, and
 whether the product owner has confirmed it.
 
+Every field key is the exact JSON key `CanonicalDocument.toJson()` uses in
+`packages/paperdrop_core/lib/src/model/canonical_document.dart` — camelCase, not
+snake_case, and never a paraphrase (`grossTotal`, not `total_minor` or `total`). A
+ground-truth field that the canonical model has no key for (a ground-truth-only field,
+needed for scoring but not part of the model) is still allowed, but its key is prefixed
+`gt_` and it is called out as ground-truth-only where it is introduced; none of the
+fields below need this.
+
 ```json
 {
   "doc_id": "<doc_id>",
@@ -69,37 +77,37 @@ The values below are invented for the format example and are not a real document
 {
   "doc_id": "synthetic-receipt-01",
   "fields": {
-    "supplier_name": {
+    "supplierName": {
       "value": "ACME Supplies S.L.",
       "provenance": "printed",
       "confirmed_by_po": "2026-10-02"
     },
-    "supplier_tax_id": {
+    "supplierTaxId": {
       "value": "12345679S",
       "provenance": "printed",
       "confirmed_by_po": "2026-10-02"
     },
-    "document_date": {
+    "docDate": {
       "value": "2026-09-30",
       "provenance": "printed",
       "confirmed_by_po": null
     },
-    "total_minor": {
+    "grossTotal": {
       "value": "1999",
       "provenance": "printed",
       "confirmed_by_po": "2026-10-02"
     },
-    "net_total_minor": {
+    "netTotal": {
       "value": "1652",
       "provenance": "derived",
       "confirmed_by_po": null
     },
-    "tax_total_minor": {
+    "taxTotal": {
       "value": "347",
       "provenance": "derived",
       "confirmed_by_po": null
     },
-    "payment_method": {
+    "paymentMethod": {
       "value": "",
       "provenance": "absent",
       "confirmed_by_po": null
@@ -107,6 +115,14 @@ The values below are invented for the format example and are not a real document
   }
 }
 ```
+
+`doc_id` and `fields` are the ground-truth envelope, not canonical-model field keys, and
+are unaffected by this. `supplierName`, `supplierTaxId`, `docDate`, `grossTotal`,
+`netTotal`, `taxTotal` and `paymentMethod` are exactly `CanonicalDocument`'s own JSON
+keys; the amounts (`grossTotal`, `netTotal`, `taxTotal`) hold the amount's minor units as
+a string, per the rule above, rather than the model's nested `{"minor": ..., "currency":
+...}` shape, precisely so the ground truth never repeats a currency the document convention
+already fixes per test document.
 
 `12345679S` is the synthetic tax identifier fixed by DEC-001; it is not a real person's
 identifier and may appear in public material.
