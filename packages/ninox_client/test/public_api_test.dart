@@ -93,7 +93,7 @@ void main() {
     expect(const ServerError(500).status, 500);
   });
 
-  test('the adapter is the classic implementation of the port', () {
+  test('the adapter is the classic implementation of the port', () async {
     final ClassicNinoxAdapter adapter = ClassicNinoxAdapter(
       endpoint: NinoxEndpoint.cloud,
       credentials: const NinoxCredentials('synthetic-token'),
@@ -102,5 +102,14 @@ void main() {
 
     expect(adapter, isA<NinoxPort>());
     expect(adapter.timeout, const Duration(seconds: 30));
+
+    // The merge update of `ninox-send/updates-are-merges` (FR-SND-008) is part of the port: it is
+    // reached here through the interface, so a second implementation has to provide it too.
+    final NinoxPort port = adapter;
+    await port.updateRecord(
+      const TableRef(teamId: 't1', databaseId: 'db1', tableId: 'T1'),
+      const RecordId('1416'),
+      const {'Amount': 2049},
+    );
   });
 }

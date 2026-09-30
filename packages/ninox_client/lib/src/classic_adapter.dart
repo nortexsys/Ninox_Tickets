@@ -114,6 +114,27 @@ final class ClassicNinoxAdapter implements NinoxPort {
   }
 
   @override
+  Future<void> updateRecord(
+    TableRef ref,
+    RecordId recordId,
+    Map<String, Object?> fieldsByName,
+  ) async {
+    // Verb and path from vendor documentation; to be confirmed live in T1.9 (see NinoxPort).
+    // ADR-004's measured semantics are what make this a merge: the body carries the given fields
+    // and nothing else, so every field the caller did not send stays as it was.
+    final request = http.Request(
+      'PUT',
+      _uri([..._tablePath(ref), 'records', recordId.value]),
+    )..bodyBytes = utf8.encode(jsonEncode({'fields': fieldsByName}));
+    request.headers['Content-Type'] = 'application/json';
+
+    // An update can neither create a record nor duplicate one, so a lost response is a plain
+    // transport failure: the same fields may safely be sent again. It is never uncertain.
+    final answer = await _send(request, uncertainWhenLost: false);
+    _throwUnlessSuccess(answer);
+  }
+
+  @override
   Future<void> uploadFile(
     TableRef ref,
     RecordId recordId, {

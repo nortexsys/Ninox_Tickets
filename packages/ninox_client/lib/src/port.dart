@@ -58,13 +58,13 @@ final class TableRef {
 /// the schema and retry once*, a lost create means *reconcile* — is the send pipeline's state
 /// machine (`ninox-send/the-retry-matrix`, T1.11).
 ///
-/// **The update primitive is deliberately absent.** `ninox-send/updates-are-merges` (FR-SND-008)
-/// needs a merge update, and the design lists it as `updateRecord`. The `ninox` skill documents
-/// every other call of this port — endpoint, verb and body — but **not** the update: no path, no
-/// verb, and no body appear anywhere in its reference or its client, so the request this method
-/// would have to send is unverified. Rather than guess a verb and write records with it, the lane
-/// stopped and reported it (design §3, *the lane reports it as blocked rather than guessing*). It
-/// lands once the skill or a live measurement settles the shape.
+/// **The update primitive carries no measured provenance yet.** `ninox-send/updates-are-merges`
+/// (FR-SND-008) needs a merge update, and the `ninox` skill documents every other call of this
+/// port — endpoint, verb and body — but **not** the update: no path, no verb and no body appear
+/// anywhere in its reference or its client. The lane therefore reported it as blocked rather than
+/// guessing (design §3). The shape is now settled from the vendor's own documentation of the
+/// classic API, and [NinoxPort.updateRecord] carries that provenance in its dartdoc, marked as
+/// still to be confirmed against a live workspace in T1.9.
 abstract interface class NinoxPort {
   /// `GET /v1/teams` — the teams the token can see, each with its identifier and name.
   ///
@@ -109,6 +109,35 @@ abstract interface class NinoxPort {
   /// Throws [Unauthorized], [NotFound], [ServerError], [UnexpectedResponse] or [TransportFailure]
   /// — the last of which is safe to retry, because a read cannot duplicate a record.
   Future<NinoxRecord> readRecord(TableRef ref, RecordId recordId);
+
+  /// `PUT .../records/{id}` — updates **only** the fields given; every field not sent is preserved.
+  ///
+  /// ADR-004, measured: *updates are merges*. That is the primitive
+  /// `ninox-send/updates-are-merges` (FR-SND-008) is built from: a correction sends only what
+  /// changed, and a failed attachment can be retried without touching the record. The body is
+  /// nested under a `fields` key keyed by the fields' **current names**, exactly as a create is,
+  /// and it contains nothing else: a field the user has not mapped is never sent, and an empty
+  /// mapping is `{"fields": {}}`, which changes nothing (the skill's *send nothing, and nothing
+  /// changes*).
+  ///
+  /// **Provenance: verb and path from vendor documentation; to be confirmed live in T1.9.** The
+  /// vendor's documentation of the classic API ("API endpoints for Public Cloud") gives the update
+  /// as `PUT /v1/teams/{teamid}/databases/{dbid}/tables/{tid}/records/{rid}` with the body
+  /// `{"fields": {"<field name>": <value>, ...}}`; ADR-004 supplies the measured merge semantics.
+  /// The `ninox` skill settles neither, which is why this primitive arrived after the rest of the
+  /// port (design §3) and why T1.9 re-records it against the test base before anything depends on
+  /// it.
+  ///
+  /// Throws [Unauthorized], [NotFound], [ServerError] (a 500 here is usually a bad, formula or
+  /// read-only field name), [UnexpectedResponse] or [TransportFailure] — always a **plain**
+  /// [TransportFailure] and never [CreateOutcomeUncertain]: an update cannot create a record, and
+  /// sending the same fields twice leaves the record as one update would, so a lost response is
+  /// safe to send again.
+  Future<void> updateRecord(
+    TableRef ref,
+    RecordId recordId,
+    Map<String, Object?> fieldsByName,
+  );
 
   /// `POST .../records/{id}/files` — attaches one document to the **record**, in a single
   /// `multipart/form-data` call that answers HTTP 200.

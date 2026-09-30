@@ -18,7 +18,7 @@ One import, `package:ninox_client/ninox_client.dart`, gives:
 | `NinoxRecord` | `id`, `fields` (keyed by field name, verbatim) and, when the endpoint returns them, `createdAt`, `createdBy`, `modifiedAt`, `modifiedBy`, `sequence` — the evidence the reconciliation of an uncertain create runs on. |
 | `NinoxFile` | `name`, `size`, `contentType`, as the record's files endpoint returns them. |
 | `NinoxFailure` and its subtypes | `Unauthorized` (401/403), `NotFound` (404), `RateLimited` (429), `ServerError(status, …)` (5xx, **usually a field-name problem, not an outage**), `UnexpectedResponse` (any other status, or a 2xx whose body does not carry the documented shape), `TransportFailure` (no response), and `CreateOutcomeUncertain` — a `TransportFailure` subtype for a create whose response was lost, which is never blind-retried (ADR-013). |
-| `NinoxPort` | The interface: `listTeams`, `listDatabases`, `listTables`, `createRecord`, `readRecord`, `uploadFile`, `listFiles`, `listRecords`. Every method returns `Future<T>` and throws only `NinoxFailure` subtypes. |
+| `NinoxPort` | The interface: `listTeams`, `listDatabases`, `listTables`, `createRecord`, `readRecord`, `updateRecord`, `uploadFile`, `listFiles`, `listRecords`. Every method returns `Future<T>` and throws only `NinoxFailure` subtypes. |
 | `ClassicNinoxAdapter` | The classic implementation, built from an endpoint, credentials, a required `http.Client` and an optional `timeout` (default 30 s). |
 
 `packageName` is exported too, so the workspace can prove the package resolves.
@@ -27,13 +27,22 @@ The JSON-reading helpers that live beside the value types (`lib/src/model.dart`)
 **not** exported: a response shape is the adapter's business, and a second implementation of the
 port (ADR-003) reads its own generation's shapes rather than inheriting this one's.
 
-## What the port does not have yet
+## Provenance of the merge update
 
-**No update method.** `ninox-send/updates-are-merges` (FR-SND-008) needs a merge update, and the
-change's design lists it as `updateRecord`. The `ninox` skill documents every other call of this
-port — endpoint, verb and body — but nowhere the update: no path, no verb, no body. The lane
-therefore **reported it as blocked rather than guessing a verb** (change design §3), and the
-primitive lands in a follow-up once the skill or a live measurement settles its shape.
+`updateRecord` is the primitive `ninox-send/updates-are-merges` (FR-SND-008) is built from: it sends
+only the fields it is given, under a `fields` key, so every field not sent keeps its stored value
+(ADR-004: *updates are merges*).
+
+Its **verb, path and body come from vendor documentation**, not from a measurement:
+`PUT /v1/teams/{teamid}/databases/{dbid}/tables/{tid}/records/{rid}` with
+`{"fields": {"<field name>": <value>, ...}}` (Ninox community documentation, "API endpoints for
+Public Cloud"). The `ninox` skill documents no update call at all, which is why the lane first
+reported the primitive as **blocked** rather than guessing, and why its dartdoc marks it *verb and
+path from vendor documentation; to be confirmed live in T1.9*. Nothing else in the port is in that
+state: every other call is either verified in the skill's trace or covered by ADR-004.
+
+A lost update response is a **plain `TransportFailure`**, never `CreateOutcomeUncertain`: an update
+cannot create a record, and sending the same fields twice leaves the record as one update would.
 
 ## What it never does
 
