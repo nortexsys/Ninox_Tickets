@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -68,6 +69,21 @@ MockClient _routing(List<http.Request> seen) => MockClient((request) async {
   }
   return http.Response(classicFixture('record.json'), 200);
 });
+
+/// The first index at which [needle] appears in [haystack], or `-1`.
+int _indexOfBytes(List<int> haystack, List<int> needle) {
+  for (var start = 0; start + needle.length <= haystack.length; start++) {
+    var matches = true;
+    for (var offset = 0; offset < needle.length; offset++) {
+      if (haystack[start + offset] != needle[offset]) {
+        matches = false;
+        break;
+      }
+    }
+    if (matches) return start;
+  }
+  return -1;
+}
 
 void main() {
   group(
@@ -345,6 +361,184 @@ void main() {
       });
       expect(seen.single.url.queryParameters.containsKey('order'), isFalse);
       expect(seen.single.url.queryParameters.containsKey('page'), isFalse);
+    });
+  });
+
+  group('the writes, against a MockClient only', () {
+    test('createRecord: POST .../records, body nested under fields, JSON', () async {
+      final seen = <http.Request>[];
+      final adapter = _adapter(
+        _answering(classicFixture('create-response.json'), seen: seen),
+      );
+
+      final id = await adapter.createRecord(_ref, const {
+        'Issued on': '2026-08-08',
+        'Amount': 1999,
+      });
+
+      final request = seen.single;
+      expect(request.method, 'POST');
+      expect(
+        request.url,
+        Uri.parse(
+          'https://api.ninox.com/v1/teams/t1a2b3c4d5e6f7g8h'
+          '/databases/db1a2b3c4d/tables/T1/records',
+        ),
+      );
+      expect(request.headers['Content-Type'], 'application/json');
+      expect(request.headers['Authorization'], 'Bearer $_token');
+      expect(
+        request.body,
+        '{"fields":{"Issued on":"2026-08-08","Amount":1999}}',
+        reason:
+            'ADR-004 payload shape: the values are nested under a "fields" key',
+      );
+      expect(id, const RecordId('1416'));
+      expect(
+        seen,
+        hasLength(1),
+        reason:
+            'a create is one call; the attachment and the read-back '
+            'are separate primitives (T1.11 composes them into a send)',
+      );
+    });
+
+    test('an empty mapping sends no field keys at all', () async {
+      final seen = <http.Request>[];
+      final adapter = _adapter(
+        _answering(classicFixture('create-response.json'), seen: seen),
+      );
+
+      // `destinations-mapping/never-write-an-unmapped-field`, scenario "no mapping means no field
+      // keys": partial proof, untagged (design §1). The payload half is proved here — no field key
+      // is invented for a destination with nothing mapped; that the record then "carries only the
+      // attachment" is the send pipeline's (T1.11).
+      await adapter.createRecord(_ref, const {});
+
+      expect(seen.single.body, '{"fields":{}}');
+      final decoded = jsonDecode(seen.single.body) as Map<String, Object?>;
+      expect(decoded.keys, ['fields']);
+      expect(decoded['fields'], isEmpty);
+    });
+
+    test('a date and an amount cross the boundary untransformed', () async {
+      final seen = <http.Request>[];
+      final adapter = _adapter(
+        _answering(classicFixture('create-response.json'), seen: seen),
+      );
+
+      // FR-SND-002 `payload-shape`: the payload half — a date as YYYY-MM-DD verbatim and an amount
+      // as the integer of paperdrop_core. Partial proof, untagged (design §1): the round-trip (a
+      // read-back returning the same integer, "with no float at any boundary") needs a live record
+      // and is T1.9's; here the adapter proves it re-encodes nothing.
+      await adapter.createRecord(_ref, const {
+        'Issued on': '2026-08-08',
+        'Amount': 1999,
+      });
+
+      expect(seen.single.body, contains('"Issued on":"2026-08-08"'));
+      expect(seen.single.body, contains('"Amount":1999'));
+      expect(seen.single.body, isNot(contains('1999.0')));
+      expect(seen.single.body, isNot(contains('1.999')));
+    });
+
+    test('uploadFile: one multipart POST to the record files endpoint, bytes unchanged', () async {
+      final seen = <http.Request>[];
+      final adapter = _adapter(
+        _answering('File Uploaded Successfully', seen: seen),
+      );
+      // A payload with bytes that any re-encoding would change: a PDF header, a NUL byte, two
+      // bytes that are not valid UTF-8, and a CRLF.
+      final bytes = Uint8List.fromList(const [
+        0x25, 0x50, 0x44, 0x46, 0x2D, 0x31, 0x2E, 0x37, //
+        0x0A, 0x00, 0xFF, 0xFE, 0x0D, 0x0A,
+      ]);
+
+      await adapter.uploadFile(
+        _ref,
+        const RecordId('1416'),
+        filename: 'receipt.pdf',
+        bytes: bytes,
+        contentType: 'application/pdf',
+      );
+
+      final request = seen.single;
+      expect(request.method, 'POST');
+      expect(
+        request.url,
+        Uri.parse(
+          'https://api.ninox.com/v1/teams/t1a2b3c4d5e6f7g8h'
+          '/databases/db1a2b3c4d/tables/T1/records/1416/files',
+        ),
+      );
+      expect(request.headers['Authorization'], 'Bearer $_token');
+      final contentTypeHeader = request.headers['Content-Type']!;
+      expect(contentTypeHeader, startsWith('multipart/form-data; boundary='));
+      final boundary = contentTypeHeader.split('boundary=').last;
+
+      final bodyBytes = request.bodyBytes;
+      final at = _indexOfBytes(bodyBytes, bytes);
+      expect(
+        at,
+        isNonNegative,
+        reason: 'the document must be in the body verbatim',
+      );
+      expect(
+        bodyBytes.sublist(at, at + bytes.length),
+        bytes,
+        reason:
+            'the bytes are attached exactly as received: never re-encoded, never '
+            're-rendered (ADR-007, BR-17)',
+      );
+      final head = utf8.decode(bodyBytes.sublist(0, at)).toLowerCase();
+      expect(head, startsWith('--${boundary.toLowerCase()}\r\n'));
+      expect(
+        head,
+        contains('name="file"'),
+        reason: 'the part is the record\'s file field, which is not a mapping target',
+      );
+      expect(head, contains('filename="receipt.pdf"'));
+      expect(head, contains('content-type: application/pdf'));
+      expect(
+        utf8.decode(bodyBytes.sublist(at + bytes.length)),
+        '\r\n--$boundary--\r\n',
+      );
+    });
+
+    test('the upload answers 200 and nothing else is read from it', () async {
+      final seen = <http.Request>[];
+      final adapter = _adapter(
+        _answering('File Uploaded Successfully', seen: seen),
+      );
+
+      await adapter.uploadFile(
+        _ref,
+        const RecordId('1416'),
+        filename: 'receipt.pdf',
+        bytes: Uint8List.fromList(const [1, 2, 3]),
+        contentType: 'application/pdf',
+      );
+
+      expect(seen, hasLength(1));
+    });
+
+    test('a content type that is not a media type is refused before anything is sent', () async {
+      final seen = <http.Request>[];
+      final adapter = _adapter(
+        _answering('File Uploaded Successfully', seen: seen),
+      );
+
+      await expectLater(
+        adapter.uploadFile(
+          _ref,
+          const RecordId('1416'),
+          filename: 'receipt.pdf',
+          bytes: Uint8List.fromList(const [1, 2, 3]),
+          contentType: 'not a media type',
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(seen, isEmpty);
     });
   });
 
