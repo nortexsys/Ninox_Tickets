@@ -53,6 +53,15 @@ def test_only_the_ninox_lane_may_receive_the_token():
     ("qa", "packages/paperdrop_core/lib/money.dart", False),
     ("spec", "openspec/changes/x/specs/cap/spec.md", True),
     ("spec", "AGENTS.md", False),
+    # Paths with a dot segment: missed by `/**` before 2026-09-30 (factory.py, DOTGLOB).
+    ("spec", ".github/scripts/no_ninox_db_id_allowlist.txt", False),
+    ("spec", ".claude/skills/ninox/SKILL.md", False),
+    ("spec", ".gitignore", False),
+    ("spec", "openspec/changes/x/.openspec.yaml", True),
+    ("core", ".github/workflows/ci.yml", False),
+    ("mobile", ".github/workflows/ci.yml", False),
+    ("qa", ".github/workflows/ci.yml", True),
+    ("qa", ".github/scripts/privacy_allowlist.txt", True),
 ])
 def test_bounds_follow_roles_yaml(role, path, allowed):
     assert may_write(ROLES[role]["writes"], path, ROLES[role].get("denies", [])) == allowed
