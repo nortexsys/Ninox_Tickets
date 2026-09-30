@@ -37,10 +37,27 @@ class CaptureScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              Text(l10n.captureHeadline, style: theme.textTheme.headlineSmall),
-              const SizedBox(height: 12),
-              Text(l10n.captureExplanation, style: theme.textTheme.bodyLarge),
-              const Spacer(),
+              // The text scrolls rather than clips: at the system's largest
+              // text scale it no longer fits on one screen, and it still has to
+              // be readable (NFR-ACC-001).
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      Text(
+                        l10n.captureHeadline,
+                        style: theme.textTheme.headlineSmall,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        l10n.captureExplanation,
+                        style: theme.textTheme.bodyLarge,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
               FilledButton.icon(
                 onPressed: onScan == null ? null : () => unawaited(onScan!()),
                 icon: const Icon(Icons.document_scanner_outlined),
