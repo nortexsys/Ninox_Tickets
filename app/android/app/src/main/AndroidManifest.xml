@@ -26,6 +26,38 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+
+            <!-- Share-in (FR-CAP-008, implement-android-capture-and-store design §3).
+                 Android needs no separate component for this: a share-intent filter is
+                 the whole of the Android half.
+
+                 `ACTION_SEND_MULTIPLE` is declared although several files shared at
+                 once are refused in the MVP (product owner, 2026-09-30): without it
+                 the system would hand the app one file of the share and hide the rest,
+                 and the refusal could not be said. The media types are the three the
+                 intake store accepts, filtered by extension family at the platform
+                 level (`image/*` covers image/jpeg and image/png, and an image of
+                 another kind is refused by the store with an externalised message). -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="application/pdf"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="image/*"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND_MULTIPLE"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="application/pdf"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND_MULTIPLE"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="image/*"/>
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

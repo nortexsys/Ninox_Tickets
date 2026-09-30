@@ -213,14 +213,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "16.3.0"
-  google_mlkit_document_scanner:
-    dependency: transitive
-    description:
-      name: google_mlkit_document_scanner
-      sha256: "8cc17a7f62d4285298f7970867d24c030d42840068d8b680b988655d50b196ec"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.6.1"
   hooks:
     dependency: transitive
     description:
@@ -485,14 +477,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.2.1"
-  receive_sharing_intent:
-    dependency: transitive
-    description:
-      name: receive_sharing_intent
-      sha256: "72f229a38f2910029c11d840770c173b27072e348ef3376130b37514bc4556f6"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.9.0"
   record_use:
     dependency: transitive
     description:
@@ -501,6 +485,38 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.1"
+  share_handler:
+    dependency: transitive
+    description:
+      name: share_handler
+      sha256: "0a6d007f0e44fbee27164adcd159ecbc88238864313f4e5c58161cae2180328d"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.25"
+  share_handler_android:
+    dependency: transitive
+    description:
+      name: share_handler_android
+      sha256: caf555b933dc72783aa37fef75688c7b86bd6f7bc17d80fbf585bc42f123cc8d
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.11"
+  share_handler_ios:
+    dependency: transitive
+    description:
+      name: share_handler_ios
+      sha256: cdc21f88f336a944157a8e9ceb191525cee3b082d6eb6c2082488e4f09dc3ece
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.15"
+  share_handler_platform_interface:
+    dependency: transitive
+    description:
+      name: share_handler_platform_interface
+      sha256: "7a4df95a87b326b2f07458d937f2281874567c364b7b7ebe4e7d50efaae5f106"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.6"
   shelf:
     dependency: transitive
     description:
@@ -716,4 +732,4 @@ packages:
     version: "3.1.4"
 sdks:
   dart: ">=3.13.0 <4.0.0"
-  flutter: ">=3.44.0"
+  flutter: ">=3.38.4"
