@@ -1,1 +1,7 @@
 include: ../../analysis_options.yaml
+
+linter:
+  rules:
+    # Every public member carries the requirement or ADR it serves (change design §1). The rule is
+    # enabled here rather than hoped for, so a later change cannot land an undocumented member.
+    - public_member_api_docs
