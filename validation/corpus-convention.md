@@ -53,7 +53,8 @@ fields below need this.
   "fields": {
     "<field_key>": {
       "value": "<string exactly as the canonical model will hold it>",
-      "provenance": "printed | derived | absent",
+      "provenance": "read | from_xml | derived | repaired",
+      "expected_state": "present | absent | not_in_xml",
       "confirmed_by_po": "YYYY-MM-DD | null"
     }
   }
@@ -62,9 +63,19 @@ fields below need this.
 
 - `value` is always a string, even for a date, a money amount or a tax identifier, so
   there is no float or formatting ambiguity between the ground truth and the app.
-- `provenance` is `printed` when the document prints the value, `derived` when the
-  deterministic layer may compute it from printed values, and `absent` when the correct
-  outcome is to write nothing.
+- `provenance` is exactly one of the canonical model's four wire names
+  (`Provenance.wireName` in `packages/paperdrop_core/lib/src/model/provenance.dart`):
+  `read` when the value is taken from the document's text, OCR consensus or positional
+  extraction, `from_xml` when it comes from a structured e-invoice's XML, `derived` when
+  the deterministic layer computes it from other read values, and `repaired` when one
+  implausible character was replaced by the unique value a check digit admits. `printed`
+  is not one of them: what the document prints is `read`.
+- `expected_state` is the field **state** the canonical model should hold
+  (`FieldValue.toJson()` in `field_value.dart`): `present` when the field has a value,
+  `absent` when nothing was read (the correct outcome is to write nothing, and it is
+  distinct from zero), and `not_in_xml` when the e-invoice route's profile does not carry
+  the field. Absence is a state, not a provenance, so a field with `expected_state:
+  "absent"` carries no provenance at all, and its `value` is empty.
 - `confirmed_by_po` is the date the product owner confirmed that field, or `null` while
   it is still unconfirmed. The product owner's verdict is authoritative; nothing is
   treated as ground truth until it is confirmed.
@@ -79,37 +90,43 @@ The values below are invented for the format example and are not a real document
   "fields": {
     "supplierName": {
       "value": "ACME Supplies S.L.",
-      "provenance": "printed",
+      "provenance": "read",
+      "expected_state": "present",
       "confirmed_by_po": "2026-10-02"
     },
     "supplierTaxId": {
       "value": "12345679S",
-      "provenance": "printed",
+      "provenance": "read",
+      "expected_state": "present",
       "confirmed_by_po": "2026-10-02"
     },
     "docDate": {
       "value": "2026-09-30",
-      "provenance": "printed",
+      "provenance": "read",
+      "expected_state": "present",
       "confirmed_by_po": null
     },
     "grossTotal": {
       "value": "1999",
-      "provenance": "printed",
+      "provenance": "read",
+      "expected_state": "present",
       "confirmed_by_po": "2026-10-02"
     },
     "netTotal": {
       "value": "1652",
       "provenance": "derived",
+      "expected_state": "present",
       "confirmed_by_po": null
     },
     "taxTotal": {
       "value": "347",
       "provenance": "derived",
+      "expected_state": "present",
       "confirmed_by_po": null
     },
     "paymentMethod": {
       "value": "",
-      "provenance": "absent",
+      "expected_state": "absent",
       "confirmed_by_po": null
     }
   }
