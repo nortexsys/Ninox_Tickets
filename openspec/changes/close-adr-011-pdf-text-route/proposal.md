@@ -186,4 +186,5 @@ documents in `docs/` are read-only for the team (`AGENTS.md` §1.6), and a diver
 `openspec/product-decisions.md` rather than applied by editing the source. And GAP-002's row in the
 register is **not changed** by this change: it is closed after the decision, by the Spec lane, with
 the resolution dated Tue 6 Oct and carried into the two living specs. No step of this change uses
-`NINOX_DB_ID` (`AGENTS.md` §1.4) — nothing in it reaches Ninox at all.
+the environment variable that points at a production database (`AGENTS.md` §1.4) — nothing in it
+reaches Ninox at all.
