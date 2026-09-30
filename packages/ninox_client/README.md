@@ -23,6 +23,10 @@ One import, `package:ninox_client/ninox_client.dart`, gives:
 
 `packageName` is exported too, so the workspace can prove the package resolves.
 
+The JSON-reading helpers that live beside the value types (`lib/src/model.dart`) are deliberately
+**not** exported: a response shape is the adapter's business, and a second implementation of the
+port (ADR-003) reads its own generation's shapes rather than inheriting this one's.
+
 ## What the port does not have yet
 
 **No update method.** `ninox-send/updates-are-merges` (FR-SND-008) needs a merge update, and the

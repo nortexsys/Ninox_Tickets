@@ -30,7 +30,20 @@ export 'src/classic_adapter.dart';
 export 'src/credentials.dart';
 export 'src/endpoint.dart';
 export 'src/errors.dart';
-export 'src/model.dart';
+
+// Only the value types, not the JSON-reading helpers that live beside them: a response shape is
+// the adapter's business, and a second implementation of the port (ADR-003) is free to read its
+// own generation's shapes rather than inherit this one's.
+export 'src/model.dart'
+    show
+        RecordId,
+        NinoxTeam,
+        NinoxDatabase,
+        NinoxTable,
+        NinoxField,
+        NinoxRecord,
+        NinoxFile;
+
 export 'src/port.dart';
 
 /// The package's name, so the workspace can prove it resolves before any real API exists.
