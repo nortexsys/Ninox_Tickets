@@ -82,7 +82,10 @@ Mobile with their real models (a shell call, then a one-line answer naming one o
 
 **Limit, stated so it is not discovered later.** Filesystem permissions bind deepagents' file tools,
 not the shell. The runner's bounds check on the diff (any path outside the role's `writes` → reject)
-is what enforces the boundary, and the orchestrator reads it before integrating anything. The shell
+is what enforces the boundary, and the orchestrator reads it before integrating anything. Until 2026-09-30 it had a hole: deepagents
+matches paths without `DOTGLOB`, so the final `/**` deny missed `.github/` and `.claude/` and a lane
+could write there unseen (the Spec lane did, to an allowlist). `lanes/factory.py` now sets `DOTGLOB`,
+and `tests/test_runner.py` pins the dot-path cases. The shell
 is not confined to the worktree either: on 2026-09-26 the Spec lane `cd`-ed into the main checkout
 to read it. Lanes are told to stay in their worktree, and a run whose main checkout differs before
 and after is rejected (`main_checkout_changed`) — the orchestrator then reads the diff, since its
