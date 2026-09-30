@@ -21,9 +21,10 @@
 /// nothing: classifying a failure and reconciling an uncertain create are the send pipeline's
 /// (T1.11).
 ///
-/// **What it does not do yet.** The update primitive of `ninox-send/updates-are-merges`
-/// (FR-SND-008) is absent from [NinoxPort]: the `ninox` skill documents no verb, path or body for
-/// an update, so the lane reported it as blocked instead of guessing one (change design §3).
+/// **One call still carries documentation-shaped provenance.** [NinoxPort.updateRecord] — the merge
+/// primitive of `ninox-send/updates-are-merges` (FR-SND-008) — takes its verb, path and body from
+/// the vendor's documentation of the classic API, because the `ninox` skill settles none of them;
+/// its dartdoc says so, and T1.9 confirms it against the test base before anything depends on it.
 library;
 
 export 'src/classic_adapter.dart';

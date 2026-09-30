@@ -44,6 +44,11 @@ Map<String, Future<void> Function(ClassicNinoxAdapter)> _calls() => {
       adapter.listTables('t1a2b3c4d5e6f7g8h', 'db1a2b3c4d'),
   'createRecord': (adapter) =>
       adapter.createRecord(_ref, const {'Amount': 1999}),
+  'updateRecord': (adapter) => adapter.updateRecord(
+    _ref,
+    const RecordId('1416'),
+    const {'Amount': 2049},
+  ),
   'readRecord': (adapter) => adapter.readRecord(_ref, const RecordId('1413')),
   'listFiles': (adapter) => adapter.listFiles(_ref, const RecordId('1416')),
   'listRecords': (adapter) => adapter.listRecords(_ref),
@@ -148,6 +153,26 @@ void main() {
           reason: 'the client never retries; the pipeline retries once',
         );
       });
+
+      test(
+        'a 500 on an update is a ServerError as well, and is not retried here',
+        () async {
+          final seen = <http.Request>[];
+          final adapter = _adapter(
+            _answering(classicFixture('error-500.json'), 500, seen: seen),
+          );
+
+          final failure = await _failureOf(
+            adapter.updateRecord(_ref, const RecordId('1416'), const {
+              'Amount': 2049,
+            }),
+          );
+
+          expect(failure, isA<ServerError>());
+          expect((failure as ServerError).status, 500);
+          expect(seen, hasLength(1));
+        },
+      );
     },
   );
 
@@ -231,6 +256,31 @@ void main() {
 
       expect(failure, isA<TransportFailure>());
       expect(failure, isNot(isA<CreateOutcomeUncertain>()));
+    });
+
+    test('a timeout on an update is a plain TransportFailure, because an update is idempotent', () async {
+      final seen = <http.Request>[];
+      final adapter = _adapter(
+        MockClient((request) async {
+          seen.add(request);
+          await Future<void>.delayed(const Duration(milliseconds: 200));
+          return http.Response('', 200);
+        }),
+        timeout: const Duration(milliseconds: 20),
+      );
+
+      // An update cannot create a record and cannot duplicate one: sending the same fields twice
+      // leaves the record as one update would, so a lost response is retryable and is never
+      // `uncertain` (ADR-013 is about creates).
+      final failure = await _failureOf(
+        adapter.updateRecord(_ref, const RecordId('1416'), const {
+          'Amount': 2049,
+        }),
+      );
+
+      expect(failure, isA<TransportFailure>());
+      expect(failure, isNot(isA<CreateOutcomeUncertain>()));
+      expect(seen, hasLength(1));
     });
 
     test('a connection that fails is a TransportFailure on a read', () async {

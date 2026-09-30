@@ -533,6 +533,61 @@ void main() {
       expect(seen, hasLength(1));
     });
 
+    test(
+      'updateRecord: PUT .../records/{id}, body with only the fields given',
+      () async {
+        final seen = <http.Request>[];
+        // An empty body on 200 is accepted: nothing is read back from an update — the read-back that
+        // shows the result is a readRecord.
+        final adapter = _adapter(_answering('', seen: seen));
+
+        // `ninox-send/updates-are-merges`, scenarios "a correction leaves the rest untouched" and
+        // "retrying an attachment changes nothing but the attachment": partial proof, untagged
+        // (design §1) — this layer proves the primitive sends only what it is given and that no
+        // other field is named in the request; that the record's other values are unchanged in a
+        // read-back is T1.9's, and the two callers of the merge are the send pipeline's (T1.11) and
+        // the correction flow's (R1).
+        await adapter.updateRecord(_ref, const RecordId('1416'), const {
+          'Amount': 2049,
+        });
+
+        final request = seen.single;
+        expect(request.method, 'PUT');
+        expect(
+          request.url,
+          Uri.parse(
+            'https://api.ninox.com/v1/teams/t1a2b3c4d5e6f7g8h'
+            '/databases/db1a2b3c4d/tables/T1/records/1416',
+          ),
+          reason: 'verb and path from vendor documentation; to be confirmed live in T1.9',
+        );
+        expect(request.headers['Content-Type'], 'application/json');
+        expect(request.headers['Authorization'], 'Bearer $_token');
+        expect(request.body, '{"fields":{"Amount":2049}}');
+        expect(
+          request.body,
+          isNot(contains('Issued on')),
+          reason:
+              'a field the caller did not send is never in the body: updates are merges, so '
+              'the fields that are absent keep their stored values (ADR-004)',
+        );
+        expect(seen, hasLength(1));
+      },
+    );
+
+    test('an update with an empty mapping also sends no field keys', () async {
+      final seen = <http.Request>[];
+      final adapter = _adapter(_answering('', seen: seen));
+
+      await adapter.updateRecord(_ref, const RecordId('1416'), const {});
+
+      expect(
+        seen.single.body,
+        '{"fields":{}}',
+        reason: 'send nothing, and nothing changes (the skill\'s write path)',
+      );
+    });
+
     test('a content type that is not a media type is refused before anything is sent', () async {
       final seen = <http.Request>[];
       final adapter = _adapter(
@@ -576,6 +631,9 @@ void main() {
         bytes: Uint8List.fromList(const [1, 2, 3]),
         contentType: 'application/pdf',
       );
+      await adapter.updateRecord(_ref, const RecordId('1416'), const {
+        'Amount': 2049,
+      });
 
       expect(seen.map((request) => request.method), [
         'GET',
@@ -586,14 +644,15 @@ void main() {
         'GET',
         'POST',
         'POST',
+        'PUT',
       ]);
       for (final request in seen) {
         expect(
           request.method,
-          anyOf('GET', 'POST'),
+          anyOf('GET', 'POST', 'PUT'),
           reason:
-              'the port has no PUT, PATCH or DELETE: the update primitive is blocked and '
-              'the classic API has no delete in this change',
+              'the classic API has no delete in this change, and no call of this port mutates '
+              'a schema',
         );
         expect(
           request.url.path,
@@ -615,6 +674,7 @@ void main() {
         '/v1/teams/t1a2b3c4d5e6f7g8h/databases/db1a2b3c4d/tables/T1/records',
         '/v1/teams/t1a2b3c4d5e6f7g8h/databases/db1a2b3c4d/tables/T1/records',
         '/v1/teams/t1a2b3c4d5e6f7g8h/databases/db1a2b3c4d/tables/T1/records/1416/files',
+        '/v1/teams/t1a2b3c4d5e6f7g8h/databases/db1a2b3c4d/tables/T1/records/1416',
       ]);
     });
   });
