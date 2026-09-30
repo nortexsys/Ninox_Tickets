@@ -1,0 +1,76 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "Paperdrop for Ninox",
+  "@appTitle": {
+    "description": "Product name: the application label and the title of the capture screen."
+  },
+
+  "captureHeadline": "Capture a document",
+  "@captureHeadline": {
+    "description": "Heading of the capture screen, the one entry point of FR-CAP-001."
+  },
+  "captureExplanation": "Scan a paper document with the camera, or choose a PDF or an image from this device. A document shared to Paperdrop from another app arrives here as well.",
+  "@captureExplanation": {
+    "description": "Explains the paths the MVP keeps: the platform scanner, the file picker and share-in."
+  },
+  "captureScanAction": "Scan",
+  "@captureScanAction": {
+    "description": "Primary action of the capture screen: the platform document scanner (FR-CAP-002)."
+  },
+  "captureChooseFileAction": "Choose file",
+  "@captureChooseFileAction": {
+    "description": "Second action of the capture screen: the file picker (FR-CAP-001)."
+  },
+
+  "intakeTitle": "Document received",
+  "@intakeTitle": {
+    "description": "Placeholder screen after a document is stored, until extraction and review exist (M2)."
+  },
+  "intakeDocIdLabel": "Document",
+  "@intakeDocIdLabel": {
+    "description": "Label of the content-free identifier the intake store assigns."
+  },
+  "intakeMediaTypeLabel": "Type",
+  "@intakeMediaTypeLabel": {
+    "description": "Label of the media type of the stored original."
+  },
+  "intakeByteLengthLabel": "Size",
+  "@intakeByteLengthLabel": {
+    "description": "Label of the size of the stored original."
+  },
+  "intakeSha256Label": "SHA-256",
+  "@intakeSha256Label": {
+    "description": "Label of the digest that proves the stored copy is the input (FR-CAP-005)."
+  },
+  "intakeSizeInBytes": "{count, plural, =1{1 byte} other{{count} bytes}}",
+  "@intakeSizeInBytes": {
+    "description": "Size of the stored original, in bytes.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "errorUnsupportedMediaType": "Paperdrop stores PDF, JPEG and PNG documents only.",
+  "@errorUnsupportedMediaType": {
+    "description": "Refusal of a media type outside the MVP cut (design §3)."
+  },
+  "errorSeveralFilesShared": "Paperdrop takes one document at a time. Share a single PDF or image.",
+  "@errorSeveralFilesShared": {
+    "description": "Refusal of several files shared at once (product owner, 2026-09-30)."
+  },
+  "errorNoDocumentShared": "No document arrived with that share. Share a PDF or an image.",
+  "@errorNoDocumentShared": {
+    "description": "A share arrived carrying no file at all."
+  },
+  "errorScannerReturnedNoPdf": "The scanner returned no PDF. Scan the document again.",
+  "@errorScannerReturnedNoPdf": {
+    "description": "The platform scanner answered without a PDF; the app never assembles one itself (design §3)."
+  },
+  "errorIntakeFailed": "The document could not be stored, and nothing was kept.",
+  "@errorIntakeFailed": {
+    "description": "Copy, hash or storage failure inside DocumentIntake."
+  }
+}
