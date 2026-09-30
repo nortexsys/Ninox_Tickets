@@ -1,0 +1,72 @@
+[
+  {
+    "id": "T1",
+    "name": "Receipts (synthetic)",
+    "fields": [
+      {
+        "id": "A",
+        "name": "Issued on",
+        "type": "date"
+      },
+      {
+        "id": "B",
+        "name": "Amount",
+        "type": "number"
+      },
+      {
+        "id": "C",
+        "name": "VAT amount",
+        "type": "number"
+      },
+      {
+        "id": "D",
+        "name": "Category",
+        "type": "choice",
+        "choices": [
+          {
+            "id": "1",
+            "caption": "One-off charge",
+            "captions": {},
+            "order": 1
+          },
+          {
+            "id": "2",
+            "caption": "Subscription",
+            "captions": {},
+            "order": 2
+          }
+        ]
+      },
+      {
+        "id": "E",
+        "name": "Linked card",
+        "type": "ref",
+        "referenceToTable": "T2",
+        "reverseField": "B"
+      },
+      {
+        "id": "F",
+        "name": "Currency code",
+        "type": "string"
+      }
+    ]
+  },
+  {
+    "id": "T2",
+    "name": "Cards (synthetic)",
+    "fields": [
+      {
+        "id": "A",
+        "name": "Card label",
+        "type": "string"
+      },
+      {
+        "id": "B",
+        "name": "Linked receipts",
+        "type": "rev",
+        "referenceFromTable": "T1",
+        "referenceFromField": "E"
+      }
+    ]
+  }
+]

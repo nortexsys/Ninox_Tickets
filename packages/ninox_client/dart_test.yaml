@@ -1,0 +1,28 @@
+# Test configuration for the ninox_client package (plan v0.2 §11.1; change design §5).
+#
+# `live` marks the tests that would talk to a real Ninox workspace. They are skipped by default —
+# in CI and in every lane run — because a live call needs a token the lanes never have and the
+# product owner's approval of `--allow-ninox-token` (`AGENTS.md` §1.4–§1.5, GAP-012).
+#
+# This file is only half of the guard. A package's `dart_test.yaml` is read only when `dart test` is
+# invoked from inside the package; run from the repository root with a path
+# (`dart test packages/ninox_client`) it is not loaded at all, and on the product owner's machine
+# `NINOX_API_KEY` is in the environment. The live test therefore also refuses to run unless
+# `PAPERDROP_LIVE_NINOX=1`, checked inside the test file itself
+# (`test/live/order_desc_check_test.dart`).
+#
+# The orchestrator runs it on the product owner's machine, with the approval in hand:
+#
+#     PAPERDROP_LIVE_NINOX=1 dart test packages/ninox_client --run-skipped -t live
+#
+# (on Windows: `set PAPERDROP_LIVE_NINOX=1 && dart test packages/ninox_client --run-skipped -t live`).
+# Without the opt-in variable the test skips, from any directory — that is the point of it.
+#
+# What is behind the tag today is the read-only GAP-023 check: it issues **GET requests only** and
+# writes nothing to Ninox (change design §5).
+tags:
+  live:
+    skip: >-
+      live: needs PAPERDROP_LIVE_NINOX=1, NINOX_API_KEY and the product owner's approval of
+      --allow-ninox-token; run it with `PAPERDROP_LIVE_NINOX=1 dart test packages/ninox_client
+      --run-skipped -t live`

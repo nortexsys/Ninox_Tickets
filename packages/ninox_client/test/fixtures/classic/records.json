@@ -1,0 +1,30 @@
+[
+  {
+    "id": 1414,
+    "fields": {
+      "Issued on": "2026-08-19",
+      "Amount": 1940,
+      "VAT amount": 0,
+      "Category": "One-off charge"
+    },
+    "createdAt": "2026-08-19T09:41:02Z",
+    "createdBy": "synthetic-user",
+    "modifiedAt": "2026-08-19T09:41:02Z",
+    "modifiedBy": "synthetic-user",
+    "sequence": 90001
+  },
+  {
+    "id": 1415,
+    "fields": {
+      "Issued on": "2026-09-07",
+      "Amount": 1234,
+      "VAT amount": 259,
+      "Category": "Subscription"
+    },
+    "createdAt": "2026-09-07T17:03:55Z",
+    "createdBy": "synthetic-user",
+    "modifiedAt": "2026-09-07T17:03:55Z",
+    "modifiedBy": "synthetic-user",
+    "sequence": 90002
+  }
+]
