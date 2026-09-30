@@ -25,8 +25,52 @@ ROOT = Path(__file__).resolve().parents[2]
 
 REQUIREMENT = re.compile(r"^### Requirement:\s*(.+?)\s*$")
 SCENARIO = re.compile(r"^#### Scenario:\s*(.+?)\s*$")
-TEST_CALL = re.compile(r"\b(?:test|testWidgets|group)\s*\(\s*['\"]([^'\"]+)['\"]")
+
+# The opening of a test/group call. The name string itself is not required to
+# be on this line: `dart format` moves it to the next line (or lines) when the
+# call does not fit in 80 columns, e.g.
+#
+#     test(
+#       '[cap/req] scenario name',
+#       () { ... },
+#     );
+#
+# so the string is located separately, by _read_call_argument below, starting
+# right after the opening parenthesis matched here.
+TEST_CALL_START = re.compile(r"\b(?:test|testWidgets|group)\s*\(")
+
+# A single quoted Dart string literal (no escape handling, matching the
+# scope of the previous single-line regex: good enough for test names, which
+# do not contain embedded quotes in this repository).
+STRING_LITERAL = re.compile(r"'([^']*)'|\"([^\"]*)\"")
+
+_WHITESPACE = " \t\r\n"
+
 TAG = re.compile(r"\[([^/\]]+)/([^\]]+)\]")
+
+
+def _read_call_argument(text: str, pos: int) -> str | None:
+    """Read the (possibly multi-line, possibly concatenated) string literal
+    that starts at or after `pos`, skipping whitespace and Dart's implicit or
+    `+`-joined string concatenation. Returns `None` if the argument at `pos`
+    is not a string literal at all (e.g. a variable or a callback)."""
+    n = len(text)
+    parts: list[str] = []
+    i = pos
+    while True:
+        while i < n and text[i] in _WHITESPACE:
+            i += 1
+        if i < n and text[i] == "+":
+            j = i + 1
+            while j < n and text[j] in _WHITESPACE:
+                j += 1
+            i = j
+        match = STRING_LITERAL.match(text, i)
+        if not match:
+            break
+        parts.append(match.group(1) if match.group(1) is not None else match.group(2))
+        i = match.end()
+    return "".join(parts) if parts else None
 
 
 def spec_files() -> list[Path]:
@@ -66,15 +110,22 @@ def parse_specs(paths: list[Path]) -> list[tuple[str, str, str]]:
 
 
 def parse_tests(paths: list[Path]) -> list[tuple[str, str]]:
-    """Return (test name, repository-relative file) tuples."""
+    """Return (test name, repository-relative file) tuples.
+
+    The name string is located after the call's opening parenthesis
+    regardless of how many lines separate it from `test(` / `testWidgets(` /
+    `group(` — `dart format` may put it on the following line(s) — and
+    adjacent string literals (Dart's implicit concatenation, or `+`) are
+    joined into a single name.
+    """
     tests = []
     for path in paths:
         rel = path.resolve().relative_to(ROOT).as_posix() if path.resolve().is_relative_to(ROOT) else str(path)
         text = path.read_text(encoding="utf-8", errors="replace")
-        for line in text.splitlines():
-            m = TEST_CALL.search(line)
-            if m:
-                tests.append((m.group(1), rel))
+        for m in TEST_CALL_START.finditer(text):
+            name = _read_call_argument(text, m.end())
+            if name is not None:
+                tests.append((name, rel))
     return tests
 
 
