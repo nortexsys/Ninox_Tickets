@@ -76,15 +76,19 @@ thread is not extended (plan status 2026-09-28, lane cost).
       regardless of interface language* (lookup half: `Total à payer` and `Zu zahlen` are both found
       as `total` with the interface language irrelevant — untagged if binding is not proved, with
       the scenario named in a comment).
-- [ ] 2.6 **`DE_USTID` validator** — **blocked on GAP-030** (product owner). Not in this dispatch.
+- [x] 2.6 **`DE_USTID` validator** — not in the MVP: the product owner decided on 2026-09-30 to leave
+      it unvalidated (`notChecked`, like `DE_STNR`) until R1 (GAP-030). Nothing to implement.
 
 ## 3. QA
 
-- [ ] 3.1 Review the ISO 4217 table against the published list (design §7) and report any
-      difference as a finding; QA does not edit `lib/`.
+- [x] 3.1 Review the ISO 4217 table against the published list (design §7) and report any
+      difference as a finding; QA does not edit `lib/`. *Done 2026-09-30:* 165 codes, zero
+      differences (`validation/reviews/iso4217-2026-09-30.md`), re-checked by the orchestrator.
 - [ ] 3.2 Review the IBAN length table (design §4) against the SWIFT IBAN Registry, the same way;
       and allowlist the three NIE documentation vectors of design §4 in the privacy job, with that
-      reason, once the lane's tests exist.
+      reason, once the lane's tests exist. *Length table checked by the orchestrator on 2026-09-30*
+      against registry release 101 (python-stdnum 2.2): 82 entries equal, 7 countries missing — sent
+      back to Core. Allowlisting after the merge.
 
 ## 4. Orchestrator
 
