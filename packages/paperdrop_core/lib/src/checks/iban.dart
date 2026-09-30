@@ -1,8 +1,8 @@
 /// IBAN normalisation, the SWIFT length table and modulo-97 validation.
 ///
-/// The length table below is transcribed from the SWIFT IBAN Registry as
-/// consulted on 2026-09-30. The IBAN check is part of the universal core and
-/// does not depend on the country table.
+/// The length table below is transcribed from the SWIFT IBAN Registry,
+/// release 101. The IBAN check is part of the universal core and does not
+/// depend on the country table.
 ///
 /// Requirement served: `countries-languages` · `universal-core`
 /// (`the IBAN check`).
@@ -48,6 +48,7 @@ class Iban {
     'EG': 29,
     'ES': 24,
     'FI': 18,
+    'FK': 18,
     'FO': 18,
     'FR': 27,
     'GB': 22,
@@ -56,6 +57,7 @@ class Iban {
     'GL': 18,
     'GR': 27,
     'GT': 28,
+    'HN': 28,
     'HR': 21,
     'HU': 28,
     'IE': 22,
@@ -77,11 +79,14 @@ class Iban {
     'MD': 24,
     'ME': 22,
     'MK': 19,
+    'MN': 20,
     'MR': 27,
     'MT': 31,
     'MU': 30,
+    'NI': 28,
     'NL': 18,
     'NO': 15,
+    'OM': 23,
     'PK': 24,
     'PL': 28,
     'PS': 29,
@@ -97,6 +102,7 @@ class Iban {
     'SI': 19,
     'SK': 24,
     'SM': 27,
+    'SO': 23,
     'ST': 25,
     'SV': 28,
     'TL': 23,
@@ -106,6 +112,7 @@ class Iban {
     'VA': 22,
     'VG': 24,
     'XK': 20,
+    'YE': 30,
   };
 
   /// Normalises [raw] by upper-casing it and removing every space.
