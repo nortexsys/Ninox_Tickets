@@ -6,6 +6,9 @@ library;
 
 export 'src/credentials.dart';
 export 'src/endpoint.dart';
+export 'src/errors.dart';
+export 'src/model.dart';
+export 'src/port.dart';
 
 /// The package's name, so the workspace can prove it resolves before any real API exists.
 const String packageName = 'ninox_client';
