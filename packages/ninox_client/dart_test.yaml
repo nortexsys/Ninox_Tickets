@@ -1,0 +1,17 @@
+# Test configuration for the ninox_client package (plan v0.2 §11.1; change design §5).
+#
+# `live` marks the tests that would talk to a real Ninox workspace. They are skipped by default —
+# in CI and in every lane run — because a live call needs a token the lanes never have and the
+# product owner's approval of `--allow-ninox-token` (`AGENTS.md` §1.4–§1.5, GAP-012).
+#
+# The orchestrator runs them on the product owner's machine, with the approval in hand:
+#
+#     dart test packages/ninox_client --run-skipped -t live
+#
+# What is behind the tag today is the read-only GAP-023 check: it issues **GET requests only** and
+# writes nothing to Ninox (change design §5).
+tags:
+  live:
+    skip: >-
+      live: needs NINOX_API_KEY and the product owner's approval of --allow-ninox-token;
+      run it with `dart test --run-skipped -t live`
