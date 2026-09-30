@@ -86,7 +86,23 @@ final class ClassicNinoxAdapter implements NinoxPort {
     TableRef ref,
     Map<String, Object?> fieldsByName,
   ) async {
-    throw UnimplementedError('T1.4');
+    // ADR-004 payload shape: the values nest under a `fields` key, keyed by the fields' current
+    // names. An empty mapping is sent as `{"fields": {}}` — no field key is ever invented, because
+    // a destination may have mapped none (`never-write-an-unmapped-field`).
+    //
+    // The values are re-encoded, never re-interpreted: a `YYYY-MM-DD` string and the integers of
+    // `paperdrop_core`'s `Money` and `RateBp` leave here exactly as the caller built them, because
+    // an amount that round-trips through a binary float is an amount that comes back a cent wrong.
+    final request = http.Request('POST', _uri([..._tablePath(ref), 'records']))
+      ..bodyBytes = utf8.encode(jsonEncode({'fields': fieldsByName}));
+    request.headers['Content-Type'] = 'application/json';
+
+    // A create whose response is lost may have created the record (ADR-013): it is uncertain, not
+    // retryable, and this adapter never retries it.
+    final answer = await _send(request, uncertainWhenLost: true);
+    _throwUnlessSuccess(answer);
+    final json = jsonObject(answer.body, what: 'the create response');
+    return recordIdFromJson(json, what: 'the create response');
   }
 
   @override
@@ -105,7 +121,39 @@ final class ClassicNinoxAdapter implements NinoxPort {
     required Uint8List bytes,
     required String contentType,
   }) async {
-    throw UnimplementedError('T1.4');
+    // The part is named `file`, which is what the verified trace used (`corpus_test/REPORT.md`
+    // §3: "campo `file`"). The document belongs to the **record**, so it is not a field of the
+    // payload and no field name appears here.
+    final http.MediaType mediaType;
+    try {
+      mediaType = http.MediaType.parse(contentType);
+    } on FormatException {
+      // A programming error, not a failure of the destination: it is refused before anything is
+      // sent, so no port failure type is the right answer.
+      throw ArgumentError.value(
+        contentType,
+        'contentType',
+        'is not a media type',
+      );
+    }
+    final request =
+        http.MultipartRequest(
+            'POST',
+            _uri([..._tablePath(ref), 'records', recordId.value, 'files']),
+          )
+          ..files.add(
+            http.MultipartFile.fromBytes(
+              'file',
+              bytes,
+              filename: filename,
+              contentType: mediaType,
+            ),
+          );
+
+    // A timeout here cannot create a second record, so it is a plain transport failure and the
+    // matrix's bounded backoff may retry it (the retrying itself is the pipeline's).
+    final answer = await _send(request, uncertainWhenLost: false);
+    _throwUnlessSuccess(answer);
   }
 
   @override
