@@ -85,3 +85,76 @@ def test_a_token_inside_a_docx_fails(tmp_path):
         z.writestr("word/document.xml", f"<w:t>{make_uuid()}</w:t>")
     findings = privacy.scan([docx], [])
     assert len(findings) == 1 and "word/document.xml" in findings[0]
+
+
+# --- The allowlist file is scanned like any other file (qa-m1-week1, task C) ---
+#
+# Only synthetic values are used: a well-known published Luhn test card
+# number (not a real card) and, where a Spanish identifier's shape is
+# needed, DEC-001's synthetic tax id "12345679S" — which the DNI/NIE checker
+# deliberately never flags, so the scenarios below that must produce a real
+# finding use the Luhn number instead. It is built by concatenation, like the
+# corpus-path literal above, so this test file's own source does not contain
+# the contiguous digit run and is not itself a finding.
+
+PUBLISHED_TEST_CARD = "4111" "1111" "1111" "1111"
+
+
+def setup_allowlist(tmp_path, monkeypatch, allowlist_text: str) -> Path:
+    """Point `privacy.ROOT` and `privacy.ALLOWLIST` at a synthetic tree so the
+    allowlist self-check recognises the planted file as *the* allowlist."""
+    monkeypatch.setattr(privacy, "ROOT", tmp_path)
+    allowlist_path = tmp_path / "privacy_allowlist.txt"
+    allowlist_path.write_text(allowlist_text, encoding="utf-8")
+    monkeypatch.setattr(privacy, "ALLOWLIST", allowlist_path)
+    return allowlist_path
+
+
+def test_a_planted_identifier_in_the_allowlist_with_no_entry_fails(tmp_path, monkeypatch):
+    # A comment, not a `path | text | reason` entry: load_allowlist() would
+    # skip it, but the file is still scanned like any other text file.
+    allowlist_path = setup_allowlist(
+        tmp_path,
+        monkeypatch,
+        f"# for reference, see {PUBLISHED_TEST_CARD}\n",
+    )
+    findings = privacy.scan([allowlist_path], [])
+    assert len(findings) == 1
+    assert "no entry for another path" in findings[0]
+
+
+def test_a_legitimate_entry_in_the_allowlist_passes(tmp_path, monkeypatch):
+    allowlist_path = setup_allowlist(
+        tmp_path,
+        monkeypatch,
+        f"some/path.txt | {PUBLISHED_TEST_CARD} | synthetic test card, used for regression coverage\n",
+    )
+    other = tmp_path / "some" / "path.txt"
+    other.parent.mkdir(parents=True)
+    other.write_text(PUBLISHED_TEST_CARD, encoding="utf-8")
+
+    allow = [("some/path.txt", PUBLISHED_TEST_CARD)]
+    findings = privacy.scan([allowlist_path, other], allow)
+    assert findings == []
+
+
+def test_a_stale_entry_in_the_allowlist_fails(tmp_path, monkeypatch):
+    # The entry names a path that, in this run, does not produce the finding
+    # it claims to justify (the file was not scanned, or no longer holds it).
+    allowlist_path = setup_allowlist(
+        tmp_path,
+        monkeypatch,
+        f"some/other.txt | {PUBLISHED_TEST_CARD} | synthetic test card, used for regression coverage\n",
+    )
+    allow = [("some/other.txt", PUBLISHED_TEST_CARD)]
+    findings = privacy.scan([allowlist_path], allow)
+    assert len(findings) == 1
+    assert "stale entry" in findings[0]
+
+
+def test_allowed_matches_the_finding_exactly_not_as_a_substring():
+    # The docstring's claim ("matched against the finding's exact text") is
+    # made true here: a marker that is only a substring of the finding does
+    # not allow it.
+    assert privacy.allowed("f.txt", PUBLISHED_TEST_CARD, [("f.txt", PUBLISHED_TEST_CARD[:-1])]) is False
+    assert privacy.allowed("f.txt", PUBLISHED_TEST_CARD, [("f.txt", PUBLISHED_TEST_CARD)]) is True
