@@ -5,12 +5,12 @@ import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:paperdrop/adapters/storage/app_storage.dart';
 import 'package:paperdrop/intake/document_intake.dart';
 import 'package:paperdrop/intake/intake_failure.dart';
 import 'package:paperdrop/intake/intake_result.dart';
 import 'package:path/path.dart' as p;
 
+import '../tool/fakes.dart';
 import '../tool/synthetic_documents.dart';
 
 /// The store of design §3: byte-stream copy, double SHA-256, a content-free
@@ -22,10 +22,7 @@ void main() {
   setUp(() {
     root = Directory.systemTemp.createTempSync('paperdrop-intake-test');
     // Seeded: the identifier is random, but a test that reads it should not be.
-    intake = DocumentIntake(
-      storage: _TemporaryStorage(root),
-      random: Random(20260930),
-    );
+    intake = temporaryIntake(root);
   });
 
   tearDown(() {
@@ -58,11 +55,13 @@ void main() {
     expect(result.byteLength, pdf.length);
   });
 
-  test('[capture-intake/received-files-are-attached-byte-for-byte] '
-      'an embedded e-invoice XML survives', () async {
-    // A PDF whose bytes carry an XML payload. Nothing extracts it in this
-    // change — T1.15 reads embedded XML — and nothing may drop it: the store
-    // compares digest with digest and never re-writes the file it was handed.
+  test('an e-invoice XML in the document survives the store', () async {
+    // Names the `received-files-are-attached-byte-for-byte` scenario *an
+    // embedded e-invoice XML survives*, and proves its first half: the payload
+    // is still in the stored copy, because the store compares digest with digest
+    // and never re-writes the file it was handed. The second half — that it can
+    // still be extracted — is T1.15's reader and the attachment is T1.11's, so
+    // the scenario carries no tag yet.
     const String xml = '<?xml version="1.0"?><CrossIndustryInvoice/>';
     final Uint8List pdf = syntheticPdf(trailingPayload: xml);
     final String expectedDigest = sha256.convert(pdf).toString();
@@ -248,7 +247,7 @@ void main() {
     'storage that cannot be written fails without throwing an Error',
     () async {
       final DocumentIntake blocked = DocumentIntake(
-        storage: _TemporaryStorage(
+        storage: TemporaryStorage(
           Directory(p.join(root.path, 'originals', 'not-a-directory')),
         ),
         random: Random(20260930),
@@ -293,15 +292,4 @@ List<FileSystemEntity> _storedFiles(Directory root) {
   return originals.existsSync()
       ? originals.listSync(recursive: true)
       : <FileSystemEntity>[];
-}
-
-/// Storage that is a temporary directory, because `path_provider` is a platform
-/// service and no test needs a device (design §1).
-class _TemporaryStorage implements AppStorage {
-  const _TemporaryStorage(this.root);
-
-  final Directory root;
-
-  @override
-  Future<Directory> documentsDirectory() async => root;
 }

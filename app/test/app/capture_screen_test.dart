@@ -1,22 +1,36 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ninox_client/ninox_client.dart' as ninox;
 import 'package:paperdrop/app/paperdrop_app.dart';
+import 'package:paperdrop/features/capture/capture_controller.dart';
 import 'package:paperdrop/features/capture/capture_screen.dart';
 import 'package:paperdrop/features/capture/intake_screen.dart';
 import 'package:paperdrop/intake/intake_result.dart';
 import 'package:paperdrop/l10n/generated/app_localizations.dart';
 import 'package:paperdrop_core/paperdrop_core.dart' as core;
 
+import '../tool/fakes.dart';
+
 void main() {
   late AppLocalizations en;
+  late CaptureController controller;
 
   setUpAll(() async {
     en = await AppLocalizations.delegate.load(const Locale('en'));
   });
 
+  setUp(() {
+    controller = CaptureController(
+      intake: FakeDocumentIntake(root: Directory('paperdrop-shell-test')),
+      picker: FakeFilePickerSource(),
+      shareIn: FakeShareInSource(),
+    );
+  });
+
   testWidgets('the shell starts on the capture screen', (tester) async {
-    await tester.pumpWidget(const PaperdropApp());
+    await tester.pumpWidget(PaperdropApp(controller: controller));
     await tester.pumpAndSettle();
 
     expect(find.byType(CaptureScreen), findsOneWidget);
@@ -26,7 +40,7 @@ void main() {
   testWidgets('every string of the capture screen comes from the resources', (
     tester,
   ) async {
-    await tester.pumpWidget(const PaperdropApp());
+    await tester.pumpWidget(PaperdropApp(controller: controller));
     await tester.pumpAndSettle();
 
     for (final String string in <String>[
@@ -43,7 +57,7 @@ void main() {
   testWidgets('the capture screen offers exactly the two MVP actions', (
     tester,
   ) async {
-    await tester.pumpWidget(const PaperdropApp());
+    await tester.pumpWidget(PaperdropApp(controller: controller));
     await tester.pumpAndSettle();
 
     expect(find.byType(FilledButton), findsOneWidget);
@@ -55,7 +69,8 @@ void main() {
     tester,
   ) async {
     // Built rather than written out: a 64-character hex literal in the sources
-    // is exactly what the privacy check looks for (`.github/scripts/privacy_check.py`).
+    // is exactly what the privacy check looks for
+    // (`.github/scripts/privacy_check.py`).
     final String digest = 'ab' * 32;
     final IntakeResult result = IntakeResult(
       docId: 'doc-id',

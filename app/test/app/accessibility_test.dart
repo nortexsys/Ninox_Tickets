@@ -1,22 +1,36 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:paperdrop/features/capture/capture_controller.dart';
 import 'package:paperdrop/features/capture/capture_screen.dart';
 import 'package:paperdrop/l10n/generated/app_localizations.dart';
+
+import '../tool/fakes.dart';
 
 /// NFR-ACC-001 · `accessibility`, the baseline half (design §2).
 ///
 /// Three of the requirement's statements are proved on the capture screen here:
-/// every control is labelled, every touch target reaches 48 dp, and text
-/// contrast holds. The requirement's own three scenarios — confidence never by
-/// colour alone, the read region exposed to assistive technology, and the
-/// auditor over review and history — are the review and history screens' (M2),
-/// and this change tags none of them.
+/// every control that can be tapped is labelled, every touch target reaches
+/// 48 dp, and text contrast holds. The requirement's own three scenarios —
+/// confidence never by colour alone, the read region exposed to assistive
+/// technology, and the auditor over review and history — are the review and
+/// history screens' (M2), and this change tags none of them.
 void main() {
   late AppLocalizations en;
+  late CaptureController controller;
 
   setUpAll(() async {
     en = await AppLocalizations.delegate.load(const Locale('en'));
+  });
+
+  setUp(() {
+    controller = CaptureController(
+      intake: FakeDocumentIntake(root: Directory('paperdrop-a11y-test')),
+      picker: FakeFilePickerSource(),
+      shareIn: FakeShareInSource(),
+    );
   });
 
   Future<void> pumpCaptureScreen(WidgetTester tester, {double scale = 1.0}) {
@@ -26,7 +40,7 @@ void main() {
         supportedLocales: AppLocalizations.supportedLocales,
         home: MediaQuery(
           data: MediaQueryData(textScaler: TextScaler.linear(scale)),
-          child: CaptureScreen(onScan: () async {}, onChooseFile: () async {}),
+          child: CaptureScreen(controller: controller),
         ),
       ),
     );
@@ -52,11 +66,20 @@ void main() {
     final SemanticsHandle handle = tester.ensureSemantics();
     await pumpCaptureScreen(tester);
 
+    // The scan action is wired by task 1.5; until then it is disabled, and a
+    // disabled control is not tappable and carries no tap action to label.
+    final bool scanIsTappable =
+        tester.widget<FilledButton>(find.byType(FilledButton)).onPressed !=
+        null;
+
     final SemanticsNode scan = tester.getSemantics(
       find.widgetWithText(FilledButton, en.captureScanAction),
     );
     expect(scan.label, en.captureScanAction);
-    expect(scan.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
+    expect(
+      scan.getSemanticsData().hasAction(SemanticsAction.tap),
+      scanIsTappable,
+    );
 
     final SemanticsNode chooseFile = tester.getSemantics(
       find.widgetWithText(OutlinedButton, en.captureChooseFileAction),
@@ -67,15 +90,14 @@ void main() {
       isTrue,
     );
 
-    // The app bar's title is the only other label on the screen.
-    final Iterable<SemanticsNode> labelled = <SemanticsNode>[
-      scan,
-      chooseFile,
-      tester.getSemantics(find.text(en.appTitle)),
-      tester.getSemantics(find.text(en.captureHeadline)),
-      tester.getSemantics(find.text(en.captureExplanation)),
-    ];
-    expect(labelled.where((SemanticsNode node) => node.label.isEmpty), isEmpty);
+    // Nothing else on the screen carries text of its own.
+    for (final String string in <String>[
+      en.appTitle,
+      en.captureHeadline,
+      en.captureExplanation,
+    ]) {
+      expect(tester.getSemantics(find.text(string)).label, string);
+    }
 
     handle.dispose();
   });
