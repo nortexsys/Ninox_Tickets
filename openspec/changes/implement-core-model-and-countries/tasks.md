@@ -49,27 +49,27 @@ is run from the repository root on Flutter 3.47.5 / Dart 3.13.4:
 Detailed in design §4–§5 on 2026-09-30. Dispatched on a fresh lane thread: the first dispatch's
 thread is not extended (plan status 2026-09-28, lane cost).
 
-- [ ] 2.1 **Universal checks** (design §4): `isValidEan13` and IBAN with its length table, returning
+- [x] 2.1 **Universal checks** (design §4): `isValidEan13` and IBAN with its length table, returning
       `CheckResult`. *Done when* every vector of design §4 for EAN-13 and IBAN passes, a grouped IBAN
       normalises and passes, and neither function takes a country row. Tag
       `[countries-languages/universal-core] the EAN-13 check digit` and `… the IBAN check`.
-- [ ] 2.2 **Tax identifiers** (design §4): `TaxIdType`, `TaxId.parse` (raw + normalised),
+- [x] 2.2 **Tax identifiers** (design §4): `TaxIdType`, `TaxId.parse` (raw + normalised),
       classification by shape, and `ES_NIF`, `ES_NIE`, `ES_CIF` in three files that share no code.
       `DE_USTID` shape and normalisation only, validator `notChecked` citing GAP-030; `DE_STNR`
       `notChecked`. *Done when* every vector of design §4 passes; a test proves no import between the
       three Spanish files; the scenarios of `three-spanish-formats-are-three-algorithms`,
       `tax-identifier-normalisation` and *the German Steuernummer is deliberately left unchecked* are
       tagged; the privacy job's findings on the NIE vectors are listed in the report, not dodged.
-- [ ] 2.3 **Country table** (design §4): `CountryRow`, `CountryTable` with ES and DE, `slotCount` as
+- [x] 2.3 **Country table** (design §4): `CountryRow`, `CountryTable` with ES and DE, `slotCount` as
       a getter, `isLegalRate`, `rowFor`, `rowForTaxIdType`. *Done when* *the German row applies its own
       rates*, *the slot count follows the rate set*, *a Spanish ticket is detected from its identifier*
       and *adding a country touches almost nothing* (design §4's structural test) pass and are tagged.
-- [ ] 2.4 **Format inference** (design §5): `inferDecimalConvention`, `parsePrintedAmount`,
+- [x] 2.4 **Format inference** (design §5): `inferDecimalConvention`, `parsePrintedAmount`,
       `inferDateOrder`, `parsePrintedDate`. *Done when* every vector of design §5 passes, no function
       returns a default convention or order, and *a day greater than twelve resolves the order*,
       *grouping separates the two decimal conventions* and *the Spanish row uses a different date
       format* are tagged.
-- [ ] 2.5 **Dictionaries** (design §5): Annex C's seeds exactly, with languages and surcharge hints,
+- [x] 2.5 **Dictionaries** (design §5): Annex C's seeds exactly, with languages and surcharge hints,
       and `findTerms`. *Done when* a test compares the seeds with Annex C term by term; whole-word and
       longest-match cases pass (`tipo`, `HTTP`, `Tomorrow`, `TOTAL A PAGAR`); no file in `lib/`
       reads a locale; *the negative-context list spans the languages of the market* and *labels bind
