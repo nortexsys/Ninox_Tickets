@@ -61,6 +61,16 @@ sanitised bodies from `test/fixtures/classic/` — no test of this package reach
 adapter's `http.Client` is a required constructor argument, and every test passes a `MockClient`.
 
 `test/live/order_desc_check_test.dart` is the GAP-023 read-only check. It is **written and never run
-by the lane**: it issues GET requests only, needs `NINOX_API_KEY`, and is run by the orchestrator on
-the product owner's machine once `--allow-ninox-token` is approved (`dart test --run-skipped -t
-live`).
+by the lane**: it issues GET requests only, and it refuses to run unless it is opted into explicitly
+— `PAPERDROP_LIVE_NINOX=1` **and** a token in `NINOX_API_KEY`, both checked inside the test file,
+not only in `dart_test.yaml`. A package's `dart_test.yaml` is not read when `dart test` is invoked
+from the repository root with a path, and on the product owner's machine the token variable is
+present, so the opt-in is what makes an accidental run impossible. The orchestrator runs it on that
+machine once `--allow-ninox-token` is approved:
+
+```
+PAPERDROP_LIVE_NINOX=1 dart test packages/ninox_client --run-skipped -t live
+```
+
+(on Windows: `set PAPERDROP_LIVE_NINOX=1 && dart test packages/ninox_client --run-skipped -t live`).
+Without the opt-in it skips from any directory, and `--run-skipped` does not override it.
