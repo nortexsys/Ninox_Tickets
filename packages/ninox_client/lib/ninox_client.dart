@@ -4,6 +4,7 @@
 /// environment variable to choose a target (`AGENTS.md` §1.4).
 library;
 
+export 'src/classic_adapter.dart';
 export 'src/credentials.dart';
 export 'src/endpoint.dart';
 export 'src/errors.dart';
