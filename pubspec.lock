@@ -213,6 +213,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "16.3.0"
+  google_mlkit_document_scanner:
+    dependency: transitive
+    description:
+      name: google_mlkit_document_scanner
+      sha256: "0a0c4118496c568bae260b9d479da6644b4c368dc1cd6e4b1a70eff123917178"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.6.0"
   hooks:
     dependency: transitive
     description:
@@ -732,4 +740,4 @@ packages:
     version: "3.1.4"
 sdks:
   dart: ">=3.13.0 <4.0.0"
-  flutter: ">=3.38.4"
+  flutter: ">=3.44.0"

@@ -4,6 +4,7 @@ import 'dart:math';
 
 import 'package:crypto/crypto.dart';
 import 'package:paperdrop/adapters/intake/incoming_document.dart';
+import 'package:paperdrop/adapters/scanner/document_scanner.dart';
 import 'package:paperdrop/adapters/storage/app_storage.dart';
 import 'package:paperdrop/intake/document_intake.dart';
 import 'package:paperdrop/intake/intake_failure.dart';
@@ -102,6 +103,30 @@ class FakeDocumentIntake extends DocumentIntake {
         'original.pdf',
       ].join(Platform.pathSeparator),
     );
+  }
+}
+
+/// The platform's document scanner, answering with what the test put in it.
+class FakeDocumentScanner implements DocumentScanner {
+  FakeDocumentScanner({this.document});
+
+  /// The scan's result; null stands for the user leaving the scanner.
+  IncomingDocument? document;
+
+  /// What the scan throws, if anything.
+  Object? error;
+
+  /// How many times the scanner was asked.
+  int calls = 0;
+
+  @override
+  Future<IncomingDocument?> scan() async {
+    calls++;
+    final Object? failure = error;
+    if (failure != null) {
+      throw failure;
+    }
+    return document;
   }
 }
 

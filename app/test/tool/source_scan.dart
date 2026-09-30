@@ -179,6 +179,64 @@ List<HardcodedLiteral> findHardcodedLiterals(
   return findings;
 }
 
+/// One occurrence of a token this project forbids.
+class TokenOccurrence {
+  const TokenOccurrence({
+    required this.path,
+    required this.line,
+    required this.token,
+    required this.excerpt,
+  });
+
+  final String path;
+  final int line;
+  final String token;
+  final String excerpt;
+
+  @override
+  String toString() => '$path:$line: $token — $excerpt';
+}
+
+/// Finds every occurrence of any of [tokens] in [source], comments excluded.
+///
+/// A token that ends in `/` (a package prefix such as `package:image/`) is
+/// matched literally; anything else is matched as a whole word, so that
+/// `decodeImageFromList` is not found inside a longer identifier and `camera`
+/// is not found inside another word.
+List<TokenOccurrence> findOccurrences(
+  String source,
+  List<String> tokens, {
+  String path = '<source>',
+}) {
+  final String masked = maskComments(source);
+  final List<TokenOccurrence> findings = <TokenOccurrence>[];
+  for (final String token in tokens) {
+    final String pattern = token.endsWith('/')
+        ? RegExp.escape(token)
+        : '(?<![A-Za-z0-9_])${RegExp.escape(token)}(?![A-Za-z0-9_])';
+    for (final RegExpMatch match in RegExp(pattern).allMatches(masked)) {
+      findings.add(
+        TokenOccurrence(
+          path: path,
+          line: '\n'.allMatches(masked.substring(0, match.start)).length + 1,
+          token: token,
+          excerpt: masked
+              .substring(match.start, _min(match.start + 60, masked.length))
+              .split('\n')
+              .first,
+        ),
+      );
+    }
+  }
+  findings.sort((TokenOccurrence a, TokenOccurrence b) {
+    final int byLine = a.line.compareTo(b.line);
+    return byLine != 0 ? byLine : a.token.compareTo(b.token);
+  });
+  return findings;
+}
+
+int _min(int a, int b) => a < b ? a : b;
+
 bool _isSpace(String c) => c == ' ' || c == '\t' || c == '\r' || c == '\n';
 
 /// The Dart sources of [root], in path order.

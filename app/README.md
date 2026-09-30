@@ -24,6 +24,7 @@ root file is outside the lane's write bounds.
 | `path_provider` 2.1.6 | The application's documents directory | BSD-3-Clause | No |
 | `file_picker` 10.3.10 | The file-picker path of FR-CAP-001 | MIT | No |
 | `share_handler` 0.0.25, with `share_handler_platform_interface` 0.0.6 and `share_handler_android` 0.0.11 | Android share-in (FR-CAP-008): `ACTION_SEND` and `ACTION_SEND_MULTIPLE` | MIT | No |
+| `google_mlkit_document_scanner` 0.6.0 (wrapper only; the scanner itself is Google Play services) | The platform's document scanner, FR-CAP-002 (ADR-006) | MIT for the wrapper; ML Kit Terms of Service for the Google component | **Yes** (the Google component) |
 | AndroidX and the Kotlin standard library (through the Flutter Android embedding) | Platform integration | Apache-2.0 | No |
 
 Transitive packages of the dependencies above — platform interfaces, `cross_file`,
@@ -47,7 +48,6 @@ between `share_handler` and `receive_sharing_intent` by which one builds on Flut
 
 | Dependency | For | Licence | Proprietary |
 | --- | --- | --- | --- |
-| Google ML Kit document scanner (Google Play services), the `google_mlkit_document_scanner` wrapper | Capture, FR-CAP-002 (ADR-006) | ML Kit Terms of Service for the SDK; the wrapper is MIT | **Yes** (the Google component) |
 | Google ML Kit text recognition | Photo route (ADR-010, proposed) | ML Kit Terms of Service | **Yes** |
 | PDF text extraction with word positions | Invoice route (ADR-011, open) | To be decided — must not be AGPL | — |
 

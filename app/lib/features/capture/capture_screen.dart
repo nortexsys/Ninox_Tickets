@@ -21,14 +21,10 @@ import 'package:paperdrop/l10n/generated/app_localizations.dart';
 /// `AppLocalizations` — this screen holds no user-facing text of its own — and
 /// every control is at least 48 dp high.
 class CaptureScreen extends StatefulWidget {
-  const CaptureScreen({super.key, required this.controller, this.onScan});
+  const CaptureScreen({super.key, required this.controller});
 
   /// The three paths into the store, in one object.
   final CaptureController controller;
-
-  /// The scanner path (FR-CAP-002), wired by task 1.5. Until then the control is
-  /// disabled rather than enabled and doing nothing.
-  final Future<void> Function()? onScan;
 
   @override
   State<CaptureScreen> createState() => _CaptureScreenState();
@@ -53,6 +49,8 @@ class _CaptureScreenState extends State<CaptureScreen> {
 
   Future<void> _chooseFile() async =>
       _report(await widget.controller.chooseFile());
+
+  Future<void> _scan() async => _report(await widget.controller.scan());
 
   /// The single place where an outcome becomes something the user sees: a
   /// stored document opens the intake route, a refusal is said out loud, and a
@@ -81,7 +79,6 @@ class _CaptureScreenState extends State<CaptureScreen> {
   Widget build(BuildContext context) {
     final AppLocalizations l10n = AppLocalizations.of(context);
     final ThemeData theme = Theme.of(context);
-    final Future<void> Function()? onScan = widget.onScan;
     return Scaffold(
       appBar: AppBar(title: Text(l10n.appTitle)),
       body: SafeArea(
@@ -112,7 +109,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
                 ),
               ),
               FilledButton.icon(
-                onPressed: onScan == null ? null : () => unawaited(onScan()),
+                onPressed: () => unawaited(_scan()),
                 icon: const Icon(Icons.document_scanner_outlined),
                 label: Text(l10n.captureScanAction),
               ),
