@@ -5,6 +5,19 @@
 /// (setup-mvp-foundations, design §2).
 library;
 
+export 'src/checks/check_result.dart';
+export 'src/checks/ean13.dart';
+export 'src/checks/iban.dart';
+export 'src/countries/country_table.dart';
+export 'src/countries/es_cif.dart';
+export 'src/countries/es_nie.dart';
+export 'src/countries/es_nif.dart';
+export 'src/countries/tax_id.dart';
+export 'src/dictionaries/labels.dart';
+export 'src/dictionaries/lookup.dart';
+export 'src/dictionaries/negative.dart';
+export 'src/format/date.dart';
+export 'src/format/decimal.dart';
 export 'src/model/calendar_date.dart';
 export 'src/model/canonical_document.dart';
 export 'src/model/confidence.dart';
