@@ -5,6 +5,9 @@
 /// (setup-mvp-foundations, design §2).
 library;
 
+export 'src/checks/check_result.dart';
+export 'src/checks/ean13.dart';
+export 'src/checks/iban.dart';
 export 'src/model/calendar_date.dart';
 export 'src/model/canonical_document.dart';
 export 'src/model/confidence.dart';
