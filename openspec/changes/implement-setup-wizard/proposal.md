@@ -199,6 +199,7 @@ live call is T1.9's, under D-10 and the product owner's approval; the demo targe
 **the wizard reading the user's real teams, databases, tables and fields** — is that run, on the
 product owner's machine, and it is not a test in this change.
 
-**No step uses `NINOX_DB_ID`** (`AGENTS.md` §1.4): the team and database are chosen from the lists
-the port returns and are stored in the destination, never read from the environment, and the test
-base's identifiers appear in no fixture of this change.
+**No step uses the environment variable that points at a production database** (`AGENTS.md`
+§1.4): the team and database are chosen from the lists the port returns and are stored in the
+destination, never read from the environment, and the test base's identifiers appear in no
+fixture of this change.
