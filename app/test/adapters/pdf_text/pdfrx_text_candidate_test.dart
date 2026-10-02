@@ -1,12 +1,12 @@
 import 'dart:io';
 
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:paperdrop/adapters/pdf_text/pdf_text_candidate.dart';
 import 'package:paperdrop/adapters/pdf_text/pdfrx_text_candidate.dart';
 import 'package:path/path.dart' as p;
 import 'package:pdfrx/pdfrx.dart';
 
+import '../../tool/pdfrx_host.dart';
 import '../../tool/synthetic_documents.dart';
 
 /// Candidate B of ADR-011 (`close-adr-011-pdf-text-route`, task 1.2).
@@ -127,20 +127,8 @@ void main() {
     final Directory directory = Directory.systemTemp.createTempSync('paperdrop-pdfrx-test');
     addTearDown(() => directory.deleteSync(recursive: true));
     // On a device the plugin asks the platform for a cache directory; on the
-    // test host there is no platform, so the test answers for it. This is the
-    // one thing the host run needs that the device run does not.
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(
-          const MethodChannel('plugins.flutter.io/path_provider'),
-          (MethodCall call) async => directory.path,
-        );
-    addTearDown(
-      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(
-            const MethodChannel('plugins.flutter.io/path_provider'),
-            null,
-          ),
-    );
+    // test host there is no platform, so the test answers for it.
+    mockPathProviderCacheDirectory(directory);
 
     final File file = File(p.join(directory.path, 'synthetic.pdf'));
     final List<int> bytes = syntheticPdf(text: 'Gesamtbetrag 1.234,50');
