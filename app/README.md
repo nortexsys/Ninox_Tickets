@@ -49,6 +49,18 @@ between `share_handler` and `receive_sharing_intent` by which one builds on Flut
 | Dependency | For | Licence | Proprietary |
 | --- | --- | --- | --- |
 | Google ML Kit text recognition | Photo route (ADR-010, proposed) | ML Kit Terms of Service | **Yes** |
-| PDF text extraction with word positions | Invoice route (ADR-011, open) | To be decided — must not be AGPL | — |
+
+### ADR-011 candidates — in the build for the evaluation, until Tue 6 Oct
+
+ADR-011 is not closed: the product owner fixed two candidates on 2026-09-25 (D-5) and decides on
+Tue 6 Oct, on the evaluation of `close-adr-011-pdf-text-route`. **Both are in the build until then,
+and the losing one leaves with its code and its dependency after the decision** (design §5, task
+4.2), so the record holds the comparison rather than one side of it. The candidate lines below are
+the ones that actually resolve; the size each of them adds is measured in the lane report of that
+change (NFR-SIZ-001, `application-size`) and never assumed.
+
+| Dependency | Used for | Licence | Proprietary |
+| --- | --- | --- | --- |
+| `com.tom-roush:pdfbox-android` 2.0.27.0 (Maven Central), with `org.bouncycastle:bcprov-jdk15to18`, `bcpkix-jdk15to18` and `bcutil-jdk15to18` 1.72 | Candidate A of ADR-011: word boxes with positions, through the Kotlin channel in `android/app/src/main/kotlin/com/nortexsys/paperdrop/pdftext/` | Apache-2.0 (PdfBox-Android); MIT (Bouncy Castle) | No |
 
 Development only, not shipped: `flutter_lints`, `flutter_test` (both BSD-3-Clause).
