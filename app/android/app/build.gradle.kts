@@ -33,6 +33,10 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            // Candidate A of ADR-011: R8 needs one line to accept PdfBox's
+            // optional JPEG 2000 codec, which this project never reaches. See
+            // the file — it leaves with the candidate.
+            proguardFiles("proguard-rules.pro")
         }
     }
 }
