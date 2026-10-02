@@ -146,9 +146,16 @@ void main() {
     final List<int> bytes = syntheticPdf(text: 'Gesamtbetrag 1.234,50');
     file.writeAsBytesSync(bytes);
 
-    final List<CandidatePage> pages = await const PdfrxTextCandidate().read(file.path);
+    final CandidateDocument document = await const PdfrxTextCandidate().read(
+      file.path,
+    );
+    final List<CandidatePage> pages = document.pages;
 
     expect(pages, hasLength(1));
+    // One page, one number: the time that page's extraction took, measured
+    // around the plugin's own call (design §1.3).
+    expect(document.msPerPage, hasLength(1));
+    expect(document.msPerPage.single, greaterThanOrEqualTo(0));
     expect(
       pages.single.words.map((CandidateWord word) => word.text),
       containsAll(<String>['Gesamtbetrag', '1.234,50']),

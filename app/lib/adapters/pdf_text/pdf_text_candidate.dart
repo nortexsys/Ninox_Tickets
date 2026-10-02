@@ -80,6 +80,29 @@ class CandidatePage {
   final List<CandidateWord> words;
 }
 
+/// One document as one candidate read it.
+///
+/// The pages and the time they took travel together because the comparison
+/// records both per page (design §1.3, `ms_per_page` in design §2's schema), and
+/// only the candidate knows where one page's work ends and the next begins: a
+/// timing taken outside [PdfTextCandidate.read] could not be split into pages
+/// without inventing a division.
+class CandidateDocument {
+  const CandidateDocument({required this.pages, required this.msPerPage});
+
+  /// The document's pages, in page order, from page 0 on.
+  final List<CandidatePage> pages;
+
+  /// Wall-clock milliseconds each page's text extraction took, in page order.
+  ///
+  /// What is measured is the extraction of one page and not the opening or
+  /// closing of the document, which is a fixed cost this comparison does not
+  /// report. The two candidates measure it in different places — candidate A
+  /// inside the Android process, candidate B around the plugin's own call — and
+  /// each says so where it does it.
+  final List<int> msPerPage;
+}
+
 /// One library under evaluation, behind the operation the comparison uses.
 abstract interface class PdfTextCandidate {
   /// The library and the version that was actually resolved, in design §2's
@@ -100,7 +123,7 @@ abstract interface class PdfTextCandidate {
   /// Throws [PlatformException] when the platform side fails, and
   /// [PdfTextReplyFormatException] when a channel reply does not have the shape
   /// this evaluation expects.
-  Future<List<CandidatePage>> read(String path);
+  Future<CandidateDocument> read(String path);
 }
 
 /// A channel reply that is not the shape design §2 fixes for it.

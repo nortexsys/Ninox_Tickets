@@ -78,7 +78,13 @@ class PdfBoxTextChannel private constructor(private val context: Context) : Meth
             PDDocument.load(File(path)).use { document ->
                 val collector = WordCollector()
                 collector.getText(document)
-                result.success(mapOf("tool" to TOOL, "pages" to collector.pages))
+                result.success(
+                    mapOf(
+                        "tool" to TOOL,
+                        "pages" to collector.pages,
+                        "msPerPage" to collector.msPerPage,
+                    ),
+                )
             }
         } catch (exception: Exception) {
             result.error("pdf_text_failed", exception.message ?: exception.javaClass.simpleName, null)
@@ -92,15 +98,24 @@ class PdfBoxTextChannel private constructor(private val context: Context) : Meth
      * rotations that swap the axes, because `getXDirAdj`/`getYDirAdj` are
      * already rotation-adjusted and a word's distance from the top of the page
      * is only meaningful against the height of the box it was measured in.
+     *
+     * Each page's extraction is timed between `startPage` and `endPage`, which
+     * is exactly the span in which `PDFTextStripper` runs the page's content
+     * stream and writes its words — the document is already open when the first
+     * one starts and the last one ends, so the open and the close are not part
+     * of any page's number (design §1.3).
      */
     private class WordCollector : PDFTextStripper() {
         val pages = mutableListOf<Map<String, Any>>()
+        val msPerPage = mutableListOf<Int>()
 
         private var page: MutableMap<String, Any>? = null
         private var words = mutableListOf<Map<String, Any>>()
+        private var pageStartedAt = 0L
 
         override fun startPage(page: PDPage) {
             super.startPage(page)
+            pageStartedAt = System.nanoTime()
             val box: PDRectangle = page.cropBox ?: page.mediaBox
             val rotation = ((page.rotation % 360) + 360) % 360
             val width = if (rotation == 90 || rotation == 270) box.height.toDouble() else box.width.toDouble()
@@ -114,6 +129,11 @@ class PdfBoxTextChannel private constructor(private val context: Context) : Meth
             )
             this.page = record
             pages.add(record)
+        }
+
+        override fun endPage(page: PDPage) {
+            super.endPage(page)
+            msPerPage.add(((System.nanoTime() - pageStartedAt) / 1_000_000L).toInt())
         }
 
         override fun writeString(text: String, textPositions: List<TextPosition>) {

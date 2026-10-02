@@ -41,7 +41,7 @@ class PdfrxTextCandidate implements PdfTextCandidate {
   String get tool => toolName;
 
   @override
-  Future<List<CandidatePage>> read(String path) async {
+  Future<CandidateDocument> read(String path) async {
     // Sets up the plugin's asset and cache access and loads the native engine.
     // It is a no-op after the first call, so the harness does not have to know
     // it is needed.
@@ -50,8 +50,15 @@ class PdfrxTextCandidate implements PdfTextCandidate {
     final PdfDocument document = await PdfDocument.openFile(path);
     try {
       final List<CandidatePage> pages = <CandidatePage>[];
+      final List<int> msPerPage = <int>[];
       for (final PdfPage page in document.pages) {
+        // The page's own extraction, timed where the plugin's work happens:
+        // the document is already open, so what is measured is the page and not
+        // the open or the close (design §1.3).
+        final Stopwatch stopwatch = Stopwatch()..start();
         final PdfPageText text = await page.loadStructuredText();
+        stopwatch.stop();
+        msPerPage.add(stopwatch.elapsedMilliseconds);
         pages.add(
           candidatePageFromPdfrx(
             index: page.pageNumber - 1,
@@ -61,7 +68,7 @@ class PdfrxTextCandidate implements PdfTextCandidate {
           ),
         );
       }
-      return pages;
+      return CandidateDocument(pages: pages, msPerPage: msPerPage);
     } finally {
       await document.dispose();
     }

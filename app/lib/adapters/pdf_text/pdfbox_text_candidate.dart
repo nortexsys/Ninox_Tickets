@@ -36,23 +36,24 @@ class PdfBoxTextCandidate implements PdfTextCandidate {
   String get tool => toolName;
 
   @override
-  Future<List<CandidatePage>> read(String path) async {
+  Future<CandidateDocument> read(String path) async {
     final Object? reply = await _channel.invokeMethod<Object?>(
       readWordsMethod,
       <String, Object?>{'path': path},
     );
-    return pagesFromPdfBoxReply(reply);
+    return documentFromPdfBoxReply(reply);
   }
 }
 
-/// The pages in a reply of [PdfBoxTextCandidate.channelName], and nothing else.
+/// The document in a reply of [PdfBoxTextCandidate.channelName], and nothing
+/// else.
 ///
 /// It is public and pure so that the shape of the channel boundary is unit
 /// tested without a device (task 1.1: "a unit test of the Dart side parses a
 /// channel reply"). What it checks is *shape*: a reply that does not carry what
 /// design §2 fixed for it is a broken harness boundary and must not be recorded
 /// as a candidate that found no words.
-List<CandidatePage> pagesFromPdfBoxReply(Object? reply) {
+CandidateDocument documentFromPdfBoxReply(Object? reply) {
   if (reply is! Map<Object?, Object?>) {
     throw const PdfTextReplyFormatException('the reply is not a map');
   }
@@ -68,6 +69,13 @@ List<CandidatePage> pagesFromPdfBoxReply(Object? reply) {
   final Object? pages = reply['pages'];
   if (pages is! List<Object?>) {
     throw const PdfTextReplyFormatException('the reply carries no page list');
+  }
+
+  final Object? msPerPage = reply['msPerPage'];
+  if (msPerPage is! List<Object?>) {
+    throw const PdfTextReplyFormatException(
+      'the reply carries no per-page time',
+    );
   }
 
   final List<CandidatePage> result = <CandidatePage>[];
@@ -92,7 +100,22 @@ List<CandidatePage> pagesFromPdfBoxReply(Object? reply) {
       ),
     );
   }
-  return result;
+
+  final List<int> times = msPerPage.map((Object? ms) {
+    if (ms is int) {
+      return ms;
+    }
+    throw const PdfTextReplyFormatException(
+      'a per-page time in the reply is not an integer',
+    );
+  }).toList(growable: false);
+  if (times.length != result.length) {
+    throw const PdfTextReplyFormatException(
+      'the reply has a different number of pages than of page times',
+    );
+  }
+
+  return CandidateDocument(pages: result, msPerPage: times);
 }
 
 CandidateWord _word(Object? word) {

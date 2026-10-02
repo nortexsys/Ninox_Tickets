@@ -41,6 +41,7 @@ void main() {
   /// answers with (design §2).
   Map<String, Object?> onePage() => <String, Object?>{
     'tool': PdfBoxTextCandidate.toolName,
+    'msPerPage': <Object?>[12],
     'pages': <Object?>[
       <String, Object?>{
         'index': 0,
@@ -81,11 +82,13 @@ void main() {
 
   test('a page of words arrives with the numbers the platform sent', () async {
     answer(onePage());
-    final List<CandidatePage> pages = await const PdfBoxTextCandidate().read(
+    final CandidateDocument document = await const PdfBoxTextCandidate().read(
       '/tmp/invoice.pdf',
     );
+    final List<CandidatePage> pages = document.pages;
 
     expect(pages, hasLength(1));
+    expect(document.msPerPage, <int>[12]);
     final CandidatePage page = pages.single;
     expect(page.index, 0);
     expect(page.width, 595.28);
@@ -110,6 +113,7 @@ void main() {
   test('a page with no word is a page with no word, not a failure', () async {
     answer(<String, Object?>{
       'tool': PdfBoxTextCandidate.toolName,
+      'msPerPage': <Object?>[4],
       'pages': <Object?>[
         <String, Object?>{
           'index': 0,
@@ -120,10 +124,11 @@ void main() {
       ],
     });
 
-    final List<CandidatePage> pages = await const PdfBoxTextCandidate().read(
+    final CandidateDocument document = await const PdfBoxTextCandidate().read(
       '/tmp/scanned.pdf',
     );
-    expect(pages.single.words, isEmpty);
+    expect(document.pages.single.words, isEmpty);
+    expect(document.msPerPage, <int>[4]);
   });
 
   test('a reply of another shape fails loudly', () async {
@@ -132,16 +137,35 @@ void main() {
       <String, Object?>{'tool': PdfBoxTextCandidate.toolName},
       <String, Object?>{
         'tool': PdfBoxTextCandidate.toolName,
+        'msPerPage': <Object?>[],
         'pages': <Object?>['not a page'],
       },
       <String, Object?>{
         'tool': PdfBoxTextCandidate.toolName,
+        'msPerPage': <Object?>[],
         'pages': <Object?>[
           <String, Object?>{'index': 0, 'width': 1.0, 'height': 1.0},
         ],
       },
       <String, Object?>{
         'tool': PdfBoxTextCandidate.toolName,
+        'pages': <Object?>[],
+      },
+      <String, Object?>{
+        'tool': PdfBoxTextCandidate.toolName,
+        'msPerPage': <Object?>[1, 2],
+        'pages': <Object?>[
+          <String, Object?>{
+            'index': 0,
+            'width': 1.0,
+            'height': 1.0,
+            'words': <Object?>[],
+          },
+        ],
+      },
+      <String, Object?>{
+        'tool': PdfBoxTextCandidate.toolName,
+        'msPerPage': <Object?>[],
         'pages': <Object?>[
           <String, Object?>{
             'index': 0,
@@ -172,6 +196,7 @@ void main() {
     // A stale APK would otherwise be measured under this build's name.
     answer(<String, Object?>{
       'tool': 'pdfbox-android 2.0.24.0',
+      'msPerPage': <Object?>[],
       'pages': <Object?>[],
     });
 
