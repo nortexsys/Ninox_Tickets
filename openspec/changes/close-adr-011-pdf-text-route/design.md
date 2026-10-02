@@ -7,7 +7,7 @@ Written by the orchestrator on 2026-09-30, completed on 2026-10-02. Decision dat
 ## 1. What is decided, and by what
 
 ADR-011 closes on three measurements over the PDF half of the private corpus (8 documents, 9 pages,
-in the corpus inbox), for two candidates fixed by the product owner on 2026-09-25
+in the corpus's inbox), for two candidates fixed by the product owner on 2026-09-25
 (GAP-002, D-5):
 
 | Candidate | Binding | Licence |

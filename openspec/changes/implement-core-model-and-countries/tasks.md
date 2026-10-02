@@ -84,16 +84,17 @@ thread is not extended (plan status 2026-09-28, lane cost).
 - [x] 3.1 Review the ISO 4217 table against the published list (design §7) and report any
       difference as a finding; QA does not edit `lib/`. *Done 2026-09-30:* 165 codes, zero
       differences (`validation/reviews/iso4217-2026-09-30.md`), re-checked by the orchestrator.
-- [ ] 3.2 Review the IBAN length table (design §4) against the SWIFT IBAN Registry, the same way;
+- [x] 3.2 Review the IBAN length table (design §4) against the SWIFT IBAN Registry, the same way;
       and allowlist the three NIE documentation vectors of design §4 in the privacy job, with that
       reason, once the lane's tests exist. *Length table checked by the orchestrator on 2026-09-30*
       against registry release 101 (python-stdnum 2.2): 82 entries equal, 7 countries missing — sent
-      back to Core. Allowlisting after the merge.
+      back to Core, fixed in `5ab21d9`, now 89/89. The three NIE vectors allowlisted by QA (`151f35a`).
 
 ## 4. Orchestrator
 
 - [x] 4.1 Review the lane's report and diff; run the checks at the top of this file and
       `python .github/scripts/scenario_coverage.py`; present the public API of §1 to the product
       owner before Ninox and Mobile are dispatched against it.
-- [ ] 4.2 Merge `change/implement-core-model-and-countries` with `--no-ff` after the product owner
-      approves; archive the change when §1–§3 are done.
+- [x] 4.2 Merge `change/implement-core-model-and-countries` with `--no-ff` after the product owner
+      approves (`68ed426`, `26c369a`); archive the change when §1–§3 are done — §1–§3 done on
+      2026-10-02, archive awaiting the product owner.
