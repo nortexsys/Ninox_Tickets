@@ -62,5 +62,14 @@ change (NFR-SIZ-001, `application-size`) and never assumed.
 | Dependency | Used for | Licence | Proprietary |
 | --- | --- | --- | --- |
 | `com.tom-roush:pdfbox-android` 2.0.27.0 (Maven Central), with `org.bouncycastle:bcprov-jdk15to18`, `bcpkix-jdk15to18` and `bcutil-jdk15to18` 1.72 | Candidate A of ADR-011: word boxes with positions, through the Kotlin channel in `android/app/src/main/kotlin/com/nortexsys/paperdrop/pdftext/` | Apache-2.0 (PdfBox-Android); MIT (Bouncy Castle) | No |
+| `pdfrx` 2.6.5, with `pdfrx_engine` 0.6.1, `pdfium_dart` 0.3.1, `pdfium_flutter` 0.3.1 and the `url_launcher` 6.3.2 family they pull in | Candidate B of ADR-011: word boxes with positions from PDFium, the engine Chrome renders PDFs with | MIT (each of the four packages states MIT in its own `LICENSE`; the design's table said BSD-3, and the artefact resolved says MIT) | No |
+
+Candidate B ships **a native binary this project does not build**: `pdfium_dart`'s build hook downloads a
+prebuilt PDFium at build time, from
+`https://github.com/bblanchon/pdfium-binaries/releases/download/chromium%2F7811/pdfium-android-arm64.tgz`,
+and bundles `lib/libpdfium.so` from it as a native asset. What that binary's licence covers is what its
+own distribution says, not what the package's `LICENSE` says; the lane report of
+`close-adr-011-pdf-text-route` records the licence file shipped inside that archive. PDFium itself is
+BSD-3-Clause (with Apache-2.0 parts); the `pdfium-binaries` build scripts are Apache-2.0.
 
 Development only, not shipped: `flutter_lints`, `flutter_test` (both BSD-3-Clause).

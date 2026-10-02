@@ -24,6 +24,10 @@ dependencies:
     path: ../packages/ninox_client
   share_handler: ^0.0.25
   google_mlkit_document_scanner: 0.6.0
+  # Candidate B of ADR-011 (close-adr-011-pdf-text-route, design §1, task 1.2):
+  # PDFium through pdfrx. Both candidates stay in the build until the product
+  # owner's decision of Tue 6 Oct; the loser's dependency leaves with its code.
+  pdfrx: ^2.6.5
 
 dev_dependencies:
   flutter_test:
