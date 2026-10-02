@@ -53,7 +53,9 @@ void main() {
         input
             .listSync()
             .whereType<File>()
-            .where((File file) => p.extension(file.path).toLowerCase() == '.pdf')
+            .where(
+              (File file) => p.extension(file.path).toLowerCase() == '.pdf',
+            )
             .toList()
           ..sort((File a, File b) => a.path.compareTo(b.path));
     if (documents.isEmpty) {

@@ -224,8 +224,7 @@ bool _sameLine(CandidateWord a, CandidateWord b) {
   final double overlap =
       (a.bottom < b.bottom ? a.bottom : b.bottom) -
       (a.top > b.top ? a.top : b.top);
-  final double shorter =
-      (a.bottom - a.top) < (b.bottom - b.top)
+  final double shorter = (a.bottom - a.top) < (b.bottom - b.top)
       ? a.bottom - a.top
       : b.bottom - b.top;
   return overlap > shorter / 2;

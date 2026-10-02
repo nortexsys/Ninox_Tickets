@@ -31,7 +31,13 @@ void main() {
         top: 118.5,
         bottom: 130.25,
       ),
-      CandidateWord(text: '1.234,50', x0: 320.0, x1: 366.25, top: 128.0, bottom: 138.0),
+      CandidateWord(
+        text: '1.234,50',
+        x0: 320.0,
+        x1: 366.25,
+        top: 128.0,
+        bottom: 138.0,
+      ),
     ],
   );
 
@@ -72,13 +78,7 @@ void main() {
     final List<Object?> words = only['words']! as List<Object?>;
     expect(words, hasLength(2));
     final Map<String, Object?> first = words.first! as Map<String, Object?>;
-    expect(first.keys.toList(), <String>[
-      'text',
-      'x0',
-      'x1',
-      'top',
-      'bottom',
-    ]);
+    expect(first.keys.toList(), <String>['text', 'x0', 'x1', 'top', 'bottom']);
     expect(first['text'], 'Gesamtbetrag');
     expect(first['x0'], 42.5);
     expect(first['x1'], 108.75);
@@ -100,11 +100,17 @@ void main() {
       sha256After: 'b' * 64,
       msPerPage: <int>[7],
       pages: const <CandidatePage>[
-        CandidatePage(index: 0, width: 595.28, height: 841.89, words: <CandidateWord>[]),
+        CandidatePage(
+          index: 0,
+          width: 595.28,
+          height: 841.89,
+          words: <CandidateWord>[],
+        ),
       ],
     );
 
-    final Map<String, Object?> json = jsonDecode(written) as Map<String, Object?>;
+    final Map<String, Object?> json =
+        jsonDecode(written) as Map<String, Object?>;
     final List<Object?> pages = json['pages']! as List<Object?>;
     expect((pages.single! as Map<String, Object?>)['words'], isEmpty);
   });
@@ -115,10 +121,7 @@ void main() {
       'synthetic-01.pdfrx-words.json',
     );
     expect(
-      evalJsonFileName(
-        docId: 'synthetic-01',
-        candidateToken: 'pdfbox-android',
-      ),
+      evalJsonFileName(docId: 'synthetic-01', candidateToken: 'pdfbox-android'),
       'synthetic-01.pdfbox-android-words.json',
     );
   });

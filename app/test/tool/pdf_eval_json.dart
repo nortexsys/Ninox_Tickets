@@ -41,8 +41,10 @@ String evalDocumentJson({
 /// files agree without repeating the pattern, and so that the document's name —
 /// which the corpus chose and which can carry a supplier — is never anywhere
 /// else in the file.
-String evalJsonFileName({required String docId, required String candidateToken}) =>
-    '$docId.$candidateToken-words.json';
+String evalJsonFileName({
+  required String docId,
+  required String candidateToken,
+}) => '$docId.$candidateToken-words.json';
 
 Map<String, Object?> _pageJson(CandidatePage page) => <String, Object?>{
   'index': page.index,

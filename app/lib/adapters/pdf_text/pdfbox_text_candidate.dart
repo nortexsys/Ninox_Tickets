@@ -101,14 +101,16 @@ CandidateDocument documentFromPdfBoxReply(Object? reply) {
     );
   }
 
-  final List<int> times = msPerPage.map((Object? ms) {
-    if (ms is int) {
-      return ms;
-    }
-    throw const PdfTextReplyFormatException(
-      'a per-page time in the reply is not an integer',
-    );
-  }).toList(growable: false);
+  final List<int> times = msPerPage
+      .map((Object? ms) {
+        if (ms is int) {
+          return ms;
+        }
+        throw const PdfTextReplyFormatException(
+          'a per-page time in the reply is not an integer',
+        );
+      })
+      .toList(growable: false);
   if (times.length != result.length) {
     throw const PdfTextReplyFormatException(
       'the reply has a different number of pages than of page times',

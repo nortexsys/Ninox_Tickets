@@ -84,10 +84,10 @@ void main() {
 
     // The run of whitespace is a separator, not a word; the two words either
     // side of it are exactly as the plugin cut them.
-    expect(
-      page.words.map((CandidateWord word) => word.text),
-      <String>['Gesamtbetrag', '1.234,50'],
-    );
+    expect(page.words.map((CandidateWord word) => word.text), <String>[
+      'Gesamtbetrag',
+      '1.234,50',
+    ]);
     expect(page.width, 595.28);
 
     final CandidateWord label = page.words.first;
@@ -124,7 +124,9 @@ void main() {
   });
 
   test('PDFium reads a document on this machine, and reads it read-only', () async {
-    final Directory directory = Directory.systemTemp.createTempSync('paperdrop-pdfrx-test');
+    final Directory directory = Directory.systemTemp.createTempSync(
+      'paperdrop-pdfrx-test',
+    );
     addTearDown(() => directory.deleteSync(recursive: true));
     // On a device the plugin asks the platform for a cache directory; on the
     // test host there is no platform, so the test answers for it.
@@ -166,15 +168,20 @@ void main() {
     expect(const PdfrxTextCandidate().tool, 'pdfrx 2.6.5');
   });
 
-  test('a document that is not a PDF fails rather than answering nothing', () async {
-    final Directory directory = Directory.systemTemp.createTempSync('paperdrop-pdfrx-broken');
-    addTearDown(() => directory.deleteSync(recursive: true));
-    final File file = File(p.join(directory.path, 'not-a.pdf'));
-    file.writeAsStringSync('not a PDF at all');
+  test(
+    'a document that is not a PDF fails rather than answering nothing',
+    () async {
+      final Directory directory = Directory.systemTemp.createTempSync(
+        'paperdrop-pdfrx-broken',
+      );
+      addTearDown(() => directory.deleteSync(recursive: true));
+      final File file = File(p.join(directory.path, 'not-a.pdf'));
+      file.writeAsStringSync('not a PDF at all');
 
-    await expectLater(
-      const PdfrxTextCandidate().read(file.path),
-      throwsA(anything),
-    );
-  });
+      await expectLater(
+        const PdfrxTextCandidate().read(file.path),
+        throwsA(anything),
+      );
+    },
+  );
 }

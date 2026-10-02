@@ -14,7 +14,9 @@ import 'package:flutter_test/flutter_test.dart';
 /// Candidate A needs no such helper, because it has no host run at all: PdfBox
 /// is a JVM library inside the application process.
 void mockPathProviderCacheDirectory(Directory directory) {
-  const MethodChannel channel = MethodChannel('plugins.flutter.io/path_provider');
+  const MethodChannel channel = MethodChannel(
+    'plugins.flutter.io/path_provider',
+  );
   final TestDefaultBinaryMessenger messenger =
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
   messenger.setMockMethodCallHandler(
