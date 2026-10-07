@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ninox_client/ninox_client.dart';
-import 'package:paperdrop/features/wizard/token/token_errors.dart';
 import 'package:paperdrop/features/wizard/token/token_screen.dart';
+import 'package:paperdrop/features/wizard/wizard_errors.dart';
 import 'package:paperdrop/features/wizard/wizard_messages.dart';
 import 'package:paperdrop/features/wizard/wizard_step.dart';
 import 'package:paperdrop/features/wizard/wizard_strings.dart';
@@ -341,7 +341,7 @@ void main() {
   });
 
   /// One row of the design's outcome table, through the controller a screen drives.
-  void outcome(NinoxFailure failure, TokenStepError expected, String message) {
+  void outcome(NinoxFailure failure, WizardError expected, String message) {
     test('the outcome table: $failure', () async {
       final wizard = wizardHarness();
       wizard.port.failures['listTeams'] = failure;
@@ -350,7 +350,7 @@ void main() {
 
       expect(wizard.controller.state.error, expected);
       expect(wizard.controller.step, WizardStep.token);
-      expect(tokenStepErrorMessage(strings, expected), message);
+      expect(wizardErrorMessage(strings, expected), message);
       expect(wizard.store.writes, isEmpty);
       expect(wizard.port.calls, <String>['listTeams']);
     });
@@ -359,34 +359,30 @@ void main() {
   group('every failure design 4 maps, in full', () {
     outcome(
       const Unauthorized(),
-      TokenStepError.tokenNotAccepted,
+      WizardError.tokenNotAccepted,
       strings.errorTokenNotAccepted,
     );
     outcome(
       const TransportFailure(),
-      TokenStepError.hostUnreachable,
+      WizardError.hostUnreachable,
       strings.errorHostUnreachable,
     );
     outcome(
       const UnexpectedResponse(),
-      TokenStepError.notANinoxApi,
+      WizardError.notANinoxApi,
       strings.errorNotANinoxApi,
     );
     outcome(
       const ServerError(500),
-      TokenStepError.ninoxError,
+      WizardError.ninoxError,
       strings.errorNinoxError,
     );
     outcome(
       const RateLimited(),
-      TokenStepError.ninoxError,
+      WizardError.ninoxError,
       strings.errorNinoxError,
     );
-    outcome(
-      const NotFound(),
-      TokenStepError.ninoxError,
-      strings.errorNinoxError,
-    );
+    outcome(const NotFound(), WizardError.ninoxError, strings.errorNinoxError);
   });
 
   test(
@@ -430,8 +426,8 @@ void main() {
       ..writeln(wizard.controller.state)
       ..writeln(wizard.store)
       ..writeln(settings);
-    for (final TokenStepError error in TokenStepError.values) {
-      everything.writeln(tokenStepErrorMessage(strings, error));
+    for (final WizardError error in WizardError.values) {
+      everything.writeln(wizardErrorMessage(strings, error));
     }
     for (final WizardNotice notice in WizardNotice.values) {
       everything.writeln(wizardNoticeMessage(strings, notice));
@@ -440,7 +436,7 @@ void main() {
     expect(everything.toString(), isNot(contains(token)));
     // And the state itself is where it must be: the failure it reports is a sentence's code, not
     // the value the user typed.
-    expect(wizard.controller.state.error, TokenStepError.tokenNotAccepted);
+    expect(wizard.controller.state.error, WizardError.tokenNotAccepted);
   });
 
   test('no setting of the seam holds the token either', () {

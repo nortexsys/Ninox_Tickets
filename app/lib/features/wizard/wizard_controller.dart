@@ -28,7 +28,7 @@ import 'package:ninox_client/ninox_client.dart';
 import 'data/port_factory.dart';
 import 'data/token_store.dart';
 import 'destination.dart';
-import 'token/token_errors.dart';
+import 'wizard_errors.dart';
 import 'wizard_step.dart';
 
 /// The wizard's state machine.
@@ -104,11 +104,11 @@ final class WizardController {
   /// nowhere else: not to a file, not to shared preferences, not to a log line.
   ///
   /// Never throws for a Ninox failure: every one of them becomes [WizardState.error], which a
-  /// screen turns into its sentence through `tokenStepErrorMessage`.
+  /// screen turns into its sentence through `wizardErrorMessage`.
   Future<void> connect({required String host, required String token}) async {
     final NinoxEndpoint? endpoint = NinoxEndpoint.parse(host);
     if (endpoint == null) {
-      _state = _state.copyWith(error: TokenStepError.hostNotValid, busy: false);
+      _state = _state.copyWith(error: WizardError.hostNotValid, busy: false);
       return;
     }
     _state = _state.copyWith(endpoint: endpoint, error: null, busy: true);
@@ -118,7 +118,7 @@ final class WizardController {
     try {
       teams = await port.listTeams();
     } on NinoxFailure catch (failure) {
-      _state = _state.copyWith(error: tokenStepErrorFor(failure), busy: false);
+      _state = _state.copyWith(error: wizardErrorFor(failure), busy: false);
       return;
     }
 
@@ -147,10 +147,6 @@ final class WizardController {
 
   /// The database step's completion: the database is chosen and `listTables` is made at once. The
   /// tables arrive **with their fields**, so the mapping step needs no further call (FR-WIZ-004).
-  ///
-  /// A Ninox failure here and on the table step reaches the caller unchanged: the design states the
-  /// failure table of the **token step** (§4) and says nothing about these two calls, so nothing is
-  /// invented for them and the screen that made the call decides (reported to the orchestrator).
   Future<void> chooseDatabase(String databaseId) async {
     _tablesOf = null;
     _state = _state.copyWith(
@@ -168,13 +164,37 @@ final class WizardController {
     await _walk(WizardStep.table);
   }
 
+  /// Re-runs the call the current step owes, so that a user who met a failure can try again without
+  /// leaving the step (the orchestrator's decision of 2026-10-07).
+  ///
+  /// The three list calls are the only ones this can repeat: the token step's call is repeated by
+  /// its own action, and the mapping step makes none. A retry that fails again leaves the same
+  /// sentence and the same step — nothing is hidden and nothing is invented.
+  Future<void> retry() async {
+    switch (_state.step) {
+      case WizardStep.database:
+        // The list in the state is not this team's: the call has to be made again.
+        _databasesOf = null;
+        await _walk(WizardStep.team);
+      case WizardStep.table:
+        _tablesOf = null;
+        await _walk(WizardStep.database);
+      case WizardStep.token || WizardStep.team || WizardStep.mapping:
+        return;
+    }
+  }
+
   /// The state after `listTeams` answered: the list, and the team the list implies.
+  ///
+  /// The call is over, so `busy` goes back to `false` here whatever the step the walk stops on: a
+  /// screen that holds its action while a call is in flight would otherwise hold it for ever (found
+  /// by the choose screen's progress line; `wizard_controller_test.dart` pins it).
   WizardState _withTeams(List<NinoxTeam> teams) {
     final String? teamId = _choiceFrom(<String>[
       for (final NinoxTeam team in teams) team.id,
     ], _state.teamId);
     if (teamId == _state.teamId) {
-      return _state.copyWith(teams: teams);
+      return _state.copyWith(teams: teams, busy: false, error: null);
     }
     _databasesOf = null;
     _tablesOf = null;
@@ -185,6 +205,8 @@ final class WizardController {
       databaseId: null,
       tables: const <NinoxTable>[],
       tableId: null,
+      busy: false,
+      error: null,
     );
   }
 
@@ -226,19 +248,23 @@ final class WizardController {
   ///
   /// Nothing is fetched twice: the list in the state already belongs to the chosen team, so the
   /// step makes no second call.
+  ///
+  /// A Ninox failure does not leave the controller: it becomes [WizardState.error] — the same
+  /// sentence the token step would show — the step stays where it is, and [retry] is what makes the
+  /// call again (the orchestrator's decision of 2026-10-07).
   Future<void> _loadDatabases() async {
     final NinoxPort? port = _port;
     final String? teamId = _state.teamId;
     if (port == null || teamId == null || _databasesOf == teamId) {
       return;
     }
-    _state = _state.copyWith(busy: true);
+    _state = _state.copyWith(busy: true, error: null);
     final List<NinoxDatabase> databases;
     try {
       databases = await port.listDatabases(teamId);
-    } on NinoxFailure {
-      _state = _state.copyWith(busy: false);
-      rethrow;
+    } on NinoxFailure catch (failure) {
+      _state = _state.copyWith(busy: false, error: wizardErrorFor(failure));
+      return;
     }
     _databasesOf = teamId;
     _state = _state.copyWith(
@@ -247,10 +273,14 @@ final class WizardController {
         for (final NinoxDatabase database in databases) database.id,
       ], _state.databaseId),
       busy: false,
+      error: null,
     );
   }
 
   /// The tables of the chosen database, with their fields, and the table that list implies.
+  ///
+  /// A failure is shown exactly as [NinoxPort.listDatabases]'s is: same sentence, same step, same
+  /// retry.
   Future<void> _loadTables() async {
     final NinoxPort? port = _port;
     final String? teamId = _state.teamId;
@@ -261,13 +291,13 @@ final class WizardController {
         _tablesOf == databaseId) {
       return;
     }
-    _state = _state.copyWith(busy: true);
+    _state = _state.copyWith(busy: true, error: null);
     final List<NinoxTable> tables;
     try {
       tables = await port.listTables(teamId, databaseId);
-    } on NinoxFailure {
-      _state = _state.copyWith(busy: false);
-      rethrow;
+    } on NinoxFailure catch (failure) {
+      _state = _state.copyWith(busy: false, error: wizardErrorFor(failure));
+      return;
     }
     _tablesOf = databaseId;
     _state = _state.copyWith(
@@ -276,6 +306,7 @@ final class WizardController {
         for (final NinoxTable table in tables) table.id,
       ], _state.tableId),
       busy: false,
+      error: null,
     );
   }
 

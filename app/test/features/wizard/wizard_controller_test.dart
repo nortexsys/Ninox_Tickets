@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ninox_client/ninox_client.dart';
 import 'package:paperdrop/features/wizard/destination.dart';
-import 'package:paperdrop/features/wizard/token/token_errors.dart';
+import 'package:paperdrop/features/wizard/wizard_errors.dart';
 import 'package:paperdrop/features/wizard/wizard_step.dart';
 
 import 'wizard_fakes.dart';
@@ -298,6 +298,45 @@ void main() {
     expect(wizard.port.calls, <String>['listTeams']);
   });
 
+  test('no call is left in flight once it has answered', () async {
+    // Found by the choose screen's progress line: `busy` was left true after a successful token
+    // call that stopped on the team step, so that step held its action for ever. A screen that says
+    // "a call is in flight" is only honest if the flag goes back down.
+    final wizard = wizardHarness(
+      teams: <NinoxTeam>[team('team-1'), team('team-2')],
+      databases: <NinoxDatabase>[database('db-1'), database('db-2')],
+      tables: <NinoxTable>[table('table-1'), table('table-2')],
+    );
+
+    await wizard.controller.connect(host: host, token: token);
+    expect(wizard.controller.step, WizardStep.team);
+    expect(wizard.controller.state.busy, isFalse);
+
+    await wizard.controller.chooseTeam('team-1');
+    expect(wizard.controller.step, WizardStep.database);
+    expect(wizard.controller.state.busy, isFalse);
+
+    await wizard.controller.chooseDatabase('db-1');
+    expect(wizard.controller.step, WizardStep.table);
+    expect(wizard.controller.state.busy, isFalse);
+
+    await wizard.controller.chooseTable('table-1');
+    expect(wizard.controller.step, WizardStep.mapping);
+    expect(wizard.controller.state.busy, isFalse);
+  });
+
+  test('a call that failed is not left in flight either', () async {
+    final wizard = wizardHarness(
+      teams: <NinoxTeam>[team('team-1'), team('team-2')],
+    );
+    wizard.port.failures['listTeams'] = const TransportFailure();
+
+    await wizard.controller.connect(host: host, token: token);
+
+    expect(wizard.controller.state.busy, isFalse);
+    expect(wizard.controller.state.error, WizardError.hostUnreachable);
+  });
+
   test(
     'the port is built from the parsed endpoint, never from what was typed',
     () async {
@@ -328,7 +367,7 @@ void main() {
         token: token,
       );
 
-      expect(wizard.controller.state.error, TokenStepError.hostNotValid);
+      expect(wizard.controller.state.error, WizardError.hostNotValid);
       expect(wizard.controller.state.endpoint, before);
       expect(wizard.controller.step, WizardStep.token);
       expect(wizard.port.calls, isEmpty);

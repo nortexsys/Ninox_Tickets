@@ -15,7 +15,7 @@ library;
 import 'package:ninox_client/ninox_client.dart';
 
 import 'destination.dart';
-import 'token/token_errors.dart';
+import 'wizard_errors.dart';
 
 /// The wizard's steps, in the order of the sequence (FR-WIZ-001).
 ///
@@ -131,9 +131,12 @@ final class WizardState {
   /// mandatory (FR-WIZ-007).
   final List<FieldMapping> mappings;
 
-  /// Why the token step did not pass, or `null`. Cleared when a new attempt starts and when the
-  /// step is left; the message it becomes is the step's, and it never contains the token.
-  final TokenStepError? error;
+  /// Why the last call this wizard made did not succeed, or `null`. Cleared when a new attempt
+  /// starts; the sentence it becomes is the step's, and it never contains the token.
+  ///
+  /// Every call the wizard makes can set it — the token step's validating call and the three list
+  /// calls behind it — and the step that made the call is where the user stays and can try again.
+  final WizardError? error;
 
   /// Whether one of the wizard's calls is in flight, so a screen can hold its action.
   final bool busy;
@@ -156,14 +159,22 @@ final class WizardState {
   /// The explanation the current step shows when its list came back empty, or `null` (design §3).
   ///
   /// Derived from the step and the list, so it cannot go stale: nothing is said on the token step,
-  /// whose list the call has not read yet, nor on the mapping step.
-  WizardNotice? get notice => switch (step) {
-    WizardStep.token => null,
-    WizardStep.team => teams.isEmpty ? WizardNotice.noTeams : null,
-    WizardStep.database => databases.isEmpty ? WizardNotice.noDatabases : null,
-    WizardStep.table => tables.isEmpty ? WizardNotice.noTables : null,
-    WizardStep.mapping => null,
-  };
+  /// whose list the call has not read yet, nor on the mapping step. **And nothing is said while a
+  /// call has failed**: an empty list the port returned means "there is none", a failed call means
+  /// "we do not know", and the two must not be explained with the same sentence.
+  WizardNotice? get notice {
+    if (error != null) {
+      return null;
+    }
+    return switch (step) {
+      WizardStep.token => null,
+      WizardStep.team => teams.isEmpty ? WizardNotice.noTeams : null,
+      WizardStep.database =>
+        databases.isEmpty ? WizardNotice.noDatabases : null,
+      WizardStep.table => tables.isEmpty ? WizardNotice.noTables : null,
+      WizardStep.mapping => null,
+    };
+  }
 
   /// The same state with the given fields replaced.
   ///
@@ -193,7 +204,7 @@ final class WizardState {
         : databaseId as String?,
     tableId: identical(tableId, _keep) ? this.tableId : tableId as String?,
     mappings: mappings ?? this.mappings,
-    error: identical(error, _keep) ? this.error : error as TokenStepError?,
+    error: identical(error, _keep) ? this.error : error as WizardError?,
     busy: busy ?? this.busy,
   );
 

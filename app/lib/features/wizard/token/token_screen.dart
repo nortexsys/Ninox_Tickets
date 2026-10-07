@@ -24,11 +24,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../wizard_controller.dart';
+import '../wizard_errors.dart';
 import '../wizard_messages.dart';
 import '../wizard_step.dart';
 import '../wizard_strings.dart';
 import 'system_browser.dart';
-import 'token_errors.dart';
 
 /// The first screen of the wizard.
 class TokenScreen extends StatefulWidget {
@@ -79,17 +79,17 @@ class _TokenScreenState extends State<TokenScreen> {
 
   /// The failure the field itself reports: the host as typed is not an accepted form.
   String? get _hostError =>
-      widget.controller.state.error == TokenStepError.hostNotValid
-      ? tokenStepErrorMessage(widget.strings, TokenStepError.hostNotValid)
+      widget.controller.state.error == WizardError.hostNotValid
+      ? wizardErrorMessage(widget.strings, WizardError.hostNotValid)
       : null;
 
   /// The failure the step reports below the field: everything except the one above.
   String? get _message {
-    final TokenStepError? error = widget.controller.state.error;
-    if (error == null || error == TokenStepError.hostNotValid) {
+    final WizardError? error = widget.controller.state.error;
+    if (error == null || error == WizardError.hostNotValid) {
       return null;
     }
-    return tokenStepErrorMessage(widget.strings, error);
+    return wizardErrorMessage(widget.strings, error);
   }
 
   /// Fills the field from the clipboard, trimmed (design §4).

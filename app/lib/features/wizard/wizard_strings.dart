@@ -52,6 +52,21 @@ final class WizardStrings {
   /// The action that validates the host and the token.
   String get tokenConnectAction => 'Connect';
 
+  /// The team step's question.
+  String get teamStepTitle => 'Which team should Paperdrop use?';
+
+  /// The database step's question.
+  String get databaseStepTitle => 'Which database?';
+
+  /// The table step's question.
+  String get tableStepTitle => 'Which table should the documents go to?';
+
+  /// The action that returns to the previous step.
+  String get backAction => 'Back';
+
+  /// The action that runs a failed call again, from the step it failed on.
+  String get tryAgainAction => 'Try again';
+
   /// What the host field says when what was typed is not an accepted form.
   String get errorHostNotValid => 'That is not a valid host.';
 
