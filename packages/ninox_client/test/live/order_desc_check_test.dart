@@ -42,11 +42,12 @@ import 'package:test/test.dart';
 /// The test environment, named explicitly and never taken from the environment
 /// (`docs/Plan/SPIKE_GAP-022_schema_formula_fields.md` §1).
 const String _teamId = 'qCq3JS7q7ptoap8Yg';
-const String _databaseId = 'db0000000000';
+const String _databaseId = 'jd1m8n8l4j7i';
 
-/// The reference table of the spike — `YB`, "Tarjetas Banco" — which carries a date field and a
-/// number field, and which `corpus_test/REPORT.md` also wrote to.
-const String _tableId = 'YB';
+/// `Paperdrop_test`, the disposable table the product owner created on 2026-10-07 in the test database
+/// `JI-PRUEBAS-CLAUDE` (invented rows, a date field `Fecha` and a number field `Importe`). The test
+/// database is a copy of a whole ERP: this check reads **only** this table (`AGENTS.md` §1.4).
+const String _tableId = 'EF';
 
 /// The variable the token is read from, as the spike and the skill's checker read it.
 const String _tokenVariable = 'NINOX_API_KEY';
