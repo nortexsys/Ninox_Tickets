@@ -25,13 +25,38 @@ const String intakeRoute = '/intake/:docId';
 String intakeLocationFor(String docId) => '/intake/$docId';
 
 /// Builds the router of the application.
-GoRouter buildAppRouter({required CaptureController controller}) {
+///
+/// [hasDestination] answers whether the device already holds a destination, and it is what makes a
+/// **first run** open on the wizard (design §10 of `implement-setup-wizard`, task 3.5): while it
+/// answers `false`, any location but the wizard's own is redirected there, and the wizard's own is
+/// let through — which is the clause that keeps the redirect from looping. **Its default answers
+/// `true`**, so a caller that says nothing about destinations — every test of this shell among
+/// them, and every caller of this router before the first run existed — behaves exactly as before
+/// and opens on capture. The wizard's closing `onFinished` is this file's `() => router.go(captureRoute)`,
+/// and it lands on capture as soon as the answer turns `true`, which the wizard's own store makes it
+/// do the moment the destination is saved.
+///
+/// go_router allows the redirect to be asynchronous, which is what lets the question be asked of the
+/// device's file store through the wizard's own `DestinationStore` (design §10).
+GoRouter buildAppRouter({
+  required CaptureController controller,
+  Future<bool> Function()? hasDestination,
+}) {
   /// The router itself, so that the wizard's closing screen can hand the user to capture: the
   /// callback is the router's, because the router is what knows [captureRoute] (design §2 of
   /// `implement-setup-wizard` — the wizard imports nothing from this file).
   late final GoRouter router;
   router = GoRouter(
     initialLocation: captureRoute,
+    // The first-run redirect (design §10). The wizard is never redirected and the question is not
+    // even asked for it: redirecting `/wizard` to `/wizard` is the loop this line exists to avoid.
+    redirect: (BuildContext context, GoRouterState state) async {
+      if (state.matchedLocation == wizardRoute) {
+        return null;
+      }
+      final bool configured = await (hasDestination ?? _destinationAssumed)();
+      return configured ? null : wizardRoute;
+    },
     routes: <RouteBase>[
       GoRoute(
         path: captureRoute,
@@ -58,3 +83,11 @@ GoRouter buildAppRouter({required CaptureController controller}) {
   );
   return router;
 }
+
+/// The default of [buildAppRouter]'s `hasDestination`: **yes**, the device already holds one.
+///
+/// A caller that does not say otherwise is not asking for a first-run redirect, so nothing is
+/// redirected and the shell opens on capture exactly as it did before the wizard had an entry point
+/// (design §10: the existing router tests pass a fake that answers *yes* and are unaffected). The
+/// application is not such a caller — `main.dart` hands the device's real answer in.
+Future<bool> _destinationAssumed() async => true;
