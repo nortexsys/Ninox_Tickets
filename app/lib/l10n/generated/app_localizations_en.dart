@@ -171,6 +171,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wizardMappingContinueAction => 'Continue';
 
   @override
+  String wizardMappingAlsoUsed(String column, String field) {
+    return '$column (also mapped to $field)';
+  }
+
+  @override
   String get wizardFieldDocDate => 'Document date';
 
   @override

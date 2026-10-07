@@ -62,6 +62,15 @@ class MappingScreen extends StatefulWidget {
   static Key pickerKey(CoreField field) =>
       ValueKey<String>('wizard-picker-${field.wireName}');
 
+  /// The entry of one column in a field's picker, so a test can choose the column it means whether
+  /// or not the entry is marked as one another field uses.
+  static Key candidateKey(CoreField field, String fieldId) =>
+      ValueKey<String>('wizard-candidate-${field.wireName}-$fieldId');
+
+  /// The entry that leaves a field unmapped.
+  static Key unmappedEntryKey(CoreField field) =>
+      ValueKey<String>('wizard-unmapped-${field.wireName}');
+
   /// The absent-setting control of one mapped core field.
   static Key absentKey(CoreField field) =>
       ValueKey<String>('wizard-absent-${field.wireName}');
@@ -122,6 +131,31 @@ class _MappingScreenState extends State<MappingScreen> {
     ]);
   }
 
+  /// The columns **another** core field is mapped to, by column identifier, with that field's
+  /// plain-language name (design §10.2).
+  ///
+  /// Two core fields may share one Ninox column — the one-to-one rule belongs to the matcher and to
+  /// its *proposals*, not to the user's choice — so a picker does not hide or block such a column:
+  /// it says whose it already is, and leaves it selectable. When more than one other field uses the
+  /// same column, the first in the canonical order is the one named, which is the one the closing
+  /// summary names first too.
+  Map<String, String> _usedByOthers(
+    CoreField coreField,
+    AppLocalizations l10n,
+  ) {
+    final Map<String, String> used = <String, String>{};
+    for (final CoreField other in CoreField.values) {
+      if (other == coreField) {
+        continue;
+      }
+      final NinoxField? chosen = _mapped[other];
+      if (chosen != null) {
+        used.putIfAbsent(chosen.id, () => wizardCoreFieldLabel(l10n, other));
+      }
+    }
+    return used;
+  }
+
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
@@ -154,6 +188,7 @@ class _MappingScreenState extends State<MappingScreen> {
                   candidates: _candidates[coreField]!,
                   mapped: _mapped[coreField],
                   absent: _absent[coreField]!,
+                  usedByOthers: _usedByOthers(coreField, l10n),
                   onMapped: (NinoxField? candidate) =>
                       setState(() => _mapped[coreField] = candidate),
                   onAbsent: (AbsentSetting absent) =>
@@ -181,6 +216,7 @@ class _FieldRow extends StatelessWidget {
     required this.candidates,
     required this.mapped,
     required this.absent,
+    required this.usedByOthers,
     required this.onMapped,
     required this.onAbsent,
   });
@@ -198,6 +234,10 @@ class _FieldRow extends StatelessWidget {
 
   /// The absent setting, which only a mapped field shows.
   final AbsentSetting absent;
+
+  /// The columns other core fields already use, by column identifier, with the name of the field
+  /// using each (design §10.2).
+  final Map<String, String> usedByOthers;
 
   final ValueChanged<NinoxField?> onMapped;
   final ValueChanged<AbsentSetting> onAbsent;
@@ -223,12 +263,25 @@ class _FieldRow extends StatelessWidget {
             items: <DropdownMenuItem<NinoxField?>>[
               DropdownMenuItem<NinoxField?>(
                 value: null,
-                child: Text(l10n.wizardMappingUnmapped),
+                child: Text(
+                  l10n.wizardMappingUnmapped,
+                  key: MappingScreen.unmappedEntryKey(coreField),
+                ),
               ),
               for (final NinoxField candidate in candidates)
                 DropdownMenuItem<NinoxField?>(
                   value: candidate,
-                  child: Text(candidate.name),
+                  // A column another field already uses stays selectable — the user may map two
+                  // fields to one column — and says whose it is rather than hiding the fact.
+                  child: Text(
+                    usedByOthers[candidate.id] == null
+                        ? candidate.name
+                        : l10n.wizardMappingAlsoUsed(
+                            candidate.name,
+                            usedByOthers[candidate.id]!,
+                          ),
+                    key: MappingScreen.candidateKey(coreField, candidate.id),
+                  ),
                 ),
             ],
             onChanged: onMapped,

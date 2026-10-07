@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ninox_client/ninox_client.dart';
 import 'package:paperdrop/features/wizard/destination.dart';
 import 'package:paperdrop/features/wizard/mapping/mapping_screen.dart';
+import 'package:paperdrop/features/wizard/matching/field_matcher.dart';
 import 'package:paperdrop/features/wizard/wizard_controller.dart';
 import 'package:paperdrop/l10n/generated/app_localizations.dart';
 
@@ -87,21 +88,32 @@ void main() {
       item.value?.name,
   ];
 
-  /// Chooses one entry of a field's picker by the words on it.
+  /// Chooses one entry of a field's picker: the column itself, or `null` for the unmapped entry.
   ///
   /// The form is longer than the test surface, so the picker is scrolled into view first: a control
-  /// a user cannot see is a control a user cannot tap either.
+  /// a user cannot see is a control a user cannot tap either. The entry is addressed by key and not
+  /// by its words, because the same words can also be on another field's picker — and, once a column
+  /// is marked as used elsewhere, on more than one entry of this one. The **last** match is the open
+  /// menu's, which is the one a user taps.
   Future<void> choose(
     WidgetTester tester,
     CoreField coreField,
-    String words,
+    NinoxField? candidate,
   ) async {
     final Finder picker = find.byKey(MappingScreen.pickerKey(coreField));
     await tester.ensureVisible(picker);
     await tester.pumpAndSettle();
     await tester.tap(picker);
     await tester.pumpAndSettle();
-    await tester.tap(find.text(words).last);
+    await tester.tap(
+      find
+          .byKey(
+            candidate == null
+                ? MappingScreen.unmappedEntryKey(coreField)
+                : MappingScreen.candidateKey(coreField, candidate.id),
+          )
+          .last,
+    );
     await tester.pumpAndSettle();
   }
 
@@ -215,7 +227,11 @@ void main() {
 
     // Two date columns and one of them proposed: the user corrects it to the other.
     expect(picker(tester, CoreField.docDate).value?.name, 'Belegdatum');
-    await choose(tester, CoreField.docDate, 'Buchungsdatum');
+    await choose(
+      tester,
+      CoreField.docDate,
+      field('2', 'Buchungsdatum', 'date'),
+    );
     expect(picker(tester, CoreField.docDate).value?.name, 'Buchungsdatum');
 
     await tapContinue(tester);
@@ -331,7 +347,7 @@ void main() {
     );
 
     // One field corrected away from what the matcher proposed, one kept, one left alone.
-    await choose(tester, CoreField.supplierName, en.wizardMappingUnmapped);
+    await choose(tester, CoreField.supplierName, null);
     await tapContinue(tester);
 
     expect(
@@ -348,6 +364,118 @@ void main() {
         (FieldMapping mapping) => mapping.absent == AbsentSetting.empty,
       ),
       isTrue,
+    );
+  });
+
+  testWidgets('a column another field already uses is marked and stays '
+      'selectable', (WidgetTester tester) async {
+    // Two number columns and two number fields: the matcher proposes one to each, and the user may
+    // still map both fields to the same column — the one-to-one rule is the matcher's, for its
+    // proposals. The picker says whose the column is instead of hiding it (design §10.2).
+    final WizardController controller = await atMappingStep(<NinoxField>[
+      field('1', 'Total', 'number'),
+      field('2', 'Subtotal', 'number'),
+    ]);
+    List<FieldMapping>? handed;
+    await pumpMapping(
+      tester,
+      controller,
+      onCompleted: (List<FieldMapping> mappings) async => handed = mappings,
+    );
+
+    expect(picker(tester, CoreField.grossTotal).value?.name, 'Total');
+    expect(picker(tester, CoreField.netTotal).value?.name, 'Subtotal');
+    // Before the user does anything, nothing is used twice and nothing is marked.
+    expect(offered(picker(tester, CoreField.grossTotal)), <String?>[
+      null,
+      'Total',
+      'Subtotal',
+    ]);
+    expect(
+      find.text(en.wizardMappingAlsoUsed('Subtotal', en.wizardFieldNetTotal)),
+      findsNothing,
+    );
+
+    // The gross total is corrected onto the column the net total already uses.
+    await choose(
+      tester,
+      CoreField.grossTotal,
+      field('2', 'Subtotal', 'number'),
+    );
+    expect(picker(tester, CoreField.grossTotal).value?.name, 'Subtotal');
+
+    // The column carries the name of the field using it — and it is still there to be chosen.
+    final DropdownButton<NinoxField?> pickerNow = picker(
+      tester,
+      CoreField.grossTotal,
+    );
+    expect(offered(pickerNow), <String?>[null, 'Total', 'Subtotal']);
+    expect(
+      find.text(en.wizardMappingAlsoUsed('Subtotal', en.wizardFieldNetTotal)),
+      findsOneWidget,
+    );
+    expect(
+      pickerNow.items!
+          .lastWhere((DropdownMenuItem<NinoxField?> item) => item.value != null)
+          .enabled,
+      isTrue,
+    );
+    // The other field keeps its own column: a column may serve two fields.
+    expect(picker(tester, CoreField.netTotal).value?.name, 'Subtotal');
+
+    // The step completes with both, each carrying the identifier it was mapped to.
+    await tapContinue(tester);
+    expect(handed, hasLength(2));
+    expect(
+      handed!
+          .firstWhere(
+            (FieldMapping mapping) => mapping.coreField == CoreField.grossTotal,
+          )
+          .ninoxFieldId,
+      '2',
+    );
+  });
+
+  testWidgets('a column used twice leaves the matcher\'s proposals unchanged', (
+    WidgetTester tester,
+  ) async {
+    // The marking is what the screen draws; what the matcher proposes is its own answer over the
+    // table and does not move because the user mapped two fields to one column.
+    final NinoxTable fixture = table(<NinoxField>[
+      field('1', 'Total', 'number'),
+      field('2', 'Subtotal', 'number'),
+    ]);
+    final List<FieldProposal> before = proposeMappings(fixture);
+
+    final WizardController controller = await atMappingStep(fixture.fields);
+    await pumpMapping(tester, controller);
+    await choose(
+      tester,
+      CoreField.grossTotal,
+      field('2', 'Subtotal', 'number'),
+    );
+    await tapContinue(tester);
+
+    expect(proposeMappings(fixture), before);
+    expect(
+      before
+          .firstWhere(
+            (FieldProposal proposal) =>
+                proposal.coreField == CoreField.grossTotal,
+          )
+          .ninoxField
+          ?.name,
+      'Total',
+    );
+    expect(
+      before
+          .firstWhere(
+            (FieldProposal proposal) =>
+                proposal.coreField == CoreField.netTotal,
+          )
+          .ninoxField
+          ?.name,
+      'Subtotal',
     );
   });
 

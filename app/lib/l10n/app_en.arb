@@ -199,6 +199,20 @@
   "@wizardMappingContinueAction": {
     "description": "Finishes the mapping step, mapped, partly mapped or not at all (FR-WIZ-007)."
   },
+  "wizardMappingAlsoUsed": "{column} (also mapped to {field})",
+  "@wizardMappingAlsoUsed": {
+    "description": "Marks a column another core field already uses, in the picker (design 10.2, approved 2026-10-07). The column stays selectable: two fields may share one column, and the send pipeline reports it if Ninox rejects it.",
+    "placeholders": {
+      "column": {
+        "type": "String",
+        "example": "Betrag"
+      },
+      "field": {
+        "type": "String",
+        "example": "Gross total"
+      }
+    }
+  },
   "wizardFieldDocDate": "Document date",
   "@wizardFieldDocDate": {
     "description": "Plain-language name of the canonical field doc_date (FR-WIZ-005, FR-WIZ-008)."
