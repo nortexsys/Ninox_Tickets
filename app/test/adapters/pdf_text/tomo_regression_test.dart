@@ -11,11 +11,12 @@ import 'package:path/path.dart' as p;
 ///
 /// **What it proves, here.** That the committed fixture
 /// (`test/fixtures/pdf/tomo_regression.pdf`, written by the script beside it)
-/// really carries the structure that failed: a label and its value decoupled in
-/// the content stream, with a registry volume `Tomo 8.741` written immediately
-/// after the label and on the line below it, and the total written much later
-/// but **on the label's own line, to the right**. The page's own operators are
-/// read here, so the fixture cannot drift from what this test claims about it.
+/// really carries the structure that failed, on the two pages the rule's two
+/// branches need: page 1 puts the total on the label's own line, to the right,
+/// decoupled from it in the content stream, with the registry volume on the line
+/// below; page 2 puts the total on the line below and the volume next to the
+/// label in the stream but one row above it. The pages' own operators are read
+/// here, so the fixture cannot drift from what this test claims about it.
 ///
 /// **What it cannot prove here.** Reading that page needs PDFium, and what needs
 /// the native library lives in `app/integration_test/`
@@ -50,9 +51,10 @@ void main() {
     bytes = fixture.readAsBytesSync();
   });
 
-  test('the fixture decouples the label from the total and puts the volume '
-      'between them', () {
-    final List<PlacedText> placed = placedTexts(bytes);
+  test('page 1 decouples the label from the total and puts the volume on the '
+      'line below', () {
+    final PlacedTexts page = placedPages(bytes)[0];
+    final List<PlacedText> placed = page.entries;
     final int label = _indexOf(placed, 'Gesamtbetrag');
     final int volume = _indexOf(placed, 'Tomo 8.741');
     final int total = _indexOf(placed, '1.234,50');
@@ -82,6 +84,35 @@ void main() {
     expect(placed[volume].x, placed[label].x);
   });
 
+  test('page 2 puts the total on the line below and the volume out of reach', () {
+    final PlacedTexts page = placedPages(bytes)[1];
+    final List<PlacedText> placed = page.entries;
+    final int label = _indexOf(placed, 'Gesamtbetrag');
+    final int volume = _indexOf(placed, 'Tomo 8.741');
+    final int total = _indexOf(placed, '1.234,50');
+
+    // Nothing shares the label's line, so the rule's first branch — the words to
+    // its right — has nothing to bind.
+    expect(
+      placed.where((PlacedText item) => item.y == placed[label].y),
+      hasLength(1),
+    );
+
+    // The volume is the next text object in the stream and the row *above* the
+    // label: nearer in extraction order than the total is, and somewhere the
+    // layout rule never looks.
+    expect(volume, label + 1);
+    expect(placed[volume].y, greaterThan(placed[label].y));
+
+    // The total is on the line below, overlapping the label horizontally — the
+    // only shape the second branch can bind — and one line step away, not two:
+    // the rule reaches no further down than one label-line height, and a line of
+    // 10-point text is under 10 points tall.
+    expect(placed[total].y, lessThan(placed[label].y));
+    expect(placed[total].x, placed[label].x);
+    expect(placed[label].y - placed[total].y, inInclusiveRange(10, 20));
+  });
+
   test('the library the fixture is read with is the one that ships', () {
     expect(
       PdfrxTextSource.toolName,
@@ -105,39 +136,55 @@ class PlacedText {
   String toString() => '$text at $x/$y';
 }
 
-/// Every `BT … Td (text) Tj … ET` of [pdf], in the order it was written.
-///
-/// The fixture's content stream is uncompressed on purpose, so that a test can
-/// read the page's own operators instead of trusting a second file that says
-/// what they are. It is deliberately small: it understands the two operators the
-/// generator writes and nothing else, and it says so by failing on a fixture
-/// whose shape it does not know.
-List<PlacedText> placedTexts(Uint8List pdf) {
-  final String source = latin1.decode(pdf);
-  final RegExpMatch? first = RegExp(r'stream\n').firstMatch(source);
-  expect(first, isNotNull, reason: 'the fixture has no content stream');
-  final int start = first!.end;
-  final int end = source.indexOf('endstream', start);
-  expect(end, greaterThan(start));
+/// The text objects of one page, in the order they were written.
+class PlacedTexts {
+  const PlacedTexts(this.entries);
 
-  final List<PlacedText> placed = <PlacedText>[];
-  for (final RegExpMatch match in RegExp(
-    r'BT\s+/F1\s+[\d.]+\s+Tf\s+([\d.]+)\s+([\d.]+)\s+Td\s+\((.*?)\)\s*Tj\s+ET',
-  ).allMatches(source.substring(start, end))) {
-    placed.add(
-      PlacedText(
-        match.group(3)!,
-        double.parse(match.group(1)!),
-        double.parse(match.group(2)!),
-      ),
-    );
+  final List<PlacedText> entries;
+}
+
+/// Every text object of [pdf], page by page, in the order it was written.
+///
+/// The fixture's content streams are uncompressed on purpose, so that a test can
+/// read the pages' own operators instead of trusting a second file that says
+/// what they are. It is deliberately small: it understands the two operators the
+/// generator writes and nothing else, and it fails on a fixture whose shape it
+/// does not know.
+List<PlacedTexts> placedPages(Uint8List pdf) {
+  final String source = latin1.decode(pdf);
+  final List<PlacedTexts> pages = <PlacedTexts>[];
+  // The stream a page's content is written into. The `endstream` that closes it
+  // also ends in `stream`, and is not one of them.
+  for (final RegExpMatch stream in RegExp(
+    r'(?<!end)stream\n',
+  ).allMatches(source)) {
+    final int end = source.indexOf('endstream', stream.end);
+    expect(end, greaterThan(stream.end), reason: 'a stream is not closed');
+    final List<PlacedText> placed = <PlacedText>[];
+    for (final RegExpMatch match in RegExp(
+      r'BT\s+/F1\s+[\d.]+\s+Tf\s+([\d.]+)\s+([\d.]+)\s+Td\s+\((.*?)\)\s*Tj\s+ET',
+    ).allMatches(source.substring(stream.end, end))) {
+      placed.add(
+        PlacedText(
+          match.group(3)!,
+          double.parse(match.group(1)!),
+          double.parse(match.group(2)!),
+        ),
+      );
+    }
+    pages.add(PlacedTexts(placed));
   }
   expect(
-    placed,
-    isNotEmpty,
+    pages,
+    hasLength(2),
+    reason: 'the fixture is two pages, one for each branch of the rule',
+  );
+  expect(
+    pages.every((PlacedTexts page) => page.entries.isNotEmpty),
+    isTrue,
     reason: 'the fixture\'s text objects were not recognised',
   );
-  return placed;
+  return pages;
 }
 
 int _indexOf(List<PlacedText> placed, String text) {
