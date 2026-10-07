@@ -423,6 +423,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Currency'**
   String get wizardFieldCurrency;
+
+  /// Heading of the closing summary (FR-WIZ-008).
+  ///
+  /// In en, this message translates to:
+  /// **'This is what Paperdrop will write'**
+  String get wizardSummaryHeadline;
+
+  /// Names the core fields that will be saved, in plain language rather than as keys (FR-WIZ-008).
+  ///
+  /// In en, this message translates to:
+  /// **'It will save the {fields} on the record.'**
+  String wizardSummarySaved(String fields);
+
+  /// Names the core fields that will not be saved, so the consequence is stated rather than left to be discovered (FR-WIZ-008).
+  ///
+  /// In en, this message translates to:
+  /// **'It will not save the {fields}: those columns stay as they are.'**
+  String wizardSummaryNotSaved(String fields);
+
+  /// The empty-record case, in the requirement's own words: only the document will be attached, with no data (FR-WIZ-008, FR-WIZ-007).
+  ///
+  /// In en, this message translates to:
+  /// **'Only the document will be attached, with no data: no column of the record will be filled.'**
+  String get wizardSummaryNothingMapped;
+
+  /// The closing screen's offer: capture a document of any kind rather than returning the user to an empty application (FR-WIZ-008).
+  ///
+  /// In en, this message translates to:
+  /// **'Capture a document'**
+  String get wizardSummaryCaptureAction;
 }
 
 class _AppLocalizationsDelegate

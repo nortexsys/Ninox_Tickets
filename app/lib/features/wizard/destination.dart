@@ -72,6 +72,34 @@ final class FieldMapping {
     this.absent = AbsentSetting.empty,
   });
 
+  /// Reads one mapping out of the JSON a [DestinationStore] wrote.
+  ///
+  /// Throws [FormatException] when the object is not one this class can read — a file the app wrote
+  /// is read strictly, because reading it as "no mapping" would silently throw the user's work away.
+  factory FieldMapping.fromJson(Object? json) {
+    final Map<String, Object?> object = _objectOf(
+      json,
+      what: 'a field mapping',
+    );
+    final String coreFieldName = _stringOf(
+      object,
+      'core_field',
+      what: 'a field mapping',
+    );
+    final CoreField coreField = _coreFieldNamed(coreFieldName);
+    final String absentName = _stringOf(
+      object,
+      'absent',
+      what: 'a field mapping',
+    );
+    return FieldMapping(
+      coreField: coreField,
+      ninoxFieldId: _stringOf(object, 'field_id', what: 'a field mapping'),
+      ninoxFieldName: _stringOf(object, 'field_name', what: 'a field mapping'),
+      absent: _absentSettingNamed(absentName),
+    );
+  }
+
   /// The core field this mapping supplies.
   final CoreField coreField;
 
@@ -85,6 +113,15 @@ final class FieldMapping {
   /// What is written when the document prints no value. [AbsentSetting.empty] unless the user
   /// chooses otherwise.
   final AbsentSetting absent;
+
+  /// The stored form (design §6): the identifier that identifies the column, the name that displays
+  /// it, the canonical field it belongs to, and the absent setting.
+  Map<String, Object?> toJson() => <String, Object?>{
+    'core_field': coreField.wireName,
+    'field_id': ninoxFieldId,
+    'field_name': ninoxFieldName,
+    'absent': absent.name,
+  };
 
   @override
   bool operator ==(Object other) =>
@@ -124,6 +161,37 @@ final class Destination {
     this.mappings = const <FieldMapping>[],
   });
 
+  /// Reads one destination out of the JSON a [DestinationStore] wrote.
+  ///
+  /// The host is read with `NinoxEndpoint.parse`, exactly as the token step reads what the user
+  /// typed: a stored host that is not an accepted form is a [FormatException] and not a default,
+  /// because falling back to the vendor's cloud would send the user's documents somewhere they did
+  /// not choose.
+  factory Destination.fromJson(Object? json) {
+    final Map<String, Object?> object = _objectOf(json, what: 'a destination');
+    final String host = _stringOf(object, 'host', what: 'a destination');
+    final NinoxEndpoint? endpoint = NinoxEndpoint.parse(host);
+    if (endpoint == null) {
+      throw FormatException(
+        'a destination: `$host` is not a host NinoxEndpoint accepts',
+      );
+    }
+    return Destination(
+      endpoint: endpoint,
+      teamId: _stringOf(object, 'team', what: 'a destination'),
+      databaseId: _stringOf(object, 'database', what: 'a destination'),
+      tableId: _stringOf(object, 'table', what: 'a destination'),
+      mappings: <FieldMapping>[
+        for (final Object? mapping in _listOf(
+          object,
+          'mappings',
+          what: 'a destination',
+        ))
+          FieldMapping.fromJson(mapping),
+      ],
+    );
+  }
+
   /// The Ninox host this destination is on.
   final NinoxEndpoint endpoint;
 
@@ -139,6 +207,24 @@ final class Destination {
   /// The field mappings, by identifier. Empty is a legitimate destination: nothing is mandatory
   /// (FR-WIZ-007).
   final List<FieldMapping> mappings;
+
+  /// The stored form (design §6): the configured host, the three identifiers and the mappings.
+  ///
+  /// **No secret is here, and none ever can be.** A destination holds the host — a public address —
+  /// three identifiers and field identifiers; the token lives in the platform's keystore (FR-CFG-004)
+  /// and a test reads this file after a full run of the wizard to show that nothing of the token
+  /// reached it.
+  Map<String, Object?> toJson() => <String, Object?>{
+    'host': endpoint.port == null
+        ? endpoint.host
+        : '${endpoint.host}:${endpoint.port}',
+    'team': teamId,
+    'database': databaseId,
+    'table': tableId,
+    'mappings': <Object?>[
+      for (final FieldMapping mapping in mappings) mapping.toJson(),
+    ],
+  };
 
   @override
   bool operator ==(Object other) =>
@@ -180,4 +266,61 @@ bool _sameList<T>(List<T> a, List<T> b) {
     }
   }
   return true;
+}
+
+/// The core field with this wire name, or a [FormatException].
+CoreField _coreFieldNamed(String wireName) {
+  for (final CoreField coreField in CoreField.values) {
+    if (coreField.wireName == wireName) {
+      return coreField;
+    }
+  }
+  throw FormatException('a field mapping: `$wireName` is not a core field');
+}
+
+/// The absent setting with this name, or a [FormatException].
+AbsentSetting _absentSettingNamed(String name) {
+  for (final AbsentSetting absent in AbsentSetting.values) {
+    if (absent.name == name) {
+      return absent;
+    }
+  }
+  throw FormatException('a field mapping: `$name` is not an absent setting');
+}
+
+/// One stored object, or a [FormatException].
+Map<String, Object?> _objectOf(Object? json, {required String what}) {
+  if (json is! Map) {
+    throw FormatException('$what: expected a JSON object');
+  }
+  return <String, Object?>{
+    for (final MapEntry<Object?, Object?> entry in json.entries)
+      '${entry.key}': entry.value,
+  };
+}
+
+/// One stored list, or a [FormatException].
+List<Object?> _listOf(
+  Map<String, Object?> json,
+  String key, {
+  required String what,
+}) {
+  final Object? value = json[key];
+  if (value is! List) {
+    throw FormatException('$what: expected a JSON array under `$key`');
+  }
+  return <Object?>[...value];
+}
+
+/// One stored string, or a [FormatException].
+String _stringOf(
+  Map<String, Object?> json,
+  String key, {
+  required String what,
+}) {
+  final Object? value = json[key];
+  if (value is! String) {
+    throw FormatException('$what: expected a string under `$key`');
+  }
+  return value;
 }

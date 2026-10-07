@@ -193,4 +193,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get wizardFieldCurrency => 'Currency';
+
+  @override
+  String get wizardSummaryHeadline => 'This is what Paperdrop will write';
+
+  @override
+  String wizardSummarySaved(String fields) {
+    return 'It will save the $fields on the record.';
+  }
+
+  @override
+  String wizardSummaryNotSaved(String fields) {
+    return 'It will not save the $fields: those columns stay as they are.';
+  }
+
+  @override
+  String get wizardSummaryNothingMapped =>
+      'Only the document will be attached, with no data: no column of the record will be filled.';
+
+  @override
+  String get wizardSummaryCaptureAction => 'Capture a document';
 }

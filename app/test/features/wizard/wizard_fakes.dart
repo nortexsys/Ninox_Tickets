@@ -12,6 +12,7 @@ library;
 import 'dart:typed_data';
 
 import 'package:ninox_client/ninox_client.dart';
+import 'package:paperdrop/features/wizard/data/destination_store.dart';
 import 'package:paperdrop/features/wizard/data/token_store.dart';
 import 'package:paperdrop/features/wizard/destination.dart';
 import 'package:paperdrop/features/wizard/token/system_browser.dart';
@@ -49,6 +50,29 @@ wizardHarness({
     initial: initial,
   );
   return (controller: controller, port: port, store: store);
+}
+
+/// A [DestinationStore] that keeps what it is given in memory.
+///
+/// The flow's tests run on a widget clock, and the file-backed store's work is real file I/O that a
+/// fake clock cannot advance — the reason `test/tool/fakes.dart` exists for the intake store at all.
+/// So a widget test records the destination the wizard produced, and the file itself is proved in
+/// `data/destination_store_test.dart`, a plain `test` with a real directory.
+class FakeDestinationStore implements DestinationStore {
+  /// Every destination the wizard saved, in order.
+  final List<Destination> saved = <Destination>[];
+
+  /// What the store holds: the last one saved, or nothing.
+  List<Destination> stored = <Destination>[];
+
+  @override
+  Future<List<Destination>> readAll() async => List<Destination>.of(stored);
+
+  @override
+  Future<void> save(Destination destination) async {
+    saved.add(destination);
+    stored = <Destination>[destination];
+  }
 }
 
 /// The platform's browser, replaced by what a test decides (design §4).

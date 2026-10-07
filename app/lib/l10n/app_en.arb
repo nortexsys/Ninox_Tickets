@@ -230,5 +230,38 @@
   "wizardFieldCurrency": "Currency",
   "@wizardFieldCurrency": {
     "description": "Plain-language name of the canonical field currency."
+  },
+
+  "wizardSummaryHeadline": "This is what Paperdrop will write",
+  "@wizardSummaryHeadline": {
+    "description": "Heading of the closing summary (FR-WIZ-008)."
+  },
+  "wizardSummarySaved": "It will save the {fields} on the record.",
+  "@wizardSummarySaved": {
+    "description": "Names the core fields that will be saved, in plain language rather than as keys (FR-WIZ-008).",
+    "placeholders": {
+      "fields": {
+        "type": "String",
+        "example": "document date, gross total"
+      }
+    }
+  },
+  "wizardSummaryNotSaved": "It will not save the {fields}: those columns stay as they are.",
+  "@wizardSummaryNotSaved": {
+    "description": "Names the core fields that will not be saved, so the consequence is stated rather than left to be discovered (FR-WIZ-008).",
+    "placeholders": {
+      "fields": {
+        "type": "String",
+        "example": "supplier, tax total"
+      }
+    }
+  },
+  "wizardSummaryNothingMapped": "Only the document will be attached, with no data: no column of the record will be filled.",
+  "@wizardSummaryNothingMapped": {
+    "description": "The empty-record case, in the requirement's own words: only the document will be attached, with no data (FR-WIZ-008, FR-WIZ-007)."
+  },
+  "wizardSummaryCaptureAction": "Capture a document",
+  "@wizardSummaryCaptureAction": {
+    "description": "The closing screen's offer: capture a document of any kind rather than returning the user to an empty application (FR-WIZ-008)."
   }
 }

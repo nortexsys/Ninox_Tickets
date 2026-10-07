@@ -16,11 +16,14 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:paperdrop/adapters/storage/app_storage.dart';
 import 'package:paperdrop/features/wizard/choose/choose_screen.dart';
+import 'package:paperdrop/features/wizard/data/destination_store.dart';
 import 'package:paperdrop/features/wizard/data/keystore_token_store.dart';
 import 'package:paperdrop/features/wizard/data/port_factory.dart';
 import 'package:paperdrop/features/wizard/destination.dart';
 import 'package:paperdrop/features/wizard/mapping/mapping_screen.dart';
+import 'package:paperdrop/features/wizard/summary/summary_screen.dart';
 import 'package:paperdrop/features/wizard/token/system_browser.dart';
 import 'package:paperdrop/features/wizard/token/token_screen.dart';
 import 'package:paperdrop/features/wizard/wizard_controller.dart';
@@ -42,6 +45,7 @@ const String wizardRoute = '/wizard';
 List<RouteBase> wizardRoutes({
   WizardController Function()? controllerFactory,
   SystemBrowser? browser,
+  DestinationStore? destinationStore,
   VoidCallback? onFinished,
 }) => <RouteBase>[
   GoRoute(
@@ -49,6 +53,7 @@ List<RouteBase> wizardRoutes({
     builder: (BuildContext context, GoRouterState state) => WizardFlow(
       controllerFactory: controllerFactory,
       browser: browser,
+      destinationStore: destinationStore,
       onFinished: onFinished,
     ),
   ),
@@ -72,6 +77,7 @@ class WizardFlow extends StatefulWidget {
     super.key,
     this.controllerFactory,
     this.browser,
+    this.destinationStore,
     this.onFinished,
   });
 
@@ -80,6 +86,10 @@ class WizardFlow extends StatefulWidget {
 
   /// The platform's browser; the device's when it is `null`, and a fake in every test.
   final SystemBrowser? browser;
+
+  /// Where the finished destination is written; the device's file store when it is `null`, and a
+  /// directory a test owns in every test that runs the wizard to its end.
+  final DestinationStore? destinationStore;
 
   /// What the wizard calls when the user accepts its offer to capture the first document — the
   /// router's, because the router is what knows the capture route (design §2).
@@ -97,6 +107,16 @@ class _WizardFlowState extends State<WizardFlow> {
   late final SystemBrowser _browser =
       widget.browser ?? const UrlLauncherSystemBrowser();
 
+  /// Where the finished destination goes: the device's file under the application's documents
+  /// directory, or what a test handed in.
+  late final DestinationStore _store =
+      widget.destinationStore ??
+      const FileDestinationStore(storage: PathProviderAppStorage());
+
+  /// Whether the mapping step is finished, which is what shows its closing summary in its place —
+  /// the fifth step's second view and not a sixth step (design §3).
+  bool _finished = false;
+
   /// Redraws the step after something on it moved the state on.
   void _stepChanged() {
     if (!mounted) {
@@ -107,6 +127,7 @@ class _WizardFlowState extends State<WizardFlow> {
 
   @override
   Widget build(BuildContext context) {
+    final Destination? destination = _controller.destination;
     return switch (_controller.step) {
       WizardStep.token => TokenScreen(
         controller: _controller,
@@ -115,23 +136,35 @@ class _WizardFlowState extends State<WizardFlow> {
       ),
       WizardStep.team || WizardStep.database || WizardStep.table =>
         ChooseScreen(controller: _controller, onStepChanged: _stepChanged),
-      WizardStep.mapping => MappingScreen(
-        controller: _controller,
-        onCompleted: _mappingCompleted,
-      ),
+      WizardStep.mapping =>
+        _finished && destination != null
+            ? SummaryScreen(
+                destination: destination,
+                onFinished: widget.onFinished,
+              )
+            : MappingScreen(
+                controller: _controller,
+                onCompleted: _finishMapping,
+              ),
     };
   }
 
-  /// The mapping step's completion.
+  /// The mapping step's completion: the destination is written, and the closing summary takes the
+  /// step's place (design §3, §6).
   ///
-  /// The mapping belongs to the run's state; what comes next is dispatch 3.4's closing summary, which
-  /// takes this step's place rather than becoming a sixth step (design §3). Until it lands the wizard
-  /// hands the user on through the callback the router supplied.
-  Future<void> _mappingCompleted(List<FieldMapping> mappings) async {
+  /// The destination is written **before** the user is told what it will do, so the summary
+  /// describes a destination that is already the device's. A storage failure is not swallowed and
+  /// not shown as a sentence either: the design states no behaviour for it, and reporting it would
+  /// need a string that means something the requirements do not name (reported to the orchestrator).
+  Future<void> _finishMapping(List<FieldMapping> mappings) async {
     _controller.mapFields(mappings);
-    final VoidCallback? finished = widget.onFinished;
-    if (finished != null && mounted) {
-      finished();
+    final Destination? destination = _controller.destination;
+    if (destination != null) {
+      await _store.save(destination);
     }
+    if (!mounted) {
+      return;
+    }
+    setState(() => _finished = true);
   }
 }
