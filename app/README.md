@@ -52,6 +52,74 @@ between `share_handler` and `receive_sharing_intent` by which one builds on Flut
 | Dependency | For | Licence | Proprietary |
 | --- | --- | --- | --- |
 | Google ML Kit text recognition | Photo route (ADR-010, proposed) | ML Kit Terms of Service | **Yes** |
-| PDF text extraction with word positions | Invoice route (ADR-011, open) | To be decided — must not be AGPL | — |
+
+### ADR-011 — closed on candidate B, `pdfrx`
+
+The product owner closed ADR-011 on **2026-10-07** in favour of candidate B, PDFium through `pdfrx`
+(GAP-002 closed; evidence in `validation/reviews/adr-011-2026-10-07.md`: word-level fidelity 91.1%
+recall against the reference where candidate A reached 5.2%, and every confirmed total bound where
+candidate A found no label at all). Candidate A, PdfBox-Android, left the build with its code, its
+Gradle line and the R8 rule its optional JPEG 2000 codec needed (design §5); its measurements stay in
+the review file and in the size table below.
+
+| Dependency | Used for | Licence | Proprietary |
+| --- | --- | --- | --- |
+| `pdfrx` 2.6.5, with `pdfrx_engine` 0.6.1, `pdfium_dart` 0.3.1, `pdfium_flutter` 0.3.1 and the `url_launcher` 6.3.2 family they pull in | Word boxes with positions from PDFium, the engine Chrome renders PDFs with — the text-layer half of the invoice route (FR-EXT-004, ADR-011, ADR-014) | MIT (each of the four packages states MIT in its own `LICENSE`; the design's table said BSD-3, and the artefact resolved says MIT) | No |
+| The **PDFium binary** `pdfium_dart`'s build hook downloads and links (`lib/libpdfium.so`), with the nineteen licence notices its distribution carries | The engine itself: this project does not build it, and those notices ship with it under `app/assets/licenses/pdfium/` | MIT (the `pdfium-binaries` packaging), BSD-3-Clause (PDFium), plus the bundled third-party notices | No |
+
+Candidate B ships **a native binary this project does not build**: `pdfium_dart`'s build hook downloads a
+prebuilt PDFium at build time, from
+`https://github.com/bblanchon/pdfium-binaries/releases/download/chromium%2F7811/pdfium-android-arm64.tgz`,
+and bundles `lib/libpdfium.so` from it as a native asset. What that binary's licence covers is what its
+own distribution says, not what the package's `LICENSE` says. That distribution — read out of the archive
+the build actually resolved, whose Windows library is byte-identical to the one the resolved build
+produced, the Android one being what the APK carries — is:
+
+* its own `LICENSE` is **MIT** (`pdfium-binaries`, Copyright 2014-2025 Benoit Blanchon);
+* `licenses/pdfium.txt` is **BSD-3-Clause** (Copyright 2014 The PDFium Authors) — PDFium itself;
+* it bundles eighteen third-party licence files (abseil, agg23, catapult, cpu_features, fast_float,
+  freetype, icu, lcms, libjpeg-turbo, libopenjpeg, libpng, libtiff, libunwind, llvm-libc, simdutf and
+  zlib among them), and `VERSION` says PDFium 149.0.7811.0;
+* **no AGPL** appears in any of them, and no GPL obligation applies: the GPL text in `icu.txt` covers
+  the Autoconf helper scripts of ICU's source tree, which are not part of the `.so`, and the GPL
+  mentions in `libunwind.txt`/`llvm-libc.txt` are the Apache-2.0-with-LLVM-exception clauses. FreeType
+  is dual-licensed and the FreeType License option is the one in the archive;
+* **they ship.** The archive's `LICENSE`, its `VERSION` and its whole `licenses/` directory are copied
+  byte for byte into `app/assets/licenses/pdfium/`, declared as assets in `pubspec.yaml`, and registered
+  with Flutter's licence page from `main()`: nineteen notices under the package name `PDFium`, each
+  headed with the path it has inside the distribution. `NOTICES` alone would not have carried them — it
+  covers Dart packages, and the build hook extracts the `.so` and nothing else. One of the notices,
+  `licenses/freetype.txt`, is not valid UTF-8 in the distribution itself; it is read with its malformed
+  bytes replaced rather than rewritten, and every other file is shipped as it is.
+
+### ADR-011 — the size measurement (task 1.5, NFR-SIZ-001)
+
+The number reported is the **release arm64 APK** (design §1.3: a debug APK carries the Dart VM and every
+ABI and hides the delta that ships). Method: `flutter build apk --release --split-per-abi` on Flutter
+3.47.5, `compileSdk` 36, signing with the debug key this project already configures for release; each
+variant measured as the file size in bytes of `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk`.
+The variants were made by taking the candidate's dependency **temporarily out** — the `pdfrx` line in
+`pubspec.yaml` with the Dart file that imports it, and, for candidate A, its Gradle line, its Kotlin
+channel and the registration of that channel. The table is the record of the comparison the product
+owner decided on; the branch itself now carries candidate B only.
+
+| Build | arm64 release APK, bytes | Delta vs baseline |
+| --- | --- | --- |
+| Baseline, neither candidate | 18,027,766 | — |
+| Candidate A only (PdfBox-Android, removed 2026-10-07) | 24,065,306 | +6,037,540 |
+| Candidate B only (`pdfrx`/PDFium, chosen) | 24,454,472 | +6,426,706 |
+| Both, the state the comparison was run from | 30,492,012 | +12,464,246 |
+
+Candidate B's delta is its native library almost exactly: `lib/arm64-v8a/libpdfium.so` is 6,386,696
+bytes, stored uncompressed in the APK. Candidate A's delta was its Java classes and the ~4 MB of AFM,
+cmap and glyph-list assets the AAR ships. The debug APK's delta is not reported: it is the number
+design §1.3 reasons away from, and neither candidate's debug size is a figure to decide on.
+
+**R8 needed one rule for candidate A, and it went with it** — the file
+`android/app/proguard-rules.pro` is gone. R8 refused a release build while
+`com.gemalto.jp2.JP2Decoder` was referenced from PdfBox's `JPXFilter` and absent; that codec is
+optional and JPEG 2000 never ran on this route, so the reference was declared expected rather than
+adding the codec. It is recorded here because the cost was real and candidate A's evaluation could not
+have been run without it.
 
 Development only, not shipped: `flutter_lints`, `flutter_test` (both BSD-3-Clause).

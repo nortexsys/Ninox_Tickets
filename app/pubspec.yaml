@@ -24,6 +24,10 @@ dependencies:
     path: ../packages/ninox_client
   share_handler: ^0.0.25
   google_mlkit_document_scanner: 0.6.0
+  # Candidate B of ADR-011 (close-adr-011-pdf-text-route, design §1, task 1.2):
+  # PDFium through pdfrx. Both candidates stay in the build until the product
+  # owner's decision of Tue 6 Oct; the loser's dependency leaves with its code.
+  pdfrx: ^2.6.5
   flutter_secure_storage: ^10.3.4
   url_launcher: ^6.3.3
   http: ^1.6.0
@@ -31,8 +35,18 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  # The ADR-011 evaluation harness is an integration test run on the device by
+  # the orchestrator, never in CI (close-adr-011-pdf-text-route, design §2).
+  integration_test:
+    sdk: flutter
   flutter_lints: ^6.0.0
 
 flutter:
   uses-material-design: true
   generate: true
+  assets:
+    # The licence notices of the PDFium binary pdfrx links (NFR-LIC-001,
+    # close-adr-011-pdf-text-route task 2.4): taken from the distribution the
+    # build resolves, and registered with Flutter's licence page from main().
+    - assets/licenses/pdfium/
+    - assets/licenses/pdfium/licenses/
