@@ -117,6 +117,11 @@ class _WizardFlowState extends State<WizardFlow> {
   /// the fifth step's second view and not a sixth step (design §3).
   bool _finished = false;
 
+  /// Whether the mapping step has been finished at least once, which is what makes a return to it a
+  /// *return*: it opens on the user's own mapping rather than on the matcher's proposals again
+  /// (design §10.3).
+  bool _mappingDone = false;
+
   /// What became of the destination on the device (design §10.1): the summary is shown while the
   /// write is attempted, so a failure has somewhere to be said and a retry somewhere to be offered.
   DestinationSave _save = DestinationSave.notAttempted;
@@ -147,12 +152,20 @@ class _WizardFlowState extends State<WizardFlow> {
                 onFinished: widget.onFinished,
                 save: _save,
                 onRetry: _saveDestination,
+                onBack: _backToMapping,
               )
             : MappingScreen(
                 controller: _controller,
+                initial: _mappingDone ? _controller.mappings : null,
                 onCompleted: _finishMapping,
               ),
     };
+  }
+
+  /// Returns to the mapping step with the user's choices: the step is reopened on the mapping they
+  /// left, not on the matcher's proposals (design §10.3).
+  void _backToMapping() {
+    setState(() => _finished = false);
   }
 
   /// The mapping step's completion: the destination is written, and the closing summary takes the
@@ -166,7 +179,10 @@ class _WizardFlowState extends State<WizardFlow> {
     if (!mounted) {
       return;
     }
-    setState(() => _finished = true);
+    setState(() {
+      _mappingDone = true;
+      _finished = true;
+    });
     await _saveDestination();
   }
 

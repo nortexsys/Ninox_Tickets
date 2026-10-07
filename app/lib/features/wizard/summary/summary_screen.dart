@@ -47,6 +47,7 @@ class SummaryScreen extends StatelessWidget {
     this.onFinished,
     this.save = DestinationSave.notAttempted,
     this.onRetry,
+    this.onBack,
   });
 
   /// The destination being described.
@@ -65,6 +66,12 @@ class SummaryScreen extends StatelessWidget {
   /// Writes the destination again. The host owns the store, so the host owns the retry.
   final VoidCallback? onRetry;
 
+  /// Returns to the mapping step, with the user's choices as they were left (design §10.3).
+  ///
+  /// A summary that a user cannot walk back from is a summary they have to accept: whoever notices a
+  /// wrong column while reading it must be able to correct it.
+  final VoidCallback? onBack;
+
   /// The action that opens capture for a first document.
   static const Key captureKey = Key('wizard-summary-capture');
 
@@ -73,6 +80,9 @@ class SummaryScreen extends StatelessWidget {
 
   /// The sentence that says the setup could not be written.
   static const Key saveFailedKey = Key('wizard-summary-save-failed');
+
+  /// The action that returns to the mapping step.
+  static const Key backKey = Key('wizard-summary-back');
 
   @override
   Widget build(BuildContext context) {
@@ -120,6 +130,14 @@ class SummaryScreen extends StatelessWidget {
                   onPressed: onFinished,
                   child: Text(l10n.wizardSummaryCaptureAction),
                 ),
+              if (onBack != null) ...<Widget>[
+                const SizedBox(height: 8),
+                TextButton(
+                  key: SummaryScreen.backKey,
+                  onPressed: onBack,
+                  child: Text(l10n.wizardBackAction),
+                ),
+              ],
             ],
           ),
         ),
