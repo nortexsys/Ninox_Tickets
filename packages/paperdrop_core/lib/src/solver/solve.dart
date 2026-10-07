@@ -17,6 +17,7 @@ import '../model/field_value.dart';
 import '../model/provenance.dart';
 import '../money/currency.dart';
 import '../money/money.dart';
+import '../money/rate.dart';
 import 'currency.dart';
 import 'negative.dart';
 import 'operands.dart';
@@ -71,6 +72,9 @@ class SolverResult {
   /// The tax total.
   final FieldValue<Money> taxTotal;
 
+  /// One slot per printed, admitted rate, up to the country table's count.
+  final List<TaxSlot> taxSlots;
+
   /// Surcharge-like amounts captured by negative context.
   final List<Surcharge> surcharges;
 
@@ -86,6 +90,7 @@ class SolverResult {
     required this.grossTotal,
     required this.netTotal,
     required this.taxTotal,
+    required this.taxSlots,
     required this.surcharges,
     required this.discardedRates,
     required this.suppressedFigures,
@@ -95,7 +100,7 @@ class SolverResult {
   @override
   String toString() =>
       'SolverResult(currency: $currency, gross: $grossTotal, '
-      'net: $netTotal, tax: $taxTotal)';
+      'net: $netTotal, tax: $taxTotal, slots: ${taxSlots.length})';
 
   /// Value equality on every field.
   @override
@@ -105,6 +110,7 @@ class SolverResult {
       other.grossTotal == grossTotal &&
       other.netTotal == netTotal &&
       other.taxTotal == taxTotal &&
+      _slotListEquals(other.taxSlots, taxSlots) &&
       _surchargeListEquals(other.surcharges, surcharges) &&
       _operandListEquals(other.discardedRates, discardedRates) &&
       _operandListEquals(other.suppressedFigures, suppressedFigures);
@@ -115,6 +121,7 @@ class SolverResult {
     grossTotal,
     netTotal,
     taxTotal,
+    Object.hashAll(taxSlots),
     Object.hashAll(surcharges),
     Object.hashAll(discardedRates),
     Object.hashAll(suppressedFigures),
@@ -149,11 +156,24 @@ SolverResult solveAmounts({
     admittedRates: gate.admitted,
   );
 
+  final taxSlots = buildTaxSlots(
+    bases: negative.kept.bases,
+    taxes: negative.kept.taxes,
+    grosses: negative.kept.gross,
+    admittedRates: gate.admitted,
+    country: country,
+  );
+
+  final taxTotal = negative.kept.taxes.isEmpty
+      ? breakdown.tax
+      : _sumReadTaxes(negative.kept.taxes);
+
   return SolverResult(
     currency: currency,
     grossTotal: breakdown.gross,
     netTotal: breakdown.base,
-    taxTotal: breakdown.tax,
+    taxTotal: taxTotal,
+    taxSlots: taxSlots,
     surcharges: negative.surcharges,
     discardedRates: gate.discarded,
     suppressedFigures: negative.suppressed,
@@ -192,6 +212,82 @@ BreakdownSolution solveBreakdown({
   }
 
   return _deriveByIdentity(bases, taxes, grosses, admittedRates);
+}
+
+/// Builds one tax slot per printed, admitted rate up to [country]'s count.
+///
+/// A slot carries its printed rate plus the unique read base and tax pair that
+/// is consistent with that rate. Slots beyond the printed rates stay empty
+/// with [Absent] rate, base and amount.
+List<TaxSlot> buildTaxSlots({
+  required List<ReadOperand> bases,
+  required List<ReadOperand> taxes,
+  required List<ReadOperand> grosses,
+  required List<ReadOperand> admittedRates,
+  required CountryRow country,
+}) {
+  final slots = <TaxSlot>[];
+
+  for (var i = 0; i < country.slotCount; i++) {
+    if (i >= admittedRates.length) {
+      slots.add(
+        const TaxSlot(
+          rate: Absent<RateBp>(),
+          base: Absent<Money>(),
+          amount: Absent<Money>(),
+        ),
+      );
+      continue;
+    }
+
+    final rate = admittedRates[i].rate!;
+    final pair = _pairForRate(rate, bases, taxes);
+
+    slots.add(
+      TaxSlot(
+        rate: Present<RateBp>(rate, Provenance.read, ConfidenceState.amber),
+        base: pair?.base ?? const Absent<Money>(),
+        amount: pair?.tax ?? const Absent<Money>(),
+      ),
+    );
+  }
+
+  return slots;
+}
+
+({FieldValue<Money> base, FieldValue<Money> tax})? _pairForRate(
+  RateBp rate,
+  List<ReadOperand> bases,
+  List<ReadOperand> taxes,
+) {
+  final pairs = <({Money base, Money tax})>{};
+
+  for (final base in bases) {
+    for (final tax in taxes) {
+      if (taxWithinTolerance(tax.amount!, base.amount!, rate)) {
+        pairs.add((base: base.amount!, tax: tax.amount!));
+      }
+    }
+  }
+
+  if (pairs.length != 1) {
+    return null;
+  }
+
+  final pair = pairs.single;
+  return (base: _presentRead(pair.base), tax: _presentRead(pair.tax));
+}
+
+FieldValue<Money> _sumReadTaxes(List<ReadOperand> taxes) {
+  if (taxes.isEmpty) {
+    return const Absent<Money>();
+  }
+
+  var sum = taxes.first.amount!;
+  for (final tax in taxes.skip(1)) {
+    sum = sum + tax.amount!;
+  }
+  return Present<Money>(sum, Provenance.read, ConfidenceState.amber);
 }
 
 class _Triple {
@@ -332,6 +428,18 @@ bool _operandListEquals(List<ReadOperand> left, List<ReadOperand> right) {
 }
 
 bool _surchargeListEquals(List<Surcharge> left, List<Surcharge> right) {
+  if (left.length != right.length) {
+    return false;
+  }
+  for (var i = 0; i < left.length; i++) {
+    if (left[i] != right[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool _slotListEquals(List<TaxSlot> left, List<TaxSlot> right) {
   if (left.length != right.length) {
     return false;
   }

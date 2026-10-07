@@ -247,7 +247,7 @@ void main() {
       );
     });
 
-    test('leaves the breakdown empty without a printed rate', () {
+    test('keeps the printed tax without deriving a breakdown', () {
       final page = TextPage(0, 300000, 300000, [
         word('TOTAL', 100000, 120000, 100000, 120000),
         word('121,00', 130000, 160000, 100000, 120000),
@@ -263,7 +263,14 @@ void main() {
 
       expect(result.grossTotal, const Absent<Money>());
       expect(result.netTotal, const Absent<Money>());
-      expect(result.taxTotal, const Absent<Money>());
+      expect(
+        result.taxTotal,
+        Present<Money>(
+          Money(2100, eur),
+          Provenance.read,
+          ConfidenceState.amber,
+        ),
+      );
     });
   });
 }
