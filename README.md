@@ -47,7 +47,7 @@ ships in the app: PyMuPDF is used only by the 16-document test harness and iText
 | Dependency | Used by | Licence | Proprietary |
 | --- | --- | --- | --- |
 | Flutter SDK (framework, engine, Android embedding) | `app` | BSD-3-Clause | No |
-| `http` | `ninox_client` | BSD-3-Clause | No |
+| `http` | `ninox_client`, and `app` for the adapter composition of the wizard | BSD-3-Clause | No |
 | AndroidX and Kotlin standard library (through the Flutter Android embedding) | `app` | Apache-2.0 | No |
 | `flutter_localizations` (from the Flutter SDK) | `app` | BSD-3-Clause | No |
 | `go_router` 16.3.0 | `app` — routes | BSD-3-Clause | No |
@@ -56,6 +56,8 @@ ships in the app: PyMuPDF is used only by the 16-document test harness and iText
 | `path` 1.9.1 | `app` — storage paths | BSD-3-Clause | No |
 | `path_provider` 2.1.6 | `app` — the application's documents directory | BSD-3-Clause | No |
 | `file_picker` 10.3.10 | `app` — the file-picker path (FR-CAP-001) | MIT | No |
+| `flutter_secure_storage` 10.3.4 | `app` — the token in the Android Keystore (FR-CFG-004) | BSD-3-Clause | No |
+| `url_launcher` 6.3.3 | `app` — the Ninox settings page in the system browser (FR-WIZ-003) | BSD-3-Clause | No |
 | `share_handler` 0.0.25 (with `share_handler_platform_interface` 0.0.6, `share_handler_android` 0.0.11) | `app` — Android share-in | MIT | No |
 | `google_mlkit_document_scanner` 0.6.0 — wrapper only; the scanner is Google Play services | `app` — the platform document scanner (FR-CAP-002, ADR-006) | MIT (wrapper); ML Kit Terms of Service (Google component) | **Yes** (the Google component) |
 
