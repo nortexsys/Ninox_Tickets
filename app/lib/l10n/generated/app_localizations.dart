@@ -376,6 +376,12 @@ abstract class AppLocalizations {
   /// **'Continue'**
   String get wizardMappingContinueAction;
 
+  /// Marks a column another core field already uses, in the picker (design 10.2, approved 2026-10-07). The column stays selectable: two fields may share one column, and the send pipeline reports it if Ninox rejects it.
+  ///
+  /// In en, this message translates to:
+  /// **'{column} (also mapped to {field})'**
+  String wizardMappingAlsoUsed(String column, String field);
+
   /// Plain-language name of the canonical field doc_date (FR-WIZ-005, FR-WIZ-008).
   ///
   /// In en, this message translates to:
@@ -453,6 +459,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Capture a document'**
   String get wizardSummaryCaptureAction;
+
+  /// A failure to write the destination (design §10.1). It claims nothing as saved, and the same screen offers the retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Paperdrop could not save this setup on the device, so nothing has been saved yet. Try again.'**
+  String get wizardSummarySaveFailed;
 }
 
 class _AppLocalizationsDelegate

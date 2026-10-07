@@ -161,6 +161,110 @@ void main() {
     expect(finished, isTrue);
   });
 
+  testWidgets(
+    'Back from the summary returns to the mapping with the choices intact',
+    (WidgetTester tester) async {
+      final ({
+        WizardController controller,
+        FakeNinoxPort port,
+        FakeTokenStore store,
+      })
+      wizard = wizardHarness(
+        teams: <NinoxTeam>[NinoxTeam(id: 'team-1', name: 'Team')],
+        databases: <NinoxDatabase>[NinoxDatabase(id: 'db-1', name: 'Database')],
+        tables: <NinoxTable>[
+          NinoxTable(
+            id: 'table-1',
+            name: 'Invoices',
+            fields: <NinoxField>[
+              const NinoxField(id: 'field-1', name: 'Belegdatum', type: 'date'),
+              const NinoxField(id: 'field-2', name: 'Betrag', type: 'number'),
+            ],
+          ),
+        ],
+      );
+      final FakeDestinationStore destinations = FakeDestinationStore();
+      await pumpWizard(
+        tester,
+        GoRouter(
+          initialLocation: wizardRoute,
+          routes: wizardRoutes(
+            controllerFactory: () => wizard.controller,
+            browser: FakeSystemBrowser(),
+            destinationStore: destinations,
+            onFinished: () {},
+          ),
+        ),
+      );
+
+      await tester.enterText(find.byKey(TokenScreen.tokenFieldKey), token);
+      await tester.tap(find.text(en.wizardTokenConnectAction));
+      await tester.pumpAndSettle();
+      expect(find.byType(MappingScreen), findsOneWidget);
+
+      // Two changes the user makes: the document date is left unmapped, and the amount's absent
+      // setting becomes `write zero` instead of the default.
+      await tester.tap(find.byKey(MappingScreen.pickerKey(CoreField.docDate)));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(MappingScreen.unmappedEntryKey(CoreField.docDate)).last,
+      );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text(en.wizardMappingAbsentZero));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(en.wizardMappingAbsentZero));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(MappingScreen.continueKey));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(MappingScreen.continueKey));
+      await tester.pumpAndSettle();
+      expect(find.byType(SummaryScreen), findsOneWidget);
+
+      // Back: the mapping step, with the date still unmapped and the amount still `write zero`.
+      expect(find.byKey(SummaryScreen.backKey), findsOneWidget);
+      await tester.tap(find.byKey(SummaryScreen.backKey));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(MappingScreen), findsOneWidget);
+      expect(find.byType(SummaryScreen), findsNothing);
+      expect(
+        tester
+            .widget<DropdownButton<NinoxField?>>(
+              find.byKey(MappingScreen.pickerKey(CoreField.docDate)),
+            )
+            .value,
+        isNull,
+        reason: 'a field the user left unmapped comes back unmapped',
+      );
+      expect(
+        tester
+            .widget<DropdownButton<NinoxField?>>(
+              find.byKey(MappingScreen.pickerKey(CoreField.grossTotal)),
+            )
+            .value
+            ?.name,
+        'Betrag',
+      );
+      final SegmentedButton<AbsentSetting> absent = tester
+          .widget<SegmentedButton<AbsentSetting>>(
+            find.byKey(MappingScreen.absentKey(CoreField.grossTotal)),
+          );
+      expect(absent.selected, <AbsentSetting>{AbsentSetting.zero});
+
+      // And finishing again keeps those two answers, in the mapping and in the summary.
+      await tester.ensureVisible(find.byKey(MappingScreen.continueKey));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(MappingScreen.continueKey));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SummaryScreen), findsOneWidget);
+      final List<FieldMapping> written = destinations.saved.last.mappings;
+      expect(written, hasLength(1));
+      expect(written.single.coreField, CoreField.grossTotal);
+      expect(written.single.absent, AbsentSetting.zero);
+    },
+  );
+
   testWidgets('[setup-wizard/plain-language-summary-and-first-document-offer] '
       'the empty-record case is described', (WidgetTester tester) async {
     final ({

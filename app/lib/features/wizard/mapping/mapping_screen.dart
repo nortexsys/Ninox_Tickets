@@ -43,7 +43,12 @@ import '../wizard_messages.dart';
 /// matcher proposed and what the user decided.
 class MappingScreen extends StatefulWidget {
   /// Builds the step over the controller that holds the chosen table.
-  const MappingScreen({super.key, required this.controller, this.onCompleted});
+  const MappingScreen({
+    super.key,
+    required this.controller,
+    this.onCompleted,
+    this.initial,
+  });
 
   /// The state machine: its state is where the table and the table's fields are.
   final WizardController controller;
@@ -54,6 +59,14 @@ class MappingScreen extends StatefulWidget {
   /// capture — so this screen knows nothing about a route or a callback of the shell's.
   final Future<void> Function(List<FieldMapping> mappings)? onCompleted;
 
+  /// The mapping the step opens with, when this is not its first visit: the user's own choices, which
+  /// come back exactly as they were left (design §10.3).
+  ///
+  /// `null` — the first visit — means the matcher's proposals are what is offered. A list is the
+  /// **whole** mapping: a core field missing from it is one the user left unmapped, and comes back
+  /// unmapped rather than being offered its proposal again.
+  final List<FieldMapping>? initial;
+
   /// The row of one core field.
   static Key fieldKey(CoreField field) =>
       ValueKey<String>('wizard-mapping-${field.wireName}');
@@ -61,6 +74,15 @@ class MappingScreen extends StatefulWidget {
   /// The picker of one core field, whose display *is* the field's state.
   static Key pickerKey(CoreField field) =>
       ValueKey<String>('wizard-picker-${field.wireName}');
+
+  /// The entry of one column in a field's picker, so a test can choose the column it means whether
+  /// or not the entry is marked as one another field uses.
+  static Key candidateKey(CoreField field, String fieldId) =>
+      ValueKey<String>('wizard-candidate-${field.wireName}-$fieldId');
+
+  /// The entry that leaves a field unmapped.
+  static Key unmappedEntryKey(CoreField field) =>
+      ValueKey<String>('wizard-unmapped-${field.wireName}');
 
   /// The absent-setting control of one mapped core field.
   static Key absentKey(CoreField field) =>
@@ -92,21 +114,69 @@ class _MappingScreenState extends State<MappingScreen> {
       ? const <FieldProposal>[]
       : proposeMappings(_table);
 
-  /// What each field is mapped to: the proposal at first, and whatever the user corrects it to.
+  /// What each field is mapped to: the choice the user came back to, or the matcher's proposal.
   ///
   /// `null` is a value here and not an absence: it is the *unmapped* state, and the screen shows it in
   /// words rather than by leaving the picker empty.
   late final Map<CoreField, NinoxField?> _mapped = <CoreField, NinoxField?>{
-    for (final FieldProposal proposal in _proposals)
-      proposal.coreField: proposal.ninoxField,
+    for (final CoreField coreField in CoreField.values)
+      coreField: _choiceToOpenWith(coreField),
   };
 
-  /// The absent setting of each field: [AbsentSetting.empty] unless the user says otherwise, which is
+  /// The absent setting of each field: the one the user left, or [AbsentSetting.empty], which is
   /// FR-DST-006's default and is never chosen for them by this screen.
-  final Map<CoreField, AbsentSetting> _absent = <CoreField, AbsentSetting>{
+  late final Map<CoreField, AbsentSetting> _absent = <CoreField, AbsentSetting>{
     for (final CoreField coreField in CoreField.values)
-      coreField: AbsentSetting.empty,
+      coreField: _absentToOpenWith(coreField),
   };
+
+  /// What [coreField] opens mapped to.
+  ///
+  /// The user's own choice when the step was re-entered, and the matcher's proposal on the first
+  /// visit. A field the user left unmapped comes back unmapped: `initial` is the whole mapping.
+  NinoxField? _choiceToOpenWith(CoreField coreField) {
+    final List<FieldMapping>? initial = widget.initial;
+    if (initial == null) {
+      for (final FieldProposal proposal in _proposals) {
+        if (proposal.coreField == coreField) {
+          return proposal.ninoxField;
+        }
+      }
+      return null;
+    }
+    for (final FieldMapping mapping in initial) {
+      if (mapping.coreField == coreField) {
+        return _candidateWithId(coreField, mapping.ninoxFieldId);
+      }
+    }
+    return null;
+  }
+
+  /// The absent setting [coreField] opens with: the one the user left, or the default.
+  AbsentSetting _absentToOpenWith(CoreField coreField) {
+    for (final FieldMapping mapping
+        in widget.initial ?? const <FieldMapping>[]) {
+      if (mapping.coreField == coreField) {
+        return mapping.absent;
+      }
+    }
+    return AbsentSetting.empty;
+  }
+
+  /// The field of this table with [fieldId], or `null` when the table no longer has one.
+  ///
+  /// The picker's value has to be one of its own entries, so a choice that came back from a stored
+  /// mapping is resolved to the table's field and not to a copy of it. A column the table no longer
+  /// carries *is* unmapped as far as this screen is concerned, which is the honest reading: there is
+  /// nothing to select.
+  NinoxField? _candidateWithId(CoreField coreField, String fieldId) {
+    for (final NinoxField candidate in _candidates[coreField]!) {
+      if (candidate.id == fieldId) {
+        return candidate;
+      }
+    }
+    return null;
+  }
 
   /// Finishes the step with the mapping the user built, and hands it to the host.
   Future<void> _finish() async {
@@ -120,6 +190,31 @@ class _MappingScreenState extends State<MappingScreen> {
             absent: _absent[coreField]!,
           ),
     ]);
+  }
+
+  /// The columns **another** core field is mapped to, by column identifier, with that field's
+  /// plain-language name (design §10.2).
+  ///
+  /// Two core fields may share one Ninox column — the one-to-one rule belongs to the matcher and to
+  /// its *proposals*, not to the user's choice — so a picker does not hide or block such a column:
+  /// it says whose it already is, and leaves it selectable. When more than one other field uses the
+  /// same column, the first in the canonical order is the one named, which is the one the closing
+  /// summary names first too.
+  Map<String, String> _usedByOthers(
+    CoreField coreField,
+    AppLocalizations l10n,
+  ) {
+    final Map<String, String> used = <String, String>{};
+    for (final CoreField other in CoreField.values) {
+      if (other == coreField) {
+        continue;
+      }
+      final NinoxField? chosen = _mapped[other];
+      if (chosen != null) {
+        used.putIfAbsent(chosen.id, () => wizardCoreFieldLabel(l10n, other));
+      }
+    }
+    return used;
   }
 
   @override
@@ -154,6 +249,7 @@ class _MappingScreenState extends State<MappingScreen> {
                   candidates: _candidates[coreField]!,
                   mapped: _mapped[coreField],
                   absent: _absent[coreField]!,
+                  usedByOthers: _usedByOthers(coreField, l10n),
                   onMapped: (NinoxField? candidate) =>
                       setState(() => _mapped[coreField] = candidate),
                   onAbsent: (AbsentSetting absent) =>
@@ -181,6 +277,7 @@ class _FieldRow extends StatelessWidget {
     required this.candidates,
     required this.mapped,
     required this.absent,
+    required this.usedByOthers,
     required this.onMapped,
     required this.onAbsent,
   });
@@ -198,6 +295,10 @@ class _FieldRow extends StatelessWidget {
 
   /// The absent setting, which only a mapped field shows.
   final AbsentSetting absent;
+
+  /// The columns other core fields already use, by column identifier, with the name of the field
+  /// using each (design §10.2).
+  final Map<String, String> usedByOthers;
 
   final ValueChanged<NinoxField?> onMapped;
   final ValueChanged<AbsentSetting> onAbsent;
@@ -223,12 +324,25 @@ class _FieldRow extends StatelessWidget {
             items: <DropdownMenuItem<NinoxField?>>[
               DropdownMenuItem<NinoxField?>(
                 value: null,
-                child: Text(l10n.wizardMappingUnmapped),
+                child: Text(
+                  l10n.wizardMappingUnmapped,
+                  key: MappingScreen.unmappedEntryKey(coreField),
+                ),
               ),
               for (final NinoxField candidate in candidates)
                 DropdownMenuItem<NinoxField?>(
                   value: candidate,
-                  child: Text(candidate.name),
+                  // A column another field already uses stays selectable — the user may map two
+                  // fields to one column — and says whose it is rather than hiding the fact.
+                  child: Text(
+                    usedByOthers[candidate.id] == null
+                        ? candidate.name
+                        : l10n.wizardMappingAlsoUsed(
+                            candidate.name,
+                            usedByOthers[candidate.id]!,
+                          ),
+                    key: MappingScreen.candidateKey(coreField, candidate.id),
+                  ),
                 ),
             ],
             onChanged: onMapped,

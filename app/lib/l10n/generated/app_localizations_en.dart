@@ -171,6 +171,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wizardMappingContinueAction => 'Continue';
 
   @override
+  String wizardMappingAlsoUsed(String column, String field) {
+    return '$column (also mapped to $field)';
+  }
+
+  @override
   String get wizardFieldDocDate => 'Document date';
 
   @override
@@ -213,4 +218,8 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get wizardSummaryCaptureAction => 'Capture a document';
+
+  @override
+  String get wizardSummarySaveFailed =>
+      'Paperdrop could not save this setup on the device, so nothing has been saved yet. Try again.';
 }
