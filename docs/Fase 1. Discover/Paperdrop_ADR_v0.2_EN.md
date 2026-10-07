@@ -100,7 +100,7 @@ The decisions are constrained by the technical contract in Annex A of the PDR. W
 | ADR-008 | Return to Ninox by deep link | Accepted |
 | ADR-009 | Local-only storage with a portable configuration file | Accepted |
 | ADR-010 | Text recognition engine for the photo route | Proposed — pending measurement, criterion revised |
-| ADR-011 | PDF text extraction library for the invoice route | Proposed — positional extraction now required |
+| ADR-011 | PDF text extraction library for the invoice route | Accepted for Android (pdfrx) — 2026-10-07 |
 | ADR-012 | No telemetry; supervised measurement | Accepted |
 | ADR-013 | Reconciliation of sends with an uncertain outcome | Accepted |
 | ADR-014 | Extraction priority on the invoice route | Accepted |
@@ -261,7 +261,7 @@ The decisions are constrained by the technical contract in Annex A of the PDR. W
 
 ## ADR-011 — PDF text extraction library for the invoice route
 
-**Status:** Proposed — positional extraction now a hard acceptance criterion
+**Status:** Accepted for Android on 2026-10-07 — `pdfrx` (PDFium). The iOS part of the proposal (PDFKit) is unchanged and belongs to R2.
 
 **Context.** A supplier invoice arriving by email usually carries a text layer, so that route needs text and coordinate extraction rather than character recognition. A PDF without a text layer falls back to rendering the page and sending it through ADR-010. The 16-document test used PyMuPDF (AGPL — valid for a test harness, never inside the shipped app) to extract plain text, and the failure it produced is instructive: on PRO1013-26, the label and its value ended up on decoupled lines, and the parser's last-resort fallback picked up an unrelated number (a registry volume reference, 'Tomo 8.741') instead of the total.
 
@@ -272,6 +272,8 @@ The decisions are constrained by the technical contract in Annex A of the PDR. W
 **Acceptance criterion (revised in v0.2).** Plain-text extraction is not sufficient and is no longer an acceptable implementation. The chosen library must expose word-level coordinates so the parser can associate a label with the value nearest it in the document's visual layout, not merely nearest it in extraction order. This is now a required behaviour, verified against the sample-invoice corpus, not only a licence and size check.
 
 **What closes this record.** Confirmation of the proposal, a run over the sample-invoice corpus specifically exercising the label-value association rule above, and a check that the resulting increase in application size is acceptable.
+
+**Decision (2026-10-07, product owner).** On Android the library is `pdfrx` (PDFium), not PdfBox-Android. The record was closed on this evidence, run over the PDF half of the private sample corpus (6 invoices and 2 synthetic documents) and reported as numbers only in `validation/reviews/adr-011-2026-10-07.md`: against the pdfplumber reference, `pdfrx` returns words with boxes (91 % word recall, 76 % of boxes with IoU of at least 0.5), whereas the PdfBox-Android channel as built returned text runs with spaces inside them (69.6 % of its tokens), so it could not feed the label–value rule; the label of the total bound the confirmed total in 5 of 6 invoices with `pdfrx` (in the sixth the label was missing from the dictionary, DEC-014) against 1 of 6; reading never modified an input file (16 of 16 hashes unchanged); the measured increase in the release arm64 package was 6.04 MB for PdfBox-Android and 6.43 MB for `pdfrx` over a base of 18.0 MB. **Caveats:** the run was on an Android emulator, so per-page timings are not those of a phone and are still to be taken on the Galaxy S22; six invoices are few; PdfBox-Android's figures describe how its channel was built and not necessarily the library's ceiling. **Consequences:** `pdfrx` is MIT, but the PDFium binary it downloads at build time is BSD-3-Clause with 19 bundled third-party licences that do not ship in the package by themselves, so the application registers those notices itself; no AGPL or GPL component is introduced. GAP-002 is closed. The adapter sits behind `PdfTextSource` over the shared `PositionedWord` and `TextPage` types.
 
 ## ADR-012 — No telemetry; supervised measurement
 
