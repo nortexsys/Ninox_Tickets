@@ -37,11 +37,41 @@ void main() {
     });
 
     test('ES NIE', () {
-      expect(isValidEsNie('X1234567' 'L'), CheckResult.valid);
-      expect(isValidEsNie('Y1234567' 'X'), CheckResult.valid);
-      expect(isValidEsNie('Z1234567' 'R'), CheckResult.valid);
-      expect(isValidEsNie('X1234567' 'T'), CheckResult.invalid);
-      expect(isValidEsNie('W1234567' 'L'), CheckResult.invalid);
+      expect(
+        isValidEsNie(
+          'X1234567'
+          'L',
+        ),
+        CheckResult.valid,
+      );
+      expect(
+        isValidEsNie(
+          'Y1234567'
+          'X',
+        ),
+        CheckResult.valid,
+      );
+      expect(
+        isValidEsNie(
+          'Z1234567'
+          'R',
+        ),
+        CheckResult.valid,
+      );
+      expect(
+        isValidEsNie(
+          'X1234567'
+          'T',
+        ),
+        CheckResult.invalid,
+      );
+      expect(
+        isValidEsNie(
+          'W1234567'
+          'L',
+        ),
+        CheckResult.invalid,
+      );
     });
 
     test('ES CIF', () {
