@@ -51,7 +51,7 @@ read a skill's body, cannot write under `/skills/`, and cannot write outside its
 ## Running a lane
 
 Python 3.11+ in a virtual environment **outside** the repository, on a short path (a long one breaks
-a DLL load on Windows): `python -m venv %TEMP%\pdlv`, then `pip install -r agents/requirements.txt`.
+a DLL load on Windows): `python -m venv C:\Users\admin\pdlv` (not under `%TEMP%`: Windows emptied a venv there on 2026-10-07 and left `pip` and `deepagents` broken), then `pip install -r agents/requirements.txt`.
 From the repository root:
 
 ```powershell
