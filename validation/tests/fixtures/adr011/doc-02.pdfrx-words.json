@@ -1,0 +1,20 @@
+{
+  "doc_id": "doc-02",
+  "tool": "pdfrx 0.5.0",
+  "sha256": "sha-doc02-b",
+  "sha256_after": "sha-doc02-b",
+  "ms_per_page": [8.5],
+  "pages": [
+    {
+      "index": 0,
+      "width": 595.0,
+      "height": 842.0,
+      "words": [
+        {"text": "TOTAL", "x0": 400.0, "x1": 440.0, "top": 700.0, "bottom": 712.0},
+        {"text": "19,99", "x0": 650.0, "x1": 690.0, "top": 700.0, "bottom": 712.0},
+        {"text": "IVA", "x0": 400.0, "x1": 430.0, "top": 730.0, "bottom": 742.0},
+        {"text": "3,47", "x0": 460.0, "x1": 500.0, "top": 730.0, "bottom": 742.0}
+      ]
+    }
+  ]
+}
