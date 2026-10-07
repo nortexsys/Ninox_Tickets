@@ -1,0 +1,21 @@
+{
+  "doc_id": "doc-02",
+  "tool": "pdfbox-android 2.0.27.0",
+  "sha256": "sha-doc02-a",
+  "sha256_after": "sha-doc02-a",
+  "ms_per_page": [10.0],
+  "pages": [
+    {
+      "index": 0,
+      "width": 595.0,
+      "height": 842.0,
+      "words": [
+        {"text": "TOTAL", "x0": 400.0, "x1": 440.0, "top": 700.0, "bottom": 712.0},
+        {"text": "19,99", "x0": 460.0, "x1": 500.0, "top": 700.0, "bottom": 712.0},
+        {"text": "IVA", "x0": 400.0, "x1": 430.0, "top": 730.0, "bottom": 742.0},
+        {"text": "3,47", "x0": 460.0, "x1": 500.0, "top": 730.0, "bottom": 742.0},
+        {"text": "X", "x0": 700.0, "x1": 710.0, "top": 700.0, "bottom": 712.0}
+      ]
+    }
+  ]
+}

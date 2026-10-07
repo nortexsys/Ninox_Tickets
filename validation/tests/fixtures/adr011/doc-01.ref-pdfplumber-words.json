@@ -1,0 +1,18 @@
+{
+  "doc_id": "doc-01",
+  "tool": "pdfplumber 0.11.4",
+  "sha256": "sha-doc01-ref",
+  "sha256_after": "sha-doc01-ref",
+  "ms_per_page": [11.0],
+  "pages": [
+    {
+      "index": 0,
+      "width": 595.0,
+      "height": 842.0,
+      "words": [
+        {"text": "TOTAL", "x0": 400.0, "x1": 440.0, "top": 700.0, "bottom": 712.0},
+        {"text": "19,99", "x0": 460.0, "x1": 500.0, "top": 700.0, "bottom": 712.0}
+      ]
+    }
+  ]
+}

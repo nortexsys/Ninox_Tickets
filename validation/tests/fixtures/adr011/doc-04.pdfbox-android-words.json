@@ -1,0 +1,17 @@
+{
+  "doc_id": "doc-04",
+  "tool": "pdfbox-android 2.0.27.0",
+  "sha256": "sha-doc04-a",
+  "sha256_after": "sha-doc04-a",
+  "ms_per_page": [5.0],
+  "pages": [
+    {
+      "index": 0,
+      "width": 595.0,
+      "height": 842.0,
+      "words": [
+        {"text": "FOO", "x0": 100.0, "x1": 130.0, "top": 100.0, "bottom": 112.0}
+      ]
+    }
+  ]
+}

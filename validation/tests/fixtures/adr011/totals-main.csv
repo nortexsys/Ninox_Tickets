@@ -1,0 +1,6 @@
+﻿doc_id;total_propuesto_EUR;correcto_si_no;total_correcto_si_no;total_real_EUR
+doc-01;"19,99";si;si;
+doc-02;"19,99";si;si;
+doc-03;"125,00";si;si;
+doc-04;;no;no;
+doc-05;"99,00";no;no;"125,00"
