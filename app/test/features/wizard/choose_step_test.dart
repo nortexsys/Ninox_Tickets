@@ -6,7 +6,7 @@ import 'package:paperdrop/features/wizard/wizard_controller.dart';
 import 'package:paperdrop/features/wizard/wizard_errors.dart';
 import 'package:paperdrop/features/wizard/wizard_messages.dart';
 import 'package:paperdrop/features/wizard/wizard_step.dart';
-import 'package:paperdrop/features/wizard/wizard_strings.dart';
+import 'package:paperdrop/l10n/generated/app_localizations.dart';
 
 import 'wizard_fakes.dart';
 
@@ -27,7 +27,13 @@ void main() {
   const String host = 'api.ninox.com';
   const String token = 'pasted-token-1';
 
-  const WizardStrings strings = WizardStrings();
+  /// The resources, in English: every sentence these steps show is a `wizard`-prefixed key of
+  /// `app_en.arb`.
+  late AppLocalizations en;
+
+  setUpAll(() async {
+    en = await AppLocalizations.delegate.load(const Locale('en'));
+  });
 
   NinoxTeam team(String id) => NinoxTeam(id: id, name: 'Team $id');
 
@@ -55,7 +61,9 @@ void main() {
   Future<void> pumpChoose(WidgetTester tester, WizardController controller) =>
       tester.pumpWidget(
         MaterialApp(
-          home: ChooseScreen(controller: controller, strings: strings),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: ChooseScreen(controller: controller),
         ),
       );
 
@@ -66,7 +74,7 @@ void main() {
     await pumpChoose(tester, wizard.controller);
 
     // The team step, from the list the token call already returned.
-    expect(find.text(strings.teamStepTitle), findsOneWidget);
+    expect(find.text(en.wizardTeamStepTitle), findsOneWidget);
     expect(find.text('Team team-1'), findsOneWidget);
     expect(find.text('Team team-2'), findsOneWidget);
 
@@ -74,7 +82,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // The same widget, now the database step, with the step's own call already made.
-    expect(find.text(strings.databaseStepTitle), findsOneWidget);
+    expect(find.text(en.wizardDatabaseStepTitle), findsOneWidget);
     expect(find.text('Database db-2'), findsOneWidget);
     expect(wizard.port.calls, <String>['listTeams', 'listDatabases']);
     // The choice is the state's.
@@ -83,7 +91,7 @@ void main() {
     await tester.tap(find.byKey(ChooseScreen.optionKey('db-2')));
     await tester.pumpAndSettle();
 
-    expect(find.text(strings.tableStepTitle), findsOneWidget);
+    expect(find.text(en.wizardTableStepTitle), findsOneWidget);
     expect(wizard.port.calls, <String>[
       'listTeams',
       'listDatabases',
@@ -104,7 +112,8 @@ void main() {
     ]);
   });
 
-  testWidgets('one round trip per list, and the tables carry their fields', (
+  testWidgets('[setup-wizard/table-listing-returns-the-schema] '
+      'one round trip per list, and the tables carry their fields', (
     WidgetTester tester,
   ) async {
     final wizard = everyStep();
@@ -140,7 +149,7 @@ void main() {
     await tester.tap(find.byKey(ChooseScreen.optionKey('team-1')));
     await tester.pumpAndSettle();
 
-    expect(find.text(strings.noticeNoDatabases), findsOneWidget);
+    expect(find.text(en.wizardNoticeNoDatabases), findsOneWidget);
     expect(find.byKey(ChooseScreen.optionKey('db-1')), findsNothing);
     // Nothing to retry: the call succeeded and answered with nothing.
     expect(find.byKey(ChooseScreen.retryKey), findsNothing);
@@ -162,8 +171,8 @@ void main() {
       // The step did not move, the sentence is the resources' — not Ninox's own words — and there is
       // no "there is no database" claim about a call that did not answer.
       expect(wizard.controller.step, WizardStep.database);
-      expect(find.text(strings.errorNinoxError), findsOneWidget);
-      expect(find.text(strings.noticeNoDatabases), findsNothing);
+      expect(find.text(en.wizardErrorNinoxError), findsOneWidget);
+      expect(find.text(en.wizardNoticeNoDatabases), findsNothing);
       expect(wizard.port.calls, <String>['listTeams', 'listDatabases']);
 
       // The retry runs that same call again, and only that one.
@@ -176,7 +185,7 @@ void main() {
         'listDatabases',
         'listDatabases',
       ]);
-      expect(find.text(strings.errorNinoxError), findsNothing);
+      expect(find.text(en.wizardErrorNinoxError), findsNothing);
       expect(find.text('Database db-1'), findsOneWidget);
       expect(wizard.controller.state.databases, hasLength(2));
     },
@@ -195,14 +204,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(wizard.controller.step, WizardStep.table);
-    expect(find.text(strings.errorHostUnreachable), findsOneWidget);
-    expect(find.text(strings.noticeNoTables), findsNothing);
+    expect(find.text(en.wizardErrorHostUnreachable), findsOneWidget);
+    expect(find.text(en.wizardNoticeNoTables), findsNothing);
 
     wizard.port.failures.clear();
     await tester.tap(find.byKey(ChooseScreen.retryKey));
     await tester.pumpAndSettle();
 
-    expect(find.text(strings.errorHostUnreachable), findsNothing);
+    expect(find.text(en.wizardErrorHostUnreachable), findsNothing);
     expect(find.text('Table table-1'), findsOneWidget);
     expect(wizard.controller.step, WizardStep.table);
   });
@@ -233,7 +242,7 @@ void main() {
         expect(wizard.controller.state.error, expected, reason: '$failure');
         expect(wizard.controller.step, WizardStep.database, reason: '$failure');
         expect(
-          wizardErrorMessage(strings, expected),
+          wizardErrorMessage(en, expected),
           isNotEmpty,
           reason: '$failure',
         );
@@ -259,7 +268,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(wizard.controller.step, WizardStep.team);
-    expect(find.text(strings.teamStepTitle), findsOneWidget);
+    expect(find.text(en.wizardTeamStepTitle), findsOneWidget);
     expect(
       tester
           .widget<ListTile>(find.byKey(ChooseScreen.optionKey('team-1')))

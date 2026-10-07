@@ -6,28 +6,33 @@
 /// controller's single write to the token store implements.
 ///
 /// **What the screen offers.** The instructions, a field for the token, a *Paste* action that reads
-/// the clipboard and trims it, an action that opens Ninox's own page in the platform's browser (and
-/// never a browser the app renders itself), and — collapsed — the advanced setup holding the host,
-/// which defaults to the vendor's cloud. One action validates: it parses the host, makes the single
-/// call that validates the token **and** the host, and takes the next step's list from that same
-/// call.
+/// the clipboard and trims it, and — collapsed — the advanced setup holding the host, which defaults
+/// to the vendor's cloud. One action validates: it parses the host, makes the single call that
+/// validates the token **and** the host, and takes the next step's list from that same call.
+///
+/// **The action that opens Ninox's own page.** Design §4 puts it behind the `SystemBrowser` port and
+/// says the platform's browser shows the page, never one the app renders itself. The **address** of
+/// that page is not established (`system_browser.dart`, `TODO(orchestrator)`), and the orchestrator
+/// decided on 2026-10-07 that no URL is invented: while the address is `null` the action is not
+/// shown, and the instructions tell the user to create the token in Ninox's own settings. The port
+/// and its one implementation are wired here, one constant away from being reachable.
 ///
 /// **The token does not linger.** It is read from the field when the action is pressed, and the
 /// field is emptied as soon as the step has passed: after that the device's keystore is the only
 /// place it lives (design §1, FR-CFG-004).
 ///
-/// **No text is a literal here.** Every sentence comes from a [WizardStrings] seam, which dispatch B
-/// replaces with the generated localisations, key for key (design §1).
+/// **No text is a literal here.** Every sentence is a `wizard`-prefixed key of `app_en.arb`, read
+/// through the generated localisations (design §1, NFR-I18N-001).
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:paperdrop/l10n/generated/app_localizations.dart';
 
 import '../wizard_controller.dart';
 import '../wizard_errors.dart';
 import '../wizard_messages.dart';
 import '../wizard_step.dart';
-import '../wizard_strings.dart';
 import 'system_browser.dart';
 
 /// The first screen of the wizard.
@@ -38,7 +43,7 @@ class TokenScreen extends StatefulWidget {
     required this.controller,
     required this.browser,
     this.settingsUri = ninoxApiTokenSettingsUri,
-    this.strings = const WizardStrings(),
+    this.onStepChanged,
   });
 
   /// The state machine this step drives.
@@ -48,11 +53,12 @@ class TokenScreen extends StatefulWidget {
   final SystemBrowser browser;
 
   /// The address of Ninox's settings page, or `null` while it is not established — then the action
-  /// that would open it is disabled rather than opening a guessed address.
+  /// that would open it is not shown, rather than opening a guessed address.
   final Uri? settingsUri;
 
-  /// The step's text (design §1): one seam, replaced by the localisations in dispatch B.
-  final WizardStrings strings;
+  /// Called after the validating call completed, so a host that draws the whole wizard — one widget
+  /// per step — can redraw the step it should be showing.
+  final VoidCallback? onStepChanged;
 
   /// The token field, so a test finds the obscured one without guessing.
   static const Key tokenFieldKey = Key('wizard-token-field');
@@ -78,18 +84,18 @@ class _TokenScreenState extends State<TokenScreen> {
   }
 
   /// The failure the field itself reports: the host as typed is not an accepted form.
-  String? get _hostError =>
+  String? _hostError(AppLocalizations l10n) =>
       widget.controller.state.error == WizardError.hostNotValid
-      ? wizardErrorMessage(widget.strings, WizardError.hostNotValid)
+      ? wizardErrorMessage(l10n, WizardError.hostNotValid)
       : null;
 
   /// The failure the step reports below the field: everything except the one above.
-  String? get _message {
+  String? _message(AppLocalizations l10n) {
     final WizardError? error = widget.controller.state.error;
     if (error == null || error == WizardError.hostNotValid) {
       return null;
     }
-    return wizardErrorMessage(widget.strings, error);
+    return wizardErrorMessage(l10n, error);
   }
 
   /// Fills the field from the clipboard, trimmed (design §4).
@@ -105,7 +111,7 @@ class _TokenScreenState extends State<TokenScreen> {
     _token.text = pasted;
   }
 
-  /// Opens Ninox's own page in the platform's browser.
+  /// Opens Ninox's own page in the platform's browser, when its address is established.
   Future<void> _openSettings() async {
     final Uri? settings = widget.settingsUri;
     if (settings == null) {
@@ -131,21 +137,25 @@ class _TokenScreenState extends State<TokenScreen> {
       _token.clear();
     }
     setState(() {});
+    widget.onStepChanged?.call();
   }
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    final WizardStrings strings = widget.strings;
+    final AppLocalizations l10n = AppLocalizations.of(context);
     final bool busy = widget.controller.state.busy;
-    final String? message = _message;
+    final String? message = _message(l10n);
     return Scaffold(
-      appBar: AppBar(title: Text(strings.wizardTitle)),
+      appBar: AppBar(title: Text(l10n.wizardTitle)),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(24),
           children: <Widget>[
-            Text(strings.tokenInstructions, style: theme.textTheme.bodyLarge),
+            Text(
+              l10n.wizardTokenInstructions,
+              style: theme.textTheme.bodyLarge,
+            ),
             const SizedBox(height: 24),
             TextField(
               key: TokenScreen.tokenFieldKey,
@@ -154,8 +164,8 @@ class _TokenScreenState extends State<TokenScreen> {
               autocorrect: false,
               enableSuggestions: false,
               decoration: InputDecoration(
-                labelText: strings.tokenFieldLabel,
-                hintText: strings.tokenFieldHint,
+                labelText: l10n.wizardTokenFieldLabel,
+                hintText: l10n.wizardTokenFieldHint,
               ),
             ),
             const SizedBox(height: 12),
@@ -165,13 +175,16 @@ class _TokenScreenState extends State<TokenScreen> {
                 OutlinedButton.icon(
                   onPressed: _paste,
                   icon: const Icon(Icons.content_paste),
-                  label: Text(strings.tokenPasteAction),
+                  label: Text(l10n.wizardTokenPasteAction),
                 ),
-                OutlinedButton.icon(
-                  onPressed: widget.settingsUri == null ? null : _openSettings,
-                  icon: const Icon(Icons.open_in_new),
-                  label: Text(strings.tokenOpenSettingsAction),
-                ),
+                // Shown only where the address of Ninox's settings page is established: the app
+                // opens a page it knows and never a guessed one (orchestrator, 2026-10-07).
+                if (widget.settingsUri != null)
+                  OutlinedButton.icon(
+                    onPressed: _openSettings,
+                    icon: const Icon(Icons.open_in_new),
+                    label: Text(l10n.wizardTokenOpenSettingsAction),
+                  ),
               ],
             ),
             if (message != null) ...<Widget>[
@@ -185,7 +198,7 @@ class _TokenScreenState extends State<TokenScreen> {
             ],
             const SizedBox(height: 24),
             ExpansionTile(
-              title: Text(strings.tokenAdvancedTitle),
+              title: Text(l10n.wizardTokenAdvancedTitle),
               children: <Widget>[
                 TextField(
                   key: TokenScreen.hostFieldKey,
@@ -193,18 +206,19 @@ class _TokenScreenState extends State<TokenScreen> {
                   autocorrect: false,
                   keyboardType: TextInputType.url,
                   decoration: InputDecoration(
-                    labelText: strings.tokenHostLabel,
-                    hintText: strings.tokenHostHint,
-                    helperText: strings.tokenHostHelp,
-                    errorText: _hostError,
+                    labelText: l10n.wizardTokenHostLabel,
+                    hintText: l10n.wizardTokenHostHint,
+                    helperText: l10n.wizardTokenHostHelp,
+                    errorText: _hostError(l10n),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 24),
+            if (busy) const LinearProgressIndicator(),
             FilledButton(
               onPressed: busy ? null : _connect,
-              child: Text(strings.tokenConnectAction),
+              child: Text(l10n.wizardTokenConnectAction),
             ),
           ],
         ),

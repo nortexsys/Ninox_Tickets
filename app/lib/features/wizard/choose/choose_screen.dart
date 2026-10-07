@@ -14,33 +14,25 @@
 /// token step uses, the user stays here, and the retry action runs that same call again (the
 /// orchestrator's decision of 2026-10-07). The two are never confused: see `WizardState.notice`.
 ///
-/// **No text is a literal here.** Every sentence comes from a [WizardStrings] seam, which dispatch
-/// 2.2 replaces with the generated localisations, key for key (design §1).
+/// **No text is a literal here.** Every sentence is a `wizard`-prefixed key of `app_en.arb`, read
+/// through the generated localisations (design §1, NFR-I18N-001).
 library;
 
 import 'package:flutter/material.dart';
+import 'package:paperdrop/l10n/generated/app_localizations.dart';
 
 import '../wizard_controller.dart';
 import '../wizard_errors.dart';
 import '../wizard_messages.dart';
 import '../wizard_step.dart';
-import '../wizard_strings.dart';
 
 /// One screen for the team, the database and the table step.
 class ChooseScreen extends StatefulWidget {
   /// Builds the step over the controller's lists.
-  const ChooseScreen({
-    super.key,
-    required this.controller,
-    this.strings = const WizardStrings(),
-    this.onStepChanged,
-  });
+  const ChooseScreen({super.key, required this.controller, this.onStepChanged});
 
   /// The state machine this step drives.
   final WizardController controller;
-
-  /// The step's text (design §1): one seam, replaced by the localisations in dispatch 2.2.
-  final WizardStrings strings;
 
   /// Called after an action of this screen completed, so a host that draws the whole wizard — one
   /// widget per step — can redraw the step it should be showing.
@@ -98,11 +90,11 @@ class _ChooseScreenState extends State<ChooseScreen> {
   };
 
   /// The step's own question.
-  String _title(WizardStrings strings, WizardStep step) => switch (step) {
-    WizardStep.team => strings.teamStepTitle,
-    WizardStep.database => strings.databaseStepTitle,
-    WizardStep.table => strings.tableStepTitle,
-    WizardStep.token || WizardStep.mapping => strings.wizardTitle,
+  String _title(AppLocalizations l10n, WizardStep step) => switch (step) {
+    WizardStep.team => l10n.wizardTeamStepTitle,
+    WizardStep.database => l10n.wizardDatabaseStepTitle,
+    WizardStep.table => l10n.wizardTableStepTitle,
+    WizardStep.token || WizardStep.mapping => l10n.wizardTitle,
   };
 
   /// The step's completion: the controller makes the call of the step behind the choice.
@@ -145,18 +137,18 @@ class _ChooseScreenState extends State<ChooseScreen> {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    final WizardStrings strings = widget.strings;
+    final AppLocalizations l10n = AppLocalizations.of(context);
     final WizardState state = widget.controller.state;
     final List<_Option> options = _options(state);
     final WizardNotice? notice = state.notice;
     final WizardError? error = state.error;
     return Scaffold(
       appBar: AppBar(
-        title: Text(strings.wizardTitle),
+        title: Text(l10n.wizardTitle),
         leading: widget.controller.canGoBack
             ? IconButton(
                 key: ChooseScreen.backKey,
-                tooltip: strings.backAction,
+                tooltip: l10n.wizardBackAction,
                 onPressed: state.busy ? null : _back,
                 icon: const Icon(Icons.arrow_back),
               )
@@ -166,10 +158,7 @@ class _ChooseScreenState extends State<ChooseScreen> {
         child: ListView(
           padding: const EdgeInsets.all(24),
           children: <Widget>[
-            Text(
-              _title(strings, state.step),
-              style: theme.textTheme.titleLarge,
-            ),
+            Text(_title(l10n, state.step), style: theme.textTheme.titleLarge),
             const SizedBox(height: 16),
             if (state.busy) const LinearProgressIndicator(),
             for (final _Option option in options)
@@ -183,12 +172,12 @@ class _ChooseScreenState extends State<ChooseScreen> {
               ),
             if (notice != null) ...<Widget>[
               const SizedBox(height: 16),
-              Text(wizardNoticeMessage(strings, notice)),
+              Text(wizardNoticeMessage(l10n, notice)),
             ],
             if (error != null) ...<Widget>[
               const SizedBox(height: 16),
               Text(
-                wizardErrorMessage(strings, error),
+                wizardErrorMessage(l10n, error),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.error,
                 ),
@@ -197,7 +186,7 @@ class _ChooseScreenState extends State<ChooseScreen> {
               FilledButton(
                 key: ChooseScreen.retryKey,
                 onPressed: state.busy ? null : _retry,
-                child: Text(strings.tryAgainAction),
+                child: Text(l10n.wizardTryAgainAction),
               ),
             ],
           ],

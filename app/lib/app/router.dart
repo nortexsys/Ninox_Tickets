@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:paperdrop/features/capture/capture_controller.dart';
 import 'package:paperdrop/features/capture/capture_screen.dart';
 import 'package:paperdrop/features/capture/intake_screen.dart';
+import 'package:paperdrop/features/wizard/wizard_routes.dart';
 import 'package:paperdrop/intake/intake_result.dart';
 
 /// The shell's routes (design §2).
@@ -41,9 +42,12 @@ GoRouter buildAppRouter({required CaptureController controller}) {
               : null,
         ),
       ),
-      // Ninox lane: `...wizardRoutes` and `...sendRoutes` are added here once
-      // `app/lib/features/wizard/wizard_routes.dart` and
-      // `app/lib/features/send/send_routes.dart` exist (setup-mvp-foundations
+      // The wizard's own routes, from the Ninox lane's one entry point: the setup wizard
+      // (`wizard_routes.dart`) renders the step its controller is on, and a second visit
+      // starts a fresh run.
+      ...wizardRoutes,
+      // Ninox lane: `...sendRoutes` is added here once
+      // `app/lib/features/send/send_routes.dart` exists (setup-mvp-foundations
       // §2). Until then the shell has no route to a screen that does not exist.
     ],
   );

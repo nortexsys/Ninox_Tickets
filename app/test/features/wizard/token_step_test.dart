@@ -6,7 +6,7 @@ import 'package:paperdrop/features/wizard/token/token_screen.dart';
 import 'package:paperdrop/features/wizard/wizard_errors.dart';
 import 'package:paperdrop/features/wizard/wizard_messages.dart';
 import 'package:paperdrop/features/wizard/wizard_step.dart';
-import 'package:paperdrop/features/wizard/wizard_strings.dart';
+import 'package:paperdrop/l10n/generated/app_localizations.dart';
 
 import 'wizard_fakes.dart';
 
@@ -38,7 +38,13 @@ void main() {
   /// invent it either.
   final Uri settings = Uri.parse('https://ninox.example.invalid/settings');
 
-  const WizardStrings strings = WizardStrings();
+  /// The resources, in English. Every sentence the step shows is a `wizard`-prefixed key of
+  /// `app_en.arb`, and the test reads the same values the screen does.
+  late AppLocalizations en;
+
+  setUpAll(() async {
+    en = await AppLocalizations.delegate.load(const Locale('en'));
+  });
 
   NinoxTeam team(String id) => NinoxTeam(id: id, name: 'Team $id');
 
@@ -75,16 +81,17 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: TokenScreen(
           controller: wizard.controller,
           browser: browser,
           settingsUri: settings,
-          strings: strings,
         ),
       ),
     );
 
-    await tester.tap(find.text(strings.tokenOpenSettingsAction));
+    await tester.tap(find.text(en.wizardTokenOpenSettingsAction));
     await tester.pumpAndSettle();
 
     // The step asked the platform's browser, once, for the settings address — and asked nothing
@@ -93,32 +100,33 @@ void main() {
     expect(wizard.port.calls, isEmpty);
   });
 
-  testWidgets('the settings action is held back while the address is not '
+  testWidgets('the settings action is not offered while the address is not '
       'established', (WidgetTester tester) async {
-    // The address is `null` in this dispatch (the `ninox` skill states none), and the honest
-    // behaviour is a held action rather than a guessed URL.
+    // The address is `null` (the `ninox` skill states none), and the orchestrator decided on
+    // 2026-10-07 that no URL is invented: the action is not shown, so neither a guessed address nor
+    // a dead button is ever put in front of the user.
     final wizard = wizardHarness();
     final FakeSystemBrowser browser = FakeSystemBrowser();
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: TokenScreen(
           controller: wizard.controller,
           browser: browser,
           settingsUri: null,
-          strings: strings,
         ),
       ),
     );
 
-    final Finder action = find.widgetWithText(
-      OutlinedButton,
-      strings.tokenOpenSettingsAction,
+    expect(
+      find.widgetWithText(OutlinedButton, en.wizardTokenOpenSettingsAction),
+      findsNothing,
     );
-    expect(tester.widget<OutlinedButton>(action).onPressed, isNull);
-
-    await tester.tap(action, warnIfMissed: false);
-    await tester.pumpAndSettle();
+    // Everything else the step offers is there, and the browser was never asked for anything.
+    expect(find.text(en.wizardTokenPasteAction), findsOneWidget);
+    expect(find.text(en.wizardTokenConnectAction), findsOneWidget);
     expect(browser.opened, isEmpty);
   });
 
@@ -131,20 +139,21 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: TokenScreen(
           controller: wizard.controller,
           browser: FakeSystemBrowser(),
-          strings: strings,
         ),
       ),
     );
     await tester.enterText(find.byKey(TokenScreen.tokenFieldKey), token);
-    await tester.tap(find.text(strings.tokenConnectAction));
+    await tester.tap(find.text(en.wizardTokenConnectAction));
     await tester.pumpAndSettle();
 
     // Not passed, and said so: the message is the resources' sentence, not the API's own words.
     expect(wizard.controller.step, WizardStep.token);
-    expect(find.text(strings.errorTokenNotAccepted), findsOneWidget);
+    expect(find.text(en.wizardErrorTokenNotAccepted), findsOneWidget);
     // Nothing was stored, and the field still holds what the user pasted so it can be corrected.
     expect(wizard.store.writes, isEmpty);
     expect(
@@ -164,15 +173,16 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: TokenScreen(
           controller: wizard.controller,
           browser: FakeSystemBrowser(),
-          strings: strings,
         ),
       ),
     );
     await tester.enterText(find.byKey(TokenScreen.tokenFieldKey), token);
-    await tester.tap(find.text(strings.tokenConnectAction));
+    await tester.tap(find.text(en.wizardTokenConnectAction));
     await tester.pumpAndSettle();
 
     // The one call is also the next step's list, and it was made exactly once.
@@ -206,15 +216,16 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: TokenScreen(
           controller: wizard.controller,
           browser: FakeSystemBrowser(),
-          strings: strings,
         ),
       ),
     );
     await tester.enterText(find.byKey(TokenScreen.tokenFieldKey), token);
-    await tester.tap(find.text(strings.tokenConnectAction));
+    await tester.tap(find.text(en.wizardTokenConnectAction));
     await tester.pumpAndSettle();
 
     expect(wizard.controller.visibleSteps, <WizardStep>[
@@ -232,20 +243,21 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: TokenScreen(
           controller: wizard.controller,
           browser: FakeSystemBrowser(),
-          strings: strings,
         ),
       ),
     );
     await tester.enterText(find.byKey(TokenScreen.tokenFieldKey), token);
-    await tester.tap(find.text(strings.tokenConnectAction));
+    await tester.tap(find.text(en.wizardTokenConnectAction));
     await tester.pumpAndSettle();
 
     // Reported here and not deferred to the first send (FR-DST-008).
     expect(wizard.controller.step, WizardStep.token);
-    expect(find.text(strings.errorHostUnreachable), findsOneWidget);
+    expect(find.text(en.wizardErrorHostUnreachable), findsOneWidget);
     expect(wizard.store.writes, isEmpty);
   });
 
@@ -255,14 +267,15 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: TokenScreen(
           controller: wizard.controller,
           browser: FakeSystemBrowser(),
-          strings: strings,
         ),
       ),
     );
-    await tester.tap(find.text(strings.tokenAdvancedTitle));
+    await tester.tap(find.text(en.wizardTokenAdvancedTitle));
     await tester.pumpAndSettle();
     // A plain-text scheme would put the token on the wire in clear (NinoxEndpoint.parse).
     await tester.enterText(
@@ -270,10 +283,10 @@ void main() {
       'http://api.ninox.com',
     );
     await tester.enterText(find.byKey(TokenScreen.tokenFieldKey), token);
-    await tester.tap(find.text(strings.tokenConnectAction));
+    await tester.tap(find.text(en.wizardTokenConnectAction));
     await tester.pumpAndSettle();
 
-    expect(find.text(strings.errorHostNotValid), findsOneWidget);
+    expect(find.text(en.wizardErrorHostNotValid), findsOneWidget);
     expect(wizard.port.calls, isEmpty);
     expect(wizard.store.writes, isEmpty);
     expect(wizard.controller.state.endpoint, NinoxEndpoint.cloud);
@@ -287,10 +300,11 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: TokenScreen(
           controller: wizard.controller,
           browser: FakeSystemBrowser(),
-          strings: strings,
         ),
       ),
     );
@@ -301,7 +315,7 @@ void main() {
       isTrue,
     );
 
-    await tester.tap(find.text(strings.tokenPasteAction));
+    await tester.tap(find.text(en.wizardTokenPasteAction));
     await tester.pumpAndSettle();
 
     expect(
@@ -321,14 +335,15 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: TokenScreen(
           controller: wizard.controller,
           browser: FakeSystemBrowser(),
-          strings: strings,
         ),
       ),
     );
-    await tester.tap(find.text(strings.tokenPasteAction));
+    await tester.tap(find.text(en.wizardTokenPasteAction));
     await tester.pumpAndSettle();
 
     expect(
@@ -341,7 +356,14 @@ void main() {
   });
 
   /// One row of the design's outcome table, through the controller a screen drives.
-  void outcome(NinoxFailure failure, WizardError expected, String message) {
+  ///
+  /// The expected sentence is a closure and not a value: the resources are loaded in `setUpAll`,
+  /// which runs after this body has registered the tests.
+  void outcome(
+    NinoxFailure failure,
+    WizardError expected,
+    String Function(AppLocalizations) sentence,
+  ) {
     test('the outcome table: $failure', () async {
       final wizard = wizardHarness();
       wizard.port.failures['listTeams'] = failure;
@@ -350,7 +372,7 @@ void main() {
 
       expect(wizard.controller.state.error, expected);
       expect(wizard.controller.step, WizardStep.token);
-      expect(wizardErrorMessage(strings, expected), message);
+      expect(wizardErrorMessage(en, expected), sentence(en));
       expect(wizard.store.writes, isEmpty);
       expect(wizard.port.calls, <String>['listTeams']);
     });
@@ -360,29 +382,33 @@ void main() {
     outcome(
       const Unauthorized(),
       WizardError.tokenNotAccepted,
-      strings.errorTokenNotAccepted,
+      (AppLocalizations l) => l.wizardErrorTokenNotAccepted,
     );
     outcome(
       const TransportFailure(),
       WizardError.hostUnreachable,
-      strings.errorHostUnreachable,
+      (AppLocalizations l) => l.wizardErrorHostUnreachable,
     );
     outcome(
       const UnexpectedResponse(),
       WizardError.notANinoxApi,
-      strings.errorNotANinoxApi,
+      (AppLocalizations l) => l.wizardErrorNotANinoxApi,
     );
     outcome(
       const ServerError(500),
       WizardError.ninoxError,
-      strings.errorNinoxError,
+      (AppLocalizations l) => l.wizardErrorNinoxError,
     );
     outcome(
       const RateLimited(),
       WizardError.ninoxError,
-      strings.errorNinoxError,
+      (AppLocalizations l) => l.wizardErrorNinoxError,
     );
-    outcome(const NotFound(), WizardError.ninoxError, strings.errorNinoxError);
+    outcome(
+      const NotFound(),
+      WizardError.ninoxError,
+      (AppLocalizations l) => l.wizardErrorNinoxError,
+    );
   });
 
   test(
@@ -427,10 +453,10 @@ void main() {
       ..writeln(wizard.store)
       ..writeln(settings);
     for (final WizardError error in WizardError.values) {
-      everything.writeln(wizardErrorMessage(strings, error));
+      everything.writeln(wizardErrorMessage(en, error));
     }
     for (final WizardNotice notice in WizardNotice.values) {
-      everything.writeln(wizardNoticeMessage(strings, notice));
+      everything.writeln(wizardNoticeMessage(en, notice));
     }
 
     expect(everything.toString(), isNot(contains(token)));
@@ -439,30 +465,34 @@ void main() {
     expect(wizard.controller.state.error, WizardError.tokenNotAccepted);
   });
 
-  test('no setting of the seam holds the token either', () {
-    // Every string the seam can hand a screen, stringified: none of them is a token, and the seam
-    // is the only place the step takes text from (design §1).
-    const WizardStrings seam = WizardStrings();
+  test('no sentence of the resources holds the token either', () {
+    // Every wizard sentence a screen can show, stringified: none of them is a token, and the
+    // resources are the only place the step takes text from (design §1, NFR-I18N-001).
     final String all = <String>[
-      seam.wizardTitle,
-      seam.tokenInstructions,
-      seam.tokenFieldLabel,
-      seam.tokenFieldHint,
-      seam.tokenPasteAction,
-      seam.tokenOpenSettingsAction,
-      seam.tokenAdvancedTitle,
-      seam.tokenHostLabel,
-      seam.tokenHostHint,
-      seam.tokenHostHelp,
-      seam.tokenConnectAction,
-      seam.errorHostNotValid,
-      seam.errorTokenNotAccepted,
-      seam.errorHostUnreachable,
-      seam.errorNotANinoxApi,
-      seam.errorNinoxError,
-      seam.noticeNoTeams,
-      seam.noticeNoDatabases,
-      seam.noticeNoTables,
+      en.wizardTitle,
+      en.wizardTokenInstructions,
+      en.wizardTokenFieldLabel,
+      en.wizardTokenFieldHint,
+      en.wizardTokenPasteAction,
+      en.wizardTokenOpenSettingsAction,
+      en.wizardTokenAdvancedTitle,
+      en.wizardTokenHostLabel,
+      en.wizardTokenHostHint,
+      en.wizardTokenHostHelp,
+      en.wizardTokenConnectAction,
+      en.wizardTeamStepTitle,
+      en.wizardDatabaseStepTitle,
+      en.wizardTableStepTitle,
+      en.wizardBackAction,
+      en.wizardTryAgainAction,
+      en.wizardErrorHostNotValid,
+      en.wizardErrorTokenNotAccepted,
+      en.wizardErrorHostUnreachable,
+      en.wizardErrorNotANinoxApi,
+      en.wizardErrorNinoxError,
+      en.wizardNoticeNoTeams,
+      en.wizardNoticeNoDatabases,
+      en.wizardNoticeNoTables,
     ].join('\n');
 
     expect(all, isNot(contains(token)));

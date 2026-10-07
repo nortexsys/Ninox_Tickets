@@ -6,36 +6,39 @@
 ///
 /// **Exhaustive by construction.** Each function switches over its enum without a default, so a new
 /// failure or notice cannot be added without the compiler asking for its sentence — the pattern
-/// `features/capture/capture_messages.dart` already uses.
+/// `features/capture/capture_messages.dart` already uses. Every sentence is an `app_en.arb` key
+/// (`wizardError*`, `wizardNotice*`), so nothing the wizard shows is a literal in code (design §1).
 ///
-/// **Dispatch 2.2 moves these two switches onto the generated `AppLocalizations`**, whose keys the
-/// dispatch A report listed; the shape stays, and the strings move out of code into `app_en.arb`
-/// (design §1: no user-visible text in a widget).
+/// **One table for every call the wizard makes.** The token step's validating call is where the
+/// four failure sentences were first needed; the three list calls behind it are shown in the same
+/// words (the orchestrator's decision of 2026-10-07).
 library;
+
+import 'package:paperdrop/l10n/generated/app_localizations.dart';
 
 import 'wizard_errors.dart';
 import 'wizard_step.dart';
-import 'wizard_strings.dart';
 
 /// What the user is told about [error] (design §4) — at the token step and at the three list steps
-/// behind it, in the same words (the orchestrator's decision of 2026-10-07).
-String wizardErrorMessage(WizardStrings strings, WizardError error) =>
+/// behind it, in the same words.
+String wizardErrorMessage(AppLocalizations l10n, WizardError error) =>
     switch (error) {
-      WizardError.hostNotValid => strings.errorHostNotValid,
-      WizardError.tokenNotAccepted => strings.errorTokenNotAccepted,
-      WizardError.hostUnreachable => strings.errorHostUnreachable,
-      WizardError.notANinoxApi => strings.errorNotANinoxApi,
-      WizardError.ninoxError => strings.errorNinoxError,
+      WizardError.hostNotValid => l10n.wizardErrorHostNotValid,
+      WizardError.tokenNotAccepted => l10n.wizardErrorTokenNotAccepted,
+      WizardError.hostUnreachable => l10n.wizardErrorHostUnreachable,
+      WizardError.notANinoxApi => l10n.wizardErrorNotANinoxApi,
+      WizardError.ninoxError => l10n.wizardErrorNinoxError,
     };
 
 /// What a step says when its list holds no option at all (design §3).
 ///
 /// The functional does not specify this case: the design decides the step stays where it is with a
 /// plain-language explanation and that no way to continue is invented. The lane reported it as a
-/// case it decided, and the design kept it.
-String wizardNoticeMessage(WizardStrings strings, WizardNotice notice) =>
+/// case it decided, and the design kept it. Nothing is said while a call has failed — see
+/// `WizardState.notice`.
+String wizardNoticeMessage(AppLocalizations l10n, WizardNotice notice) =>
     switch (notice) {
-      WizardNotice.noTeams => strings.noticeNoTeams,
-      WizardNotice.noDatabases => strings.noticeNoDatabases,
-      WizardNotice.noTables => strings.noticeNoTables,
+      WizardNotice.noTeams => l10n.wizardNoticeNoTeams,
+      WizardNotice.noDatabases => l10n.wizardNoticeNoDatabases,
+      WizardNotice.noTables => l10n.wizardNoticeNoTables,
     };

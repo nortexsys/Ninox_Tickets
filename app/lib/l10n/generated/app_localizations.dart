@@ -189,6 +189,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The document could not be stored, and nothing was kept.'**
   String get errorIntakeFailed;
+
+  /// Title of every screen of the setup wizard (FR-WIZ-001).
+  ///
+  /// In en, this message translates to:
+  /// **'Set up Ninox'**
+  String get wizardTitle;
+
+  /// How the user obtains the token (FR-WIZ-003, product-invariants/token-is-the-only-credential). The address of Ninox's settings page is not established, so the screen names the place and opens nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'Create an API token in Ninox\'s own settings, then paste it here. Paperdrop asks for a token and for nothing else: never for your user name or your password.'**
+  String get wizardTokenInstructions;
+
+  /// Label of the obscured field the token is pasted into (FR-WIZ-003).
+  ///
+  /// In en, this message translates to:
+  /// **'API token'**
+  String get wizardTokenFieldLabel;
+
+  /// Hint of the token field.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste the token from Ninox'**
+  String get wizardTokenFieldHint;
+
+  /// Fills the token field from the clipboard, trimmed (FR-WIZ-003).
+  ///
+  /// In en, this message translates to:
+  /// **'Paste'**
+  String get wizardTokenPasteAction;
+
+  /// Opens Ninox's own settings page in the platform's browser (FR-WIZ-003). Shown only where the address of that page is established; while it is not, the app opens no page rather than a guessed one.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Ninox settings'**
+  String get wizardTokenOpenSettingsAction;
+
+  /// The collapsed section holding the Ninox host (FR-DST-008).
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced setup'**
+  String get wizardTokenAdvancedTitle;
+
+  /// Label of the host field of the destination (FR-DST-008).
+  ///
+  /// In en, this message translates to:
+  /// **'Ninox host'**
+  String get wizardTokenHostLabel;
+
+  /// The vendor's public cloud host, the default of the field (ADR-017).
+  ///
+  /// In en, this message translates to:
+  /// **'api.ninox.com'**
+  String get wizardTokenHostHint;
+
+  /// Why the host field exists: a private-cloud customer has another host (FR-DST-008).
+  ///
+  /// In en, this message translates to:
+  /// **'Change this only for a Ninox private cloud.'**
+  String get wizardTokenHostHelp;
+
+  /// The one action that validates the token and the host by their effect (FR-WIZ-003).
+  ///
+  /// In en, this message translates to:
+  /// **'Connect'**
+  String get wizardTokenConnectAction;
+
+  /// Question of the team step (FR-WIZ-002).
+  ///
+  /// In en, this message translates to:
+  /// **'Which team should Paperdrop use?'**
+  String get wizardTeamStepTitle;
+
+  /// Question of the database step (FR-WIZ-002).
+  ///
+  /// In en, this message translates to:
+  /// **'Which database?'**
+  String get wizardDatabaseStepTitle;
+
+  /// Question of the table step (FR-WIZ-002, FR-WIZ-004).
+  ///
+  /// In en, this message translates to:
+  /// **'Which table should the documents go to?'**
+  String get wizardTableStepTitle;
+
+  /// Returns to the previous step the lists still show (FR-WIZ-002).
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get wizardBackAction;
+
+  /// Runs the call a step failed on again, without leaving the step (orchestrator, 2026-10-07).
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get wizardTryAgainAction;
+
+  /// The host field holds something NinoxEndpoint.parse does not accept (design §4); reported at the field.
+  ///
+  /// In en, this message translates to:
+  /// **'That is not a valid host.'**
+  String get wizardErrorHostNotValid;
+
+  /// The call answered Unauthorized (design §4).
+  ///
+  /// In en, this message translates to:
+  /// **'Ninox did not accept that token.'**
+  String get wizardErrorTokenNotAccepted;
+
+  /// The call answered TransportFailure (design §4).
+  ///
+  /// In en, this message translates to:
+  /// **'The host could not be reached. Check the address and your connection.'**
+  String get wizardErrorHostUnreachable;
+
+  /// The call answered UnexpectedResponse (design §4).
+  ///
+  /// In en, this message translates to:
+  /// **'That address answered, but it is not a Ninox API.'**
+  String get wizardErrorNotANinoxApi;
+
+  /// ServerError, RateLimited, NotFound and any other failure of a wizard call (design §4).
+  ///
+  /// In en, this message translates to:
+  /// **'Ninox answered with an error. Try again.'**
+  String get wizardErrorNinoxError;
+
+  /// The team list came back empty (design §3: the step stays with this explanation).
+  ///
+  /// In en, this message translates to:
+  /// **'This account can see no team.'**
+  String get wizardNoticeNoTeams;
+
+  /// The database list came back empty (design §3).
+  ///
+  /// In en, this message translates to:
+  /// **'This team holds no database.'**
+  String get wizardNoticeNoDatabases;
+
+  /// The table list came back empty (design §3).
+  ///
+  /// In en, this message translates to:
+  /// **'This database holds no table.'**
+  String get wizardNoticeNoTables;
 }
 
 class _AppLocalizationsDelegate
