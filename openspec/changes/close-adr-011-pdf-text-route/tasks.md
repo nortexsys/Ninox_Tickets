@@ -48,15 +48,15 @@ committed by a lane.
       excluded.
 - [ ] 4.3 Merge with `--no-ff` after the product owner's approval; GAP-002 closed by Spec afterwards.
 
-## 4. Mobile — after the decision (added 2026-10-07)
+## 5. Mobile — after the decision (added 2026-10-07)
 
 The product owner chose **pdfrx** on 2026-10-07 (GAP-002 closed). Run on an emulator, not the S22: the
 S22 timings are still to be taken.
 
-- [x] 4.1 Candidate A, PdfBox-Android, and its channel removed; the harness reduced to pdfrx.
-- [x] 4.2 `PdfTextSource` and the pdfrx adapter over Core's `TextPage`, integer thousandths of a point;
+- [x] 5.1 Candidate A, PdfBox-Android, and its channel removed; the harness reduced to pdfrx.
+- [x] 5.2 `PdfTextSource` and the pdfrx adapter over Core's `TextPage`, integer thousandths of a point;
       reading never writes (hash unchanged).
-- [x] 4.3 The synthetic regression read through the adapter and bound by Core's `bindLabel`: the total
+- [x] 5.3 The synthetic regression read through the adapter and bound by Core's `bindLabel`: the total
       and never the registry volume (passes on the emulator).
-- [x] 4.4 PDFium's licence notices ship in the app and are registered with `LicenseRegistry`.
-- [ ] 4.5 Extraction time per page on the Galaxy S22 (needs the phone linked; emulator timings are not comparable).
+- [x] 5.4 PDFium's licence notices ship in the app and are registered with `LicenseRegistry`.
+- [ ] 5.5 Extraction time per page on the Galaxy S22 (needs the phone linked; emulator timings are not comparable).
