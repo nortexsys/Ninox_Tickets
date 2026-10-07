@@ -13,6 +13,7 @@
 library;
 
 import 'package:flutter/services.dart';
+import 'package:ninox_client/ninox_client.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// The platform's browser, as the token step uses it.
@@ -49,18 +50,24 @@ class UrlLauncherSystemBrowser implements SystemBrowser {
   }
 }
 
-/// The address of the Ninox page that hands a user an API token.
+/// The address of the Ninox page that hands a user an API token (design §4).
 ///
-/// TODO(orchestrator): **this address is not established, and this constant is deliberately not a
-/// guess.** Design §4 requires the token step's *Open Ninox settings* action to open Ninox's
-/// settings page in the platform's browser, and to take the address from the `ninox` skill's
-/// reference; the skill states none. What it does state is the API's own base —
-/// `https://api.ninox.com/v1` (`SKILL.md`, `references/rest-api.md`) — and nothing about the web
-/// UI's settings path. So the constant stays `null` and the action is not shown while it is
-/// (orchestrator, 2026-10-07: *do not invent a URL*); the instructions tell the user to create the
-/// token in Ninox's own settings instead.
+/// The vendor's own documentation settles it (forum.ninox.com, *Introduction to Ninox API*): on the
+/// **public cloud** the token is created at `https://admin.ninox.com` — open **Integrations**, then
+/// **New API Key** — and on a **private cloud** at `https://<domain>/admin`. So the address is a
+/// function of the endpoint the token step is pointed at, and not a compiled constant (ADR-017: the
+/// host is configuration), which is what the placeholder this replaces asked for: the `ninox` skill
+/// states no address, and one is not invented here — it is read from the vendor.
 ///
-/// Replace it with the confirmed value, in this one file, before the demo of Fri 9 Oct: the step
-/// takes it as a parameter (`TokenScreen.settingsUri`), so a test can also hand in an address of its
-/// own, and [UrlLauncherSystemBrowser] is already wired to whatever it holds.
-const Uri? ninoxApiTokenSettingsUri = null;
+/// A private cloud keeps **its own port**: the host the user configured is the host whose admin page
+/// they are sent to, and the scheme is always `https`, because the token they are about to copy must
+/// never travel in clear.
+Uri ninoxApiTokenSettingsUri(NinoxEndpoint endpoint) =>
+    endpoint == NinoxEndpoint.cloud
+    ? Uri(scheme: 'https', host: 'admin.ninox.com')
+    : Uri(
+        scheme: 'https',
+        host: endpoint.host,
+        port: endpoint.port,
+        path: '/admin',
+      );
