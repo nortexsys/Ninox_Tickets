@@ -33,21 +33,8 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
-            // Candidate A of ADR-011: R8 needs one line to accept PdfBox's
-            // optional JPEG 2000 codec, which this project never reaches. See
-            // the file — it leaves with the candidate.
-            proguardFiles("proguard-rules.pro")
         }
     }
-}
-
-dependencies {
-    // Candidate A of ADR-011 (close-adr-011-pdf-text-route, design §1, task 1.1).
-    // Apache-2.0, from Maven Central through the Kotlin channel in
-    // src/main/kotlin/com/nortexsys/paperdrop/pdftext/. The runner-up stays in
-    // the build until the product owner's decision, so both numbers are in the
-    // record; the loser's line leaves with its code (design §5).
-    implementation("com.tom-roush:pdfbox-android:2.0.27.0")
 }
 
 kotlin {

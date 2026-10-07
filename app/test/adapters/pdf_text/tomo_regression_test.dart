@@ -5,7 +5,6 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:paperdrop/adapters/pdf_text/pdf_text_candidate.dart';
-import 'package:paperdrop/adapters/pdf_text/pdfbox_text_candidate.dart';
 import 'package:paperdrop/adapters/pdf_text/pdfrx_text_candidate.dart';
 import 'package:path/path.dart' as p;
 
@@ -22,15 +21,6 @@ import '../../tool/pdfrx_host.dart';
 /// but **on the label's own line, to the right**. And that a candidate reading
 /// it returns boxes that put the total there and the volume one line down —
 /// which is the assertion design §5 names.
-///
-/// **What it cannot prove here.** PdfBox is a JVM library inside the application
-/// process, so **candidate A cannot read the fixture on this machine**: no
-/// emulator exists in this lane ("No emulators available" is what `flutter
-/// emulators` answers) and its reading runs only in the orchestrator's device
-/// run. What is asserted for candidate A here is the other half — that the
-/// fixture's geometry is what its own test says it is, which is what the device
-/// run will be judged against, plus the reply plumbing in
-/// `pdfbox_text_candidate_test.dart`.
 ///
 /// **What never enters the repository.** The fixture is invented end to end
 /// (see its generator). The private corpus is not read, copied or named here;
@@ -141,17 +131,13 @@ void main() {
     expect(volume.top - label.bottom, lessThan(30));
   });
 
-  test('candidate A is measured on the same fixture only on a device', () {
-    // Stated rather than skipped silently: this is the boundary of the host
-    // run, and the lane report repeats it (task 1.4, "which assertion could
-    // only run on a device").
-    expect(const PdfBoxTextCandidate().tool, 'pdfbox-android 2.0.27.0');
+  test('the candidate that reads the fixture is the one that ships', () {
     expect(
       const PdfrxTextCandidate().tool,
       'pdfrx 2.6.5',
       reason:
-          'both candidates read the same fixture, on the device and here; the '
-          'device run is the orchestrator\'s',
+          'ADR-011 closed in favour of candidate B on 2026-10-07, and candidate '
+          'A left the build with its code',
     );
   });
 }

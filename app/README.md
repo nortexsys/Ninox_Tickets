@@ -53,24 +53,18 @@ between `share_handler` and `receive_sharing_intent` by which one builds on Flut
 | --- | --- | --- | --- |
 | Google ML Kit text recognition | Photo route (ADR-010, proposed) | ML Kit Terms of Service | **Yes** |
 
-### ADR-011 candidates — in the build for the evaluation, until Tue 6 Oct
+### ADR-011 — closed on candidate B, `pdfrx`
 
-ADR-011 is not closed: the product owner fixed two candidates on 2026-09-25 (D-5) and decides on
-Tue 6 Oct, on the evaluation of `close-adr-011-pdf-text-route`. **Both are in the build until then,
-and the losing one leaves with its code and its dependency after the decision** (design §5, task
-4.2), so the record holds the comparison rather than one side of it. The candidate lines below are
-the ones that actually resolve; the size each of them adds is measured in the lane report of that
-change (NFR-SIZ-001, `application-size`) and never assumed.
+The product owner closed ADR-011 on **2026-10-07** in favour of candidate B, PDFium through `pdfrx`
+(GAP-002 closed; evidence in `validation/reviews/adr-011-2026-10-07.md`: word-level fidelity 91.1%
+recall against the reference where candidate A reached 5.2%, and every confirmed total bound where
+candidate A found no label at all). Candidate A, PdfBox-Android, left the build with its code, its
+Gradle line and the R8 rule its optional JPEG 2000 codec needed (design §5); its measurements stay in
+the review file and in the size table below.
 
 | Dependency | Used for | Licence | Proprietary |
 | --- | --- | --- | --- |
-| `com.tom-roush:pdfbox-android` 2.0.27.0 (Maven Central), with `org.bouncycastle:bcprov-jdk15to18`, `bcpkix-jdk15to18` and `bcutil-jdk15to18` 1.72 | Candidate A of ADR-011: word boxes with positions, through the Kotlin channel in `android/app/src/main/kotlin/com/nortexsys/paperdrop/pdftext/` | Apache-2.0 (PdfBox-Android); the Bouncy Castle Licence, an MIT-style licence (Bouncy Castle) | No |
-| `pdfrx` 2.6.5, with `pdfrx_engine` 0.6.1, `pdfium_dart` 0.3.1, `pdfium_flutter` 0.3.1 and the `url_launcher` 6.3.2 family they pull in | Candidate B of ADR-011: word boxes with positions from PDFium, the engine Chrome renders PDFs with | MIT (each of the four packages states MIT in its own `LICENSE`; the design's table said BSD-3, and the artefact resolved says MIT) | No |
-
-Candidate A ships its library and the Bouncy Castle classes it needs: the release mapping
-(`build/app/outputs/mapping/release/mapping.txt`) renames them but keeps them, so Bouncy Castle 1.72
-is part of the shipped application. `com.gemalto.jp2.JP2Decoder` is the other case: R8 finds it
-referenced and nowhere defined, and it is not in the APK at all.
+| `pdfrx` 2.6.5, with `pdfrx_engine` 0.6.1, `pdfium_dart` 0.3.1, `pdfium_flutter` 0.3.1 and the `url_launcher` 6.3.2 family they pull in | Word boxes with positions from PDFium, the engine Chrome renders PDFs with — the text-layer half of the invoice route (FR-EXT-004, ADR-011, ADR-014) | MIT (each of the four packages states MIT in its own `LICENSE`; the design's table said BSD-3, and the artefact resolved says MIT) | No |
 
 Candidate B ships **a native binary this project does not build**: `pdfium_dart`'s build hook downloads a
 prebuilt PDFium at build time, from
@@ -90,35 +84,36 @@ the build actually resolved, is:
   is dual-licensed and the FreeType License option is the one in the archive;
 * the archive's licence files do **not** ship inside the APK: the build hook extracts `lib/libpdfium.so`
   and nothing else, and Flutter's `NOTICES` covers Dart packages only. The binary is redistributed
-  without its notices, and that gap belongs to whoever takes the decision on Tue 6 Oct.
+  without its notices, which is what task 2.4 of this change fixes (see below).
 
-### ADR-011 candidates — the size measurement (task 1.5, NFR-SIZ-001)
+### ADR-011 — the size measurement (task 1.5, NFR-SIZ-001)
 
 The number reported is the **release arm64 APK** (design §1.3: a debug APK carries the Dart VM and every
 ABI and hides the delta that ships). Method: `flutter build apk --release --split-per-abi` on Flutter
 3.47.5, `compileSdk` 36, signing with the debug key this project already configures for release; each
 variant measured as the file size in bytes of `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk`.
-The variants were made by taking the candidates' dependencies **temporarily out** — the Gradle
-`implementation("com.tom-roush:pdfbox-android:2.0.27.0")` line, the Kotlin channel and its registration
-in `MainActivity`, and the `pdfrx` line in `pubspec.yaml` with the Dart file that imports it — and the
-branch was left with both candidates in.
+The variants were made by taking the candidate's dependency **temporarily out** — the `pdfrx` line in
+`pubspec.yaml` with the Dart file that imports it, and, for candidate A, its Gradle line, its Kotlin
+channel and the registration of that channel. The table is the record of the comparison the product
+owner decided on; the branch itself now carries candidate B only.
 
 | Build | arm64 release APK, bytes | Delta vs baseline |
 | --- | --- | --- |
 | Baseline, neither candidate | 18,027,766 | — |
-| Candidate A only (PdfBox-Android) | 24,065,306 | +6,037,540 |
-| Candidate B only (`pdfrx`/PDFium) | 24,454,472 | +6,426,706 |
-| Both (state of the branch) | 30,492,012 | +12,464,246 |
+| Candidate A only (PdfBox-Android, removed 2026-10-07) | 24,065,306 | +6,037,540 |
+| Candidate B only (`pdfrx`/PDFium, chosen) | 24,454,472 | +6,426,706 |
+| Both, the state the comparison was run from | 30,492,012 | +12,464,246 |
 
 Candidate B's delta is its native library almost exactly: `lib/arm64-v8a/libpdfium.so` is 6,386,696
-bytes, stored uncompressed in the APK. Candidate A's delta is its Java classes and the ~4 MB of AFM,
+bytes, stored uncompressed in the APK. Candidate A's delta was its Java classes and the ~4 MB of AFM,
 cmap and glyph-list assets the AAR ships. The debug APK's delta is not reported: it is the number
 design §1.3 reasons away from, and neither candidate's debug size is a figure to decide on.
 
-**R8 needs one rule for candidate A** — `android/app/proguard-rules.pro`. R8 refuses a release build
-while `com.gemalto.jp2.JP2Decoder` is referenced from PdfBox's `JPXFilter` and absent; that codec is
-optional and JPEG 2000 never runs on this route, so the reference is declared expected rather than
-adding the codec. The rule, the Gradle line and the Kotlin channel are one unit: they leave with
-candidate A if candidate B wins.
+**R8 needed one rule for candidate A, and it went with it** — the file
+`android/app/proguard-rules.pro` is gone. R8 refused a release build while
+`com.gemalto.jp2.JP2Decoder` was referenced from PdfBox's `JPXFilter` and absent; that codec is
+optional and JPEG 2000 never ran on this route, so the reference was declared expected rather than
+adding the codec. It is recorded here because the cost was real and candidate A's evaluation could not
+have been run without it.
 
 Development only, not shipped: `flutter_lints`, `flutter_test` (both BSD-3-Clause).

@@ -5,7 +5,6 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:paperdrop/adapters/pdf_text/pdf_text_candidate.dart';
-import 'package:paperdrop/adapters/pdf_text/pdfbox_text_candidate.dart';
 import 'package:paperdrop/adapters/pdf_text/pdfrx_text_candidate.dart';
 import 'package:path/path.dart' as p;
 
@@ -17,7 +16,7 @@ import '../test/tool/pdf_eval_json.dart';
 ///
 /// **What it does.** Given the directory of PDFs on the command line
 /// (`--dart-define=PDF_EVAL_DIR=…`, the app's private storage, where the
-/// orchestrator pushes the corpus with `adb`), it makes *both* candidates read
+/// orchestrator pushes the corpus with `adb`), it makes the candidate read
 /// every PDF, and writes one JSON per document and candidate next to the input —
 /// `<doc_id>.<candidate>-words.json`, in design §2's schema, to be pulled back
 /// to the private corpus's `out` directory and compared by QA's script.
@@ -29,10 +28,10 @@ import '../test/tool/pdf_eval_json.dart';
 /// changed the file is reported as a failure of the run and not as a clean
 /// result with a different hash nobody looked at.
 ///
-/// **What it refuses to do.** It does not compare the candidates, score them, or
-/// decide anything: no threshold exists for the positional criterion or for the
-/// size delta (GAP-003), so the harness produces numbers and the product owner
-/// takes the decision on Tue 6 Oct. It also never reads a document that is not
+/// **What it refuses to do.** It does not score the candidate or decide
+/// anything: no threshold exists for the positional criterion or for the size
+/// delta (GAP-003), so the harness produced numbers and the product owner took
+/// the decision on 2026-10-07. It also never reads a document that is not
 /// in the directory it was given, and the private corpus never enters the
 /// repository: what comes back is this JSON and nothing else.
 ///
@@ -43,7 +42,7 @@ void main() {
 
   const String evalDirectory = String.fromEnvironment('PDF_EVAL_DIR');
 
-  test('both candidates read every PDF, one JSON each', () async {
+  test('the candidate reads every PDF, one JSON each', () async {
     final Directory input = Directory(evalDirectory);
     if (!input.existsSync()) {
       fail('PDF_EVAL_DIR is not a directory on this device: $evalDirectory');
@@ -112,18 +111,22 @@ void main() {
       failures,
       isEmpty,
       reason:
-          'every document must be read by both candidates before either can be '
-          'compared; these were not:\n${failures.join('\n')}',
+          'every document must be read before it can be compared; these were '
+          'not:\n${failures.join('\n')}',
     );
   }, skip: evalDirectory.isEmpty ? _noDirectory : null);
 }
 
-/// The two candidates, with the token each is written under in a file name
-/// (design §2). Both are here on purpose: the comparison needs both numbers, and
-/// neither leaves the build before the decision of Tue 6 Oct.
+/// The candidate still measured, with the token it is written under in a file
+/// name (design §2).
+///
+/// There was a second one — candidate A, PdfBox-Android — until the product
+/// owner closed ADR-011 in favour of candidate B on 2026-10-07; its code and
+/// its dependency are gone (design §5) and its numbers stay in
+/// `validation/reviews/adr-011-2026-10-07.md`. The schema below is unchanged,
+/// because that is what the comparison script reads.
 const List<({String token, PdfTextCandidate candidate})> _candidates =
     <({String token, PdfTextCandidate candidate})>[
-      (token: 'pdfbox-android', candidate: PdfBoxTextCandidate()),
       (token: 'pdfrx', candidate: PdfrxTextCandidate()),
     ];
 
