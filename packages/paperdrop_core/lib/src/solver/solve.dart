@@ -8,6 +8,7 @@
 /// rate.
 library;
 
+import '../confidence/redundancy.dart';
 import '../countries/country_table.dart';
 import '../layout/text_page.dart';
 import '../model/canonical_document.dart';
@@ -16,7 +17,6 @@ import '../model/field_value.dart';
 import '../model/provenance.dart';
 import '../money/currency.dart';
 import '../money/money.dart';
-import '../money/rate.dart';
 import 'currency.dart';
 import 'negative.dart';
 import 'operands.dart';
@@ -247,7 +247,7 @@ bool _tripleAccepted(_Triple triple, List<ReadOperand> admittedRates) {
   }
   return admittedRates.any(
     (ReadOperand operand) =>
-        _taxWithinTolerance(triple.tax, triple.base, operand.rate!),
+        taxWithinTolerance(triple.tax, triple.base, operand.rate!),
   );
 }
 
@@ -304,7 +304,7 @@ BreakdownSolution _deriveByIdentity(
 
 bool _rateAgrees(Money tax, Money base, List<ReadOperand> admittedRates) =>
     admittedRates.any(
-      (ReadOperand operand) => _taxWithinTolerance(tax, base, operand.rate!),
+      (ReadOperand operand) => taxWithinTolerance(tax, base, operand.rate!),
     );
 
 BreakdownSolution _emptyBreakdown() => const BreakdownSolution(
@@ -318,13 +318,6 @@ FieldValue<Money> _presentRead(Money value) =>
 
 FieldValue<Money> _presentDerived(Money value) =>
     Present<Money>(value, Provenance.derived, ConfidenceState.amber);
-
-bool _taxWithinTolerance(Money tax, Money base, RateBp rate) {
-  final printed = BigInt.from(tax.minor) * BigInt.from(10000);
-  final product = BigInt.from(base.minor) * BigInt.from(rate.bp);
-  final difference = (printed - product).abs();
-  return difference <= BigInt.from(10000);
-}
 
 bool _operandListEquals(List<ReadOperand> left, List<ReadOperand> right) {
   if (left.length != right.length) {
