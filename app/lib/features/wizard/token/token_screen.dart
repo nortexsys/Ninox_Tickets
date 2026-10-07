@@ -5,17 +5,18 @@
 /// validated by its effect here, as the token is — and FR-CFG-004's storage half, which the
 /// controller's single write to the token store implements.
 ///
-/// **What the screen offers.** The instructions, a field for the token, a *Paste* action that reads
-/// the clipboard and trims it, and — collapsed — the advanced setup holding the host, which defaults
-/// to the vendor's cloud. One action validates: it parses the host, makes the single call that
-/// validates the token **and** the host, and takes the next step's list from that same call.
+/// **What the screen offers.** The instructions — *Integrations*, then *New API Key*, in Ninox's own
+/// settings — a field for the token, a *Paste* action that reads the clipboard and trims it, an action
+/// that opens that settings page in the platform's browser, and, collapsed, the advanced setup holding
+/// the host, which defaults to the vendor's cloud. One action validates: it parses the host, makes the
+/// single call that validates the token **and** the host, and takes the next step's list from that
+/// same call.
 ///
 /// **The action that opens Ninox's own page.** Design §4 puts it behind the `SystemBrowser` port and
-/// says the platform's browser shows the page, never one the app renders itself. The **address** of
-/// that page is not established (`system_browser.dart`, `TODO(orchestrator)`), and the orchestrator
-/// decided on 2026-10-07 that no URL is invented: while the address is `null` the action is not
-/// shown, and the instructions tell the user to create the token in Ninox's own settings. The port
-/// and its one implementation are wired here, one constant away from being reachable.
+/// says the platform's browser shows the page, never one the app renders itself. The address follows
+/// the endpoint the step is pointed at — `https://admin.ninox.com` on the public cloud, and
+/// `https://<the configured host>/admin` for a private cloud — and it comes from the vendor's own
+/// documentation (`system_browser.dart`).
 ///
 /// **The token does not linger.** It is read from the field when the action is pressed, and the
 /// field is emptied as soon as the step has passed: after that the device's keystore is the only
@@ -27,6 +28,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:ninox_client/ninox_client.dart';
 import 'package:paperdrop/l10n/generated/app_localizations.dart';
 
 import '../wizard_controller.dart';
@@ -42,7 +44,6 @@ class TokenScreen extends StatefulWidget {
     super.key,
     required this.controller,
     required this.browser,
-    this.settingsUri = ninoxApiTokenSettingsUri,
     this.onStepChanged,
   });
 
@@ -51,10 +52,6 @@ class TokenScreen extends StatefulWidget {
 
   /// The platform's browser; a fake in every test.
   final SystemBrowser browser;
-
-  /// The address of Ninox's settings page, or `null` while it is not established — then the action
-  /// that would open it is not shown, rather than opening a guessed address.
-  final Uri? settingsUri;
 
   /// Called after the validating call completed, so a host that draws the whole wizard — one widget
   /// per step — can redraw the step it should be showing.
@@ -66,6 +63,16 @@ class TokenScreen extends StatefulWidget {
   /// The advanced setup's host field.
   static const Key hostFieldKey = Key('wizard-host-field');
 
+  /// The host as the field shows it and reads it back: the endpoint's host, and its port when it has
+  /// one, which is the form `NinoxEndpoint.parse` accepts.
+  ///
+  /// A private cloud configured on `ninox.example.de:8443` would otherwise come back as
+  /// `ninox.example.de` the moment the field was prefilled from the state, and the next call would go
+  /// to the default port instead of the user's.
+  static String hostText(NinoxEndpoint endpoint) => endpoint.port == null
+      ? endpoint.host
+      : '${endpoint.host}:${endpoint.port}';
+
   @override
   State<TokenScreen> createState() => _TokenScreenState();
 }
@@ -73,7 +80,7 @@ class TokenScreen extends StatefulWidget {
 class _TokenScreenState extends State<TokenScreen> {
   final TextEditingController _token = TextEditingController();
   late final TextEditingController _host = TextEditingController(
-    text: widget.controller.state.endpoint.host,
+    text: TokenScreen.hostText(widget.controller.state.endpoint),
   );
 
   @override
@@ -111,13 +118,16 @@ class _TokenScreenState extends State<TokenScreen> {
     _token.text = pasted;
   }
 
-  /// Opens Ninox's own page in the platform's browser, when its address is established.
+  /// Opens Ninox's own page in the platform's browser.
+  ///
+  /// The address follows the endpoint the step is pointed at: the field's host when it is one
+  /// `NinoxEndpoint.parse` accepts, and the endpoint the state already holds otherwise — which is the
+  /// vendor's cloud until a token has been accepted — so a half-typed host never opens a page nobody
+  /// meant. The page is the platform's, never one this app renders (NFR-SEC-002).
   Future<void> _openSettings() async {
-    final Uri? settings = widget.settingsUri;
-    if (settings == null) {
-      return;
-    }
-    await widget.browser.open(settings);
+    final NinoxEndpoint endpoint =
+        NinoxEndpoint.parse(_host.text) ?? widget.controller.state.endpoint;
+    await widget.browser.open(ninoxApiTokenSettingsUri(endpoint));
   }
 
   /// The one validating call (design §4).
@@ -177,14 +187,13 @@ class _TokenScreenState extends State<TokenScreen> {
                   icon: const Icon(Icons.content_paste),
                   label: Text(l10n.wizardTokenPasteAction),
                 ),
-                // Shown only where the address of Ninox's settings page is established: the app
-                // opens a page it knows and never a guessed one (orchestrator, 2026-10-07).
-                if (widget.settingsUri != null)
-                  OutlinedButton.icon(
-                    onPressed: _openSettings,
-                    icon: const Icon(Icons.open_in_new),
-                    label: Text(l10n.wizardTokenOpenSettingsAction),
-                  ),
+                // The page is the vendor's own settings page, in the platform's browser and never a
+                // browser this app renders (NFR-SEC-002).
+                OutlinedButton.icon(
+                  onPressed: _openSettings,
+                  icon: const Icon(Icons.open_in_new),
+                  label: Text(l10n.wizardTokenOpenSettingsAction),
+                ),
               ],
             ),
             if (message != null) ...<Widget>[

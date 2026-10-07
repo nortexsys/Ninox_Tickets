@@ -76,7 +76,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get wizardTokenInstructions =>
-      'Create an API token in Ninox\'s own settings, then paste it here. Paperdrop asks for a token and for nothing else: never for your user name or your password.';
+      'Create an API token in Ninox\'s own settings: open Integrations, then New API Key, and copy the token. Paperdrop asks for a token and for nothing else: never for your user name or your password.';
 
   @override
   String get wizardTokenFieldLabel => 'API token';

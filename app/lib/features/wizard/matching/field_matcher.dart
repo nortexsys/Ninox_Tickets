@@ -37,7 +37,7 @@ library;
 
 import 'package:ninox_client/ninox_client.dart';
 import 'package:paperdrop_core/paperdrop_core.dart'
-    show LabelKind, LabelTerm, labelTerms;
+    show LabelKind, LabelTerm, columnNameTerms, labelTerms;
 
 import '../destination.dart';
 import 'similarity.dart';
@@ -98,15 +98,17 @@ final class FieldProposal {
 
 /// The synonyms a core field is compared with (design §5's table).
 ///
-/// The dictionary is `paperdrop_core`'s Annex C seeds, by [LabelKind] and across every language; this
-/// function adds no term of its own.
+/// The dictionary is `paperdrop_core`'s: Annex C's seeds ([labelTerms]), by [LabelKind] and across
+/// every language, **plus** DEC-014's column names ([columnNameTerms]) for the same kind — the list
+/// the product owner added on 2026-10-07 after this matcher's first fixtures showed what real tables
+/// call these columns (`Belegdatum`, `Betrag`, `Supplier`, `Tax`). This function adds no term of its
+/// own; a test asserts that every synonym it can return comes from one of those two lists.
 ///
-/// **The two gaps.** Annex C has no term for a tax identifier or for a currency, and no `LabelKind`
-/// exists for them, so `supplier_tax_id` and `currency` are compared **only** with their own
-/// canonical name (`supplier_tax_id`, `currency`). Normalisation turns the wire name's underscore
-/// into a word break, so `supplier_tax_id` and `supplier tax id` are one string to the matcher. The
-/// lane reports the gap to the orchestrator rather than inventing a term
-/// (design §5, task 4.3's dictionary-gap note).
+/// **The two gaps.** No term exists for a tax identifier or for a currency, and DEC-014 adds none —
+/// there is no `LabelKind` for them, and inventing one would change the canonical model — so
+/// `supplier_tax_id` and `currency` are compared **only** with their own canonical name
+/// (`supplier_tax_id`, `currency`). Normalisation turns the wire name's underscore into a word break,
+/// so `supplier_tax_id` and `supplier tax id` are one string to the matcher.
 Iterable<String> synonymsOf(CoreField coreField) => switch (coreField) {
   CoreField.docDate => _termsOf(LabelKind.date),
   CoreField.supplierName => _termsOf(LabelKind.supplier),
@@ -118,10 +120,12 @@ Iterable<String> synonymsOf(CoreField coreField) => switch (coreField) {
   CoreField.currency => <String>[CoreField.currency.wireName],
 };
 
-/// Every term of Annex C that labels [kind], in the order the dictionary prints them and in every
-/// language it records for them.
+/// Every term of the wizard's dictionary that labels [kind]: Annex C's seeds and DEC-014's column
+/// names, in the order each list declares them and in every language it records.
 List<String> _termsOf(LabelKind kind) => <String>[
   for (final LabelTerm term in labelTerms)
+    if (term.kind == kind) term.term,
+  for (final LabelTerm term in columnNameTerms)
     if (term.kind == kind) term.term,
 ];
 

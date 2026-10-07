@@ -4,6 +4,8 @@ import 'package:paperdrop/features/wizard/destination.dart';
 import 'package:paperdrop/features/wizard/matching/field_matcher.dart';
 import 'package:paperdrop/features/wizard/matching/similarity.dart';
 import 'package:paperdrop/features/wizard/matching/type_rules.dart';
+import 'package:paperdrop_core/paperdrop_core.dart'
+    show LabelTerm, columnNameTerms, labelTerms;
 
 /// The two-stage matcher, on the fixtures of design §5 (design §5, FR-WIZ-006).
 ///
@@ -54,6 +56,89 @@ void main() {
     expect(proposalFor(table, CoreField.currency), isNull);
     expect(proposalFor(table, CoreField.supplierTaxId), isNull);
   });
+
+  test('the dictionary itself reaches the German columns', () {
+    // DEC-014's column names — added by the product owner on 2026-10-07 — are terms of the
+    // dictionary now, so each of the three is a **literal** match and no compound rule is involved:
+    // `Belegdatum` and `Betrag` used to be reachable only as halves of `Datum` and `Gesamtbetrag`.
+    const List<(String, CoreField)> german = <(String, CoreField)>[
+      ('Belegdatum', CoreField.docDate),
+      ('Betrag', CoreField.grossTotal),
+      ('Lieferant', CoreField.supplierName),
+    ];
+    for (final (String name, CoreField coreField) in german) {
+      expect(
+        synonymsOf(coreField),
+        contains(name),
+        reason: '$name is a term of ${coreField.wireName}',
+      );
+      expect(
+        bestSimilarity(name, synonymsOf(coreField)),
+        1,
+        reason: '$name matches its own term literally',
+      );
+    }
+  });
+
+  test('[setup-wizard/two-stage-matching-with-a-strict-threshold] '
+      'the column names of DEC-014 reach the supplier and the tax total', () {
+    // `Supplier` and `Tax` are common English column names that Annex C does not carry: before
+    // DEC-014's list the matcher left both unmapped, and the model is what changed, not the score.
+    final NinoxTable fixtureTable = tableOf(<NinoxField>[
+      field('1', 'Supplier', 'string'),
+      field('2', 'Tax', 'number'),
+    ]);
+
+    expect(proposalFor(fixtureTable, CoreField.supplierName)?.name, 'Supplier');
+    expect(proposalFor(fixtureTable, CoreField.taxTotal)?.name, 'Tax');
+    // By the dictionary: each is a term of its own kind, and each scores a literal match.
+    expect(bestSimilarity('Supplier', synonymsOf(CoreField.supplierName)), 1);
+    expect(bestSimilarity('Tax', synonymsOf(CoreField.taxTotal)), 1);
+  });
+
+  test(
+    'every synonym comes from the dictionary: the wizard adds no term of its '
+    'own',
+    () {
+      // The one property that keeps the score honest: whatever a core field is compared with is a term
+      // of `paperdrop_core` — Annex C or DEC-014 — except for the two fields that have no kind at all,
+      // whose canonical name is the whole of their comparison.
+      final Set<String> dictionary = <String>{
+        for (final LabelTerm term in <LabelTerm>[
+          ...labelTerms,
+          ...columnNameTerms,
+        ])
+          term.term,
+      };
+      expect(dictionary, isNotEmpty);
+
+      for (final CoreField coreField in CoreField.values) {
+        final bool canonicalOnly =
+            coreField == CoreField.supplierTaxId ||
+            coreField == CoreField.currency;
+        for (final String synonym in synonymsOf(coreField)) {
+          expect(
+            dictionary.contains(synonym) ||
+                (canonicalOnly && synonym == coreField.wireName),
+            isTrue,
+            reason:
+                '${coreField.wireName} is compared with `$synonym`, which is '
+                'neither a dictionary term nor the field\'s own canonical name',
+          );
+        }
+      }
+    },
+  );
+
+  test(
+    'the two fields with no dictionary kind keep their canonical name only',
+    () {
+      // DEC-014 adds no term for them, and no `LabelKind` exists to hang one on: a tax identifier and a
+      // currency are compared with `supplier_tax_id` and `currency` and with nothing else.
+      expect(synonymsOf(CoreField.supplierTaxId), <String>['supplier_tax_id']);
+      expect(synonymsOf(CoreField.currency), <String>['currency']);
+    },
+  );
 
   test('an English table receives its proposals, and the two dictionary gaps '
       'stay unmapped', () {

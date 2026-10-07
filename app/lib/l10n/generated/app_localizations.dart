@@ -196,10 +196,10 @@ abstract class AppLocalizations {
   /// **'Set up Ninox'**
   String get wizardTitle;
 
-  /// How the user obtains the token (FR-WIZ-003, product-invariants/token-is-the-only-credential). The address of Ninox's settings page is not established, so the screen names the place and opens nothing.
+  /// How the user obtains the token (FR-WIZ-003, product-invariants/token-is-the-only-credential), naming the vendor's own steps: Integrations, then New API Key.
   ///
   /// In en, this message translates to:
-  /// **'Create an API token in Ninox\'s own settings, then paste it here. Paperdrop asks for a token and for nothing else: never for your user name or your password.'**
+  /// **'Create an API token in Ninox\'s own settings: open Integrations, then New API Key, and copy the token. Paperdrop asks for a token and for nothing else: never for your user name or your password.'**
   String get wizardTokenInstructions;
 
   /// Label of the obscured field the token is pasted into (FR-WIZ-003).
@@ -220,7 +220,7 @@ abstract class AppLocalizations {
   /// **'Paste'**
   String get wizardTokenPasteAction;
 
-  /// Opens Ninox's own settings page in the platform's browser (FR-WIZ-003). Shown only where the address of that page is established; while it is not, the app opens no page rather than a guessed one.
+  /// Opens Ninox's own settings page in the platform's browser (FR-WIZ-003): https://admin.ninox.com on the public cloud, https://<host>/admin on a private one.
   ///
   /// In en, this message translates to:
   /// **'Open Ninox settings'**

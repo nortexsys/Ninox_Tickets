@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ninox_client/ninox_client.dart';
+import 'package:paperdrop/features/wizard/token/system_browser.dart';
 import 'package:paperdrop/features/wizard/token/token_screen.dart';
 import 'package:paperdrop/features/wizard/wizard_errors.dart';
 import 'package:paperdrop/features/wizard/wizard_messages.dart';
@@ -32,11 +33,6 @@ void main() {
   /// in no fixture, and this token is one the test invented.
   const String host = 'api.ninox.com';
   const String token = 'pasted-token-1';
-
-  /// A settings address of the test's own. `.invalid` is reserved by RFC 2606 and resolves nowhere:
-  /// the real address is not established (see `ninoxApiTokenSettingsUri`) and this test must not
-  /// invent it either.
-  final Uri settings = Uri.parse('https://ninox.example.invalid/settings');
 
   /// The resources, in English. Every sentence the step shows is a `wizard`-prefixed key of
   /// `app_en.arb`, and the test reads the same values the screen does.
@@ -83,28 +79,56 @@ void main() {
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: TokenScreen(
-          controller: wizard.controller,
-          browser: browser,
-          settingsUri: settings,
-        ),
+        home: TokenScreen(controller: wizard.controller, browser: browser),
       ),
     );
 
     await tester.tap(find.text(en.wizardTokenOpenSettingsAction));
     await tester.pumpAndSettle();
 
-    // The step asked the platform's browser, once, for the settings address — and asked nothing
-    // else: the port is the only way out of this screen, and no request of the app's own was made.
-    expect(browser.opened, <Uri>[settings]);
+    // The step asked the platform's browser, once, for the settings address of the endpoint it is
+    // pointed at — and asked nothing else: the port is the only way out of this screen, and no
+    // request of the app's own was made.
+    expect(browser.opened, <Uri>[
+      ninoxApiTokenSettingsUri(NinoxEndpoint.cloud),
+    ]);
     expect(wizard.port.calls, isEmpty);
   });
 
-  testWidgets('the settings action is not offered while the address is not '
-      'established', (WidgetTester tester) async {
-    // The address is `null` (the `ninox` skill states none), and the orchestrator decided on
-    // 2026-10-07 that no URL is invented: the action is not shown, so neither a guessed address nor
-    // a dead button is ever put in front of the user.
+  testWidgets(
+    'the settings action opens the address of the host in the field',
+    (WidgetTester tester) async {
+      // A private cloud: the field names it, and the page that hands out the token is that host's own
+      // admin page — with the port the user configured, and over https.
+      final wizard = wizardHarness();
+      final FakeSystemBrowser browser = FakeSystemBrowser();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: TokenScreen(controller: wizard.controller, browser: browser),
+        ),
+      );
+      await tester.tap(find.text(en.wizardTokenAdvancedTitle));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(TokenScreen.hostFieldKey),
+        'ninox.example.de:8443',
+      );
+      await tester.tap(find.text(en.wizardTokenOpenSettingsAction));
+      await tester.pumpAndSettle();
+
+      expect(browser.opened, <Uri>[
+        Uri.parse('https://ninox.example.de:8443/admin'),
+      ]);
+    },
+  );
+
+  testWidgets('a host that is not an accepted form opens the endpoint the step '
+      'already holds', (WidgetTester tester) async {
+    // A half-typed host is not a place to send anybody: the step falls back to the endpoint it holds,
+    // which is the vendor's cloud until a token has been accepted.
     final wizard = wizardHarness();
     final FakeSystemBrowser browser = FakeSystemBrowser();
 
@@ -112,22 +136,18 @@ void main() {
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: TokenScreen(
-          controller: wizard.controller,
-          browser: browser,
-          settingsUri: null,
-        ),
+        home: TokenScreen(controller: wizard.controller, browser: browser),
       ),
     );
+    await tester.tap(find.text(en.wizardTokenAdvancedTitle));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(TokenScreen.hostFieldKey), 'http://');
+    await tester.tap(find.text(en.wizardTokenOpenSettingsAction));
+    await tester.pumpAndSettle();
 
-    expect(
-      find.widgetWithText(OutlinedButton, en.wizardTokenOpenSettingsAction),
-      findsNothing,
-    );
-    // Everything else the step offers is there, and the browser was never asked for anything.
-    expect(find.text(en.wizardTokenPasteAction), findsOneWidget);
-    expect(find.text(en.wizardTokenConnectAction), findsOneWidget);
-    expect(browser.opened, isEmpty);
+    expect(browser.opened, <Uri>[
+      ninoxApiTokenSettingsUri(NinoxEndpoint.cloud),
+    ]);
   });
 
   testWidgets('[setup-wizard/token-step-via-the-system-browser] '
@@ -451,7 +471,7 @@ void main() {
       ..writeln(wizard.controller)
       ..writeln(wizard.controller.state)
       ..writeln(wizard.store)
-      ..writeln(settings);
+      ..writeln(ninoxApiTokenSettingsUri(NinoxEndpoint.cloud));
     for (final WizardError error in WizardError.values) {
       everything.writeln(wizardErrorMessage(en, error));
     }

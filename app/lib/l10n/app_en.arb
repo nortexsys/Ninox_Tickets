@@ -78,9 +78,9 @@
   "@wizardTitle": {
     "description": "Title of every screen of the setup wizard (FR-WIZ-001)."
   },
-  "wizardTokenInstructions": "Create an API token in Ninox's own settings, then paste it here. Paperdrop asks for a token and for nothing else: never for your user name or your password.",
+  "wizardTokenInstructions": "Create an API token in Ninox's own settings: open Integrations, then New API Key, and copy the token. Paperdrop asks for a token and for nothing else: never for your user name or your password.",
   "@wizardTokenInstructions": {
-    "description": "How the user obtains the token (FR-WIZ-003, product-invariants/token-is-the-only-credential). The address of Ninox's settings page is not established, so the screen names the place and opens nothing."
+    "description": "How the user obtains the token (FR-WIZ-003, product-invariants/token-is-the-only-credential), naming the vendor's own steps: Integrations, then New API Key."
   },
   "wizardTokenFieldLabel": "API token",
   "@wizardTokenFieldLabel": {
@@ -96,7 +96,7 @@
   },
   "wizardTokenOpenSettingsAction": "Open Ninox settings",
   "@wizardTokenOpenSettingsAction": {
-    "description": "Opens Ninox's own settings page in the platform's browser (FR-WIZ-003). Shown only where the address of that page is established; while it is not, the app opens no page rather than a guessed one."
+    "description": "Opens Ninox's own settings page in the platform's browser (FR-WIZ-003): https://admin.ninox.com on the public cloud, https://<host>/admin on a private one."
   },
   "wizardTokenAdvancedTitle": "Advanced setup",
   "@wizardTokenAdvancedTitle": {
