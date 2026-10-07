@@ -39,7 +39,9 @@ is run from the repository root on Flutter 3.47.5 / Dart 3.13.4:
 Detailed in design §6 before dispatch; needs the product owner's approval of `--allow-ninox-token`.
 
 - [ ] 2.1 Re-record the fixtures against the test base, GET only; diff against §1's.
-- [ ] 2.2 Run the GAP-023 check; record the result in `openspec/gaps-register.md` (through Spec).
+- [x] 2.2 Run the GAP-023 check; record the result in `openspec/gaps-register.md` (through Spec).
+      Done 2026-10-07 by the orchestrator with the PO's approval, GET only, on the disposable table
+      `Paperdrop_test` of `JI-PRUEBAS-CLAUDE`; GAP-023 closed.
 - [ ] 2.3 Write tests within D-10's bounds; attachment size and timing from Spain (GAP-004).
 
 ## 3. QA
