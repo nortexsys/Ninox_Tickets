@@ -8,6 +8,7 @@ library;
 export 'src/checks/check_result.dart';
 export 'src/checks/ean13.dart';
 export 'src/checks/iban.dart';
+export 'src/consensus/consensus.dart';
 export 'src/countries/country_table.dart';
 export 'src/countries/es_cif.dart';
 export 'src/countries/es_nie.dart';
