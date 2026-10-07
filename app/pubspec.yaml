@@ -44,3 +44,9 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   generate: true
+  assets:
+    # The licence notices of the PDFium binary pdfrx links (NFR-LIC-001,
+    # close-adr-011-pdf-text-route task 2.4): taken from the distribution the
+    # build resolves, and registered with Flutter's licence page from main().
+    - assets/licenses/pdfium/
+    - assets/licenses/pdfium/licenses/

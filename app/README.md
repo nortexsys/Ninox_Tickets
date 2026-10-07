@@ -65,26 +65,32 @@ the review file and in the size table below.
 | Dependency | Used for | Licence | Proprietary |
 | --- | --- | --- | --- |
 | `pdfrx` 2.6.5, with `pdfrx_engine` 0.6.1, `pdfium_dart` 0.3.1, `pdfium_flutter` 0.3.1 and the `url_launcher` 6.3.2 family they pull in | Word boxes with positions from PDFium, the engine Chrome renders PDFs with — the text-layer half of the invoice route (FR-EXT-004, ADR-011, ADR-014) | MIT (each of the four packages states MIT in its own `LICENSE`; the design's table said BSD-3, and the artefact resolved says MIT) | No |
+| The **PDFium binary** `pdfium_dart`'s build hook downloads and links (`lib/libpdfium.so`), with the nineteen licence notices its distribution carries | The engine itself: this project does not build it, and those notices ship with it under `app/assets/licenses/pdfium/` | MIT (the `pdfium-binaries` packaging), BSD-3-Clause (PDFium), plus the bundled third-party notices | No |
 
 Candidate B ships **a native binary this project does not build**: `pdfium_dart`'s build hook downloads a
 prebuilt PDFium at build time, from
 `https://github.com/bblanchon/pdfium-binaries/releases/download/chromium%2F7811/pdfium-android-arm64.tgz`,
 and bundles `lib/libpdfium.so` from it as a native asset. What that binary's licence covers is what its
-own distribution says, not what the package's `LICENSE` says. That distribution, read from the archive
-the build actually resolved, is:
+own distribution says, not what the package's `LICENSE` says. That distribution — read out of the archive
+the build actually resolved, whose Windows library is byte-identical to the one the resolved build
+produced, the Android one being what the APK carries — is:
 
 * its own `LICENSE` is **MIT** (`pdfium-binaries`, Copyright 2014-2025 Benoit Blanchon);
 * `licenses/pdfium.txt` is **BSD-3-Clause** (Copyright 2014 The PDFium Authors) — PDFium itself;
-* it bundles nineteen third-party licence files (abseil, agg23, catapult, cpu_features, fast_float,
+* it bundles eighteen third-party licence files (abseil, agg23, catapult, cpu_features, fast_float,
   freetype, icu, lcms, libjpeg-turbo, libopenjpeg, libpng, libtiff, libunwind, llvm-libc, simdutf and
   zlib among them), and `VERSION` says PDFium 149.0.7811.0;
 * **no AGPL** appears in any of them, and no GPL obligation applies: the GPL text in `icu.txt` covers
   the Autoconf helper scripts of ICU's source tree, which are not part of the `.so`, and the GPL
   mentions in `libunwind.txt`/`llvm-libc.txt` are the Apache-2.0-with-LLVM-exception clauses. FreeType
   is dual-licensed and the FreeType License option is the one in the archive;
-* the archive's licence files do **not** ship inside the APK: the build hook extracts `lib/libpdfium.so`
-  and nothing else, and Flutter's `NOTICES` covers Dart packages only. The binary is redistributed
-  without its notices, which is what task 2.4 of this change fixes (see below).
+* **they ship.** The archive's `LICENSE`, its `VERSION` and its whole `licenses/` directory are copied
+  byte for byte into `app/assets/licenses/pdfium/`, declared as assets in `pubspec.yaml`, and registered
+  with Flutter's licence page from `main()`: nineteen notices under the package name `PDFium`, each
+  headed with the path it has inside the distribution. `NOTICES` alone would not have carried them — it
+  covers Dart packages, and the build hook extracts the `.so` and nothing else. One of the notices,
+  `licenses/freetype.txt`, is not valid UTF-8 in the distribution itself; it is read with its malformed
+  bytes replaced rather than rewritten, and every other file is shipped as it is.
 
 ### ADR-011 — the size measurement (task 1.5, NFR-SIZ-001)
 
