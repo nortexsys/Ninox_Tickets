@@ -18,6 +18,8 @@ export 'src/dictionaries/lookup.dart';
 export 'src/dictionaries/negative.dart';
 export 'src/format/date.dart';
 export 'src/format/decimal.dart';
+export 'src/layout/positioned_word.dart';
+export 'src/layout/text_page.dart';
 export 'src/model/calendar_date.dart';
 export 'src/model/canonical_document.dart';
 export 'src/model/confidence.dart';
