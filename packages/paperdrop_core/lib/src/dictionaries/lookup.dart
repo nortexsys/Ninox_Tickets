@@ -84,6 +84,15 @@ List<TermMatch> findTerms(String line) {
           null,
           language,
         ),
+    for (final label in labelTermsExtension)
+      for (final language in label.languages)
+        _Entry(
+          _normalizeTerm(label.term),
+          label.term,
+          label.kind,
+          null,
+          language,
+        ),
     for (final negative in negativeTerms)
       for (final language in negative.languages)
         _Entry(
@@ -182,11 +191,56 @@ _NormalizedLine _normalizeLine(String line) {
       i++;
     }
   }
-  return _NormalizedLine(buffer.toString().toLowerCase(), starts, ends);
+  return _NormalizedLine(
+    _foldDiacritics(buffer.toString().toLowerCase()),
+    starts,
+    ends,
+  );
 }
 
 String _normalizeTerm(String term) =>
-    term.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
+    _foldDiacritics(term.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase());
+
+/// Folds the precomposed accented Latin letters the dictionary languages print
+/// to their ASCII base, one code unit for one code unit.
+///
+/// Only one-to-one foldings are applied, so the start and end maps built by
+/// [_normalizeLine] keep their positions. Letters that would expand, such as
+/// `ß`, are left untouched.
+String _foldDiacritics(String text) => text.replaceAllMapped(
+  RegExp('[áàâäãåéèêëíìîïóòôöõúùûüñçýÿ]'),
+  (Match match) => _diacriticFold[match.group(0)]!,
+);
+
+const Map<String, String> _diacriticFold = <String, String>{
+  'á': 'a',
+  'à': 'a',
+  'â': 'a',
+  'ä': 'a',
+  'ã': 'a',
+  'å': 'a',
+  'é': 'e',
+  'è': 'e',
+  'ê': 'e',
+  'ë': 'e',
+  'í': 'i',
+  'ì': 'i',
+  'î': 'i',
+  'ï': 'i',
+  'ó': 'o',
+  'ò': 'o',
+  'ô': 'o',
+  'ö': 'o',
+  'õ': 'o',
+  'ú': 'u',
+  'ù': 'u',
+  'û': 'u',
+  'ü': 'u',
+  'ñ': 'n',
+  'ç': 'c',
+  'ý': 'y',
+  'ÿ': 'y',
+};
 
 bool _isWhitespaceCode(int code) =>
     code == 0x20 || code == 0x09 || code == 0x0A || code == 0x0D;

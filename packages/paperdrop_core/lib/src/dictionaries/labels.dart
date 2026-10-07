@@ -4,7 +4,8 @@
 /// `document-dictionaries-are-separate-from-interface-language` and
 /// `extraction-pipeline` · `multilingual-label-dictionaries`. The seeds are
 /// Funcional Annex C, copied exactly as printed; terms are stored with accents
-/// and punctuation, and never stripped.
+/// and punctuation, and never stripped. The extension list added by DEC-014
+/// lives beside [labelTerms] and is never mixed into the Annex C seeds.
 library;
 
 /// The fields a positive label can bind.
@@ -137,6 +138,19 @@ const List<LabelTerm> labelTerms = <LabelTerm>[
   LabelTerm(LabelKind.docNumber, 'Ticket', {'es'}),
   LabelTerm(LabelKind.docNumber, 'Recibo', {'es'}),
   LabelTerm(LabelKind.docNumber, 'Boleta', {'es'}),
+];
+
+/// The extraction labels added by DEC-014, beside the Annex C seeds.
+///
+/// DEC-014 extends the dictionary without editing Annex C, so the extension is
+/// its own list and the lookup consults [labelTerms] followed by this one.
+/// `IMPORTE LIQUIDO` is the total label of an invoice in the private corpus;
+/// `Belegdatum` is the German date column the setup wizard expects to
+/// recognise. `Betrag` and `Tax` are deliberately not here: `Betrag` labels
+/// every amount line and `Tax` opens labels such as *Tax Invoice*.
+const List<LabelTerm> labelTermsExtension = <LabelTerm>[
+  LabelTerm(LabelKind.total, 'IMPORTE LIQUIDO', {'es'}),
+  LabelTerm(LabelKind.date, 'Belegdatum', {'de'}),
 ];
 
 bool _setEquals(Set<String> left, Set<String> right) {
