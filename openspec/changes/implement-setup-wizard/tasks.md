@@ -71,6 +71,17 @@ design §8; stop a dispatch on a green commit.
       and the final screen calls `onFinished` and offers capture
       (`[setup-wizard/plain-language-summary-and-first-document-offer]`).
 
+- [ ] 3.5 **First-run entry point** (design §10): the `redirect` in `router.dart` and `hasDestination`.
+      *Done when* with no stored destination the app opens on the wizard, with one it opens on capture,
+      `/wizard` is never redirected to itself, finishing returns to capture, and the existing router tests
+      pass unchanged with a fake that answers yes.
+- [ ] 3.6 **Destination save failure** (design §10.1). *Done when* a store that throws shows the message and
+      allows a retry, and nothing is reported as saved.
+- [ ] 3.7 **Double mapping marked in the picker** (design §10.2). *Done when* a column already used is
+      offered with the other field's name, remains selectable, and the matcher's proposals are unchanged.
+- [ ] 3.8 **Back from the summary** (design §10.3). *Done when* Back returns to the mapping step and the
+      mapped fields and absent settings are intact.
+
 ## 4. Closing — orchestrator
 
 - [ ] 4.1 `openspec validate implement-setup-wizard --strict` and `openspec validate --all --strict`

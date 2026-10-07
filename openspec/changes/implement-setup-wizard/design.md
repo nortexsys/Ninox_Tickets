@@ -217,7 +217,7 @@ For this change **only**, the Ninox lane's `writes` in `agents/roles.yaml` is ex
 | `/app/pubspec.yaml` | add three dependencies: `flutter_secure_storage`, `url_launcher`, `http` |
 | `/pubspec.lock` | the lock file the workspace regenerates (the only file the status of 2026-09-30 and 2026-10-02 recorded outside `app/`) |
 | `/app/lib/l10n/**` | add `wizard`-prefixed keys to `app_en.arb`; the generated Dart is the output of `flutter gen-l10n` |
-| `/app/lib/app/router.dart` | add the single line `...wizardRoutes` and its import |
+| `/app/lib/app/router.dart` | add the line `...wizardRoutes` and its import, and (from 2026-10-07, approved) the first-run `redirect` of §10 |
 
 Mobile's `/app/**` write access is unchanged, and so are its `denies` of the wizard and send folders.
 The widening is **reverted** when this change is archived; the orchestrator does that and records it.
@@ -256,3 +256,22 @@ the product owner the day it happens.
   T1.12–T1.13 session, not by a unit test.
 * **The threshold** will be wrong on some real table. The failure it must have is an unmapped field, not
   a wrong one — which is why it is strict and why the margin exists.
+
+## 10. Added on 2026-10-07 after the first device smoke test — approved by the product owner
+
+**Entry point.** `/wizard` was registered but nothing navigated to it, so the wizard could not be reached on a
+device. `buildAppRouter` gains a `redirect`: while the destination store holds **no destination** the user is
+sent to `/wizard`, and `onFinished` returns to capture. The check is a `hasDestination` function injected into
+the router (default: the wizard's own `DestinationStore`), so every existing router test passes a fake that
+answers *yes* and is unaffected, and one new test proves the redirect both ways. The redirect must not loop and
+must let `/wizard` itself through. A settings entry to edit the destination later is R1's.
+
+**Three decisions on the dispatch D findings.**
+
+1. A **failure to write the destination** is shown with a short plain-language message (`wizard` key) on the
+   summary step; the user can retry, and nothing is claimed as saved.
+2. **Two core fields may map to the same Ninox column** (the one-to-one rule is the matcher's, for proposals
+   only). The picker offers every column of the right kind and **marks** one already used elsewhere with the
+   name of the field using it; it is not blocked. The send pipeline treats a double mapping like any other
+   mapping error when Ninox rejects it.
+3. The closing summary has a **Back** action returning to the mapping step with its state intact.
