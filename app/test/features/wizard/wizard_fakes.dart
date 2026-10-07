@@ -5,13 +5,66 @@
 /// no fixture and no test file.
 ///
 /// The fakes are the only doubles the wizard needs. A widget takes a controller, a controller takes
-/// a `NinoxPortFactory` and a `TokenStore`, and both of those are these two classes.
+/// a `NinoxPortFactory` and a `TokenStore`, and both of those are two of the classes below; the
+/// third, [FakeSystemBrowser], is the platform's browser.
 library;
 
 import 'dart:typed_data';
 
 import 'package:ninox_client/ninox_client.dart';
 import 'package:paperdrop/features/wizard/data/token_store.dart';
+import 'package:paperdrop/features/wizard/destination.dart';
+import 'package:paperdrop/features/wizard/token/system_browser.dart';
+import 'package:paperdrop/features/wizard/wizard_controller.dart';
+
+/// A controller over the fakes, with the lists a test chose.
+///
+/// The factory is a closure: it hands the fake the endpoint and the credential the controller built
+/// it with, so a test can assert that the port was built from the **parsed** endpoint (design §4)
+/// without any test ever owning a real credential.
+///
+/// [log] is a list the caller keeps: the port and the store append to it as they are called, so a
+/// test can prove the order of the validating call and the keystore write.
+({WizardController controller, FakeNinoxPort port, FakeTokenStore store})
+wizardHarness({
+  List<NinoxTeam>? teams,
+  List<NinoxDatabase>? databases,
+  List<NinoxTable>? tables,
+  Destination? initial,
+  List<String>? log,
+}) {
+  final FakeNinoxPort port = FakeNinoxPort(
+    teams: teams,
+    databases: databases,
+    tables: tables,
+  )..log = log;
+  final FakeTokenStore store = FakeTokenStore()..log = log;
+  final WizardController controller = WizardController(
+    portFactory: (NinoxEndpoint endpoint, NinoxCredentials credentials) {
+      port.builtWithEndpoint = endpoint;
+      port.builtWithCredentials = credentials;
+      return port;
+    },
+    tokenStorage: store,
+    initial: initial,
+  );
+  return (controller: controller, port: port, store: store);
+}
+
+/// The platform's browser, replaced by what a test decides (design §4).
+class FakeSystemBrowser implements SystemBrowser {
+  /// Every address the step opened, in order. Empty is what "the browser was not opened" means.
+  final List<Uri> opened = <Uri>[];
+
+  /// What the platform answers. A platform that will not open the page answers `false`.
+  bool succeeds = true;
+
+  @override
+  Future<bool> open(Uri url) async {
+    opened.add(url);
+    return succeeds;
+  }
+}
 
 /// A [NinoxPort] whose answers a test sets, which counts what was asked of it, and which records
 /// the order of its calls in a shared log.

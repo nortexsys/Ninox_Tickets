@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ninox_client/ninox_client.dart';
 import 'package:paperdrop/features/wizard/destination.dart';
 import 'package:paperdrop/features/wizard/token/token_errors.dart';
-import 'package:paperdrop/features/wizard/wizard_controller.dart';
 import 'package:paperdrop/features/wizard/wizard_step.dart';
 
 import 'wizard_fakes.dart';
@@ -33,35 +32,11 @@ void main() {
     ],
   );
 
-  /// A controller over the fakes, with the lists the test chose.
-  ({WizardController controller, FakeNinoxPort port, FakeTokenStore store})
-  build({
-    List<NinoxTeam>? teams,
-    List<NinoxDatabase>? databases,
-    List<NinoxTable>? tables,
-    Destination? initial,
-  }) {
-    final FakeNinoxPort port = FakeNinoxPort(
-      teams: teams,
-      databases: databases,
-      tables: tables,
-    );
-    final FakeTokenStore store = FakeTokenStore();
-    final WizardController controller = WizardController(
-      portFactory: (NinoxEndpoint endpoint, NinoxCredentials credentials) {
-        port.builtWithEndpoint = endpoint;
-        port.builtWithCredentials = credentials;
-        return port;
-      },
-      tokenStorage: store,
-      initial: initial,
-    );
-    return (controller: controller, port: port, store: store);
-  }
-
+  /// A controller over the fakes, with the lists a test chose; the construction itself is shared
+  /// with the token step's tests (`wizard_fakes.dart`), so the two files cannot drift apart.
   test('[setup-wizard/steps-auto-omit-when-there-is-nothing-to-choose] '
       'a single-option subscription sees two screens', () async {
-    final wizard = build(
+    final wizard = wizardHarness(
       teams: <NinoxTeam>[team('team-1')],
       databases: <NinoxDatabase>[database('db-1')],
       tables: <NinoxTable>[table('table-1')],
@@ -89,7 +64,7 @@ void main() {
 
   test('[setup-wizard/steps-auto-omit-when-there-is-nothing-to-choose] '
       'omission rather than a hidden step', () async {
-    final wizard = build(
+    final wizard = wizardHarness(
       teams: <NinoxTeam>[team('team-1')],
       databases: <NinoxDatabase>[database('db-1')],
       tables: <NinoxTable>[table('table-1')],
@@ -113,7 +88,7 @@ void main() {
   });
 
   test('[setup-wizard/five-screens-at-most] no sixth screen exists', () async {
-    final wizard = build(
+    final wizard = wizardHarness(
       teams: <NinoxTeam>[team('team-1'), team('team-2')],
       databases: <NinoxDatabase>[database('db-1'), database('db-2')],
       tables: <NinoxTable>[table('table-1'), table('table-2')],
@@ -163,7 +138,7 @@ void main() {
   test(
     'several options show every step, and each choice is the user\'s',
     () async {
-      final wizard = build(
+      final wizard = wizardHarness(
         teams: <NinoxTeam>[team('team-1'), team('team-2')],
         databases: <NinoxDatabase>[database('db-1'), database('db-2')],
         tables: <NinoxTable>[table('table-1'), table('table-2')],
@@ -211,7 +186,7 @@ void main() {
   test('a list with no option stays on its step with its message', () async {
     // The design's case: a zero-option list is not specified by the functional, so the step stays
     // where it is with a plain-language explanation and no way to continue is invented.
-    final noTeams = build(teams: const <NinoxTeam>[]);
+    final noTeams = wizardHarness(teams: const <NinoxTeam>[]);
     await noTeams.controller.connect(host: host, token: token);
 
     expect(noTeams.controller.step, WizardStep.team);
@@ -220,7 +195,7 @@ void main() {
     // No way on: no call was made for a team that does not exist.
     expect(noTeams.port.calls, <String>['listTeams']);
 
-    final noDatabases = build(
+    final noDatabases = wizardHarness(
       teams: <NinoxTeam>[team('team-1'), team('team-2')],
       databases: const <NinoxDatabase>[],
     );
@@ -232,7 +207,7 @@ void main() {
     expect(noDatabases.controller.state.databaseId, isNull);
     expect(noDatabases.port.calls, <String>['listTeams', 'listDatabases']);
 
-    final noTables = build(
+    final noTables = wizardHarness(
       teams: <NinoxTeam>[team('team-1'), team('team-2')],
       databases: <NinoxDatabase>[database('db-1'), database('db-2')],
       tables: const <NinoxTable>[],
@@ -247,7 +222,7 @@ void main() {
   });
 
   test('back skips the omitted steps, and only them', () async {
-    final one = build(
+    final one = wizardHarness(
       teams: <NinoxTeam>[team('team-1')],
       databases: <NinoxDatabase>[database('db-1')],
       tables: <NinoxTable>[table('table-1')],
@@ -259,7 +234,7 @@ void main() {
     expect(one.controller.step, WizardStep.token);
     expect(one.controller.canGoBack, isFalse);
 
-    final many = build(
+    final many = wizardHarness(
       teams: <NinoxTeam>[team('team-1'), team('team-2')],
       databases: <NinoxDatabase>[database('db-1'), database('db-2')],
       tables: <NinoxTable>[table('table-1'), table('table-2')],
@@ -297,7 +272,7 @@ void main() {
       tableId: 'table-2',
       mappings: const <FieldMapping>[mapping],
     );
-    final wizard = build(
+    final wizard = wizardHarness(
       teams: <NinoxTeam>[team('team-1'), team('team-2')],
       databases: <NinoxDatabase>[database('db-1'), database('db-2')],
       tables: <NinoxTable>[table('table-1'), table('table-2')],
@@ -326,7 +301,7 @@ void main() {
   test(
     'the port is built from the parsed endpoint, never from what was typed',
     () async {
-      final wizard = build(teams: <NinoxTeam>[team('team-1')]);
+      final wizard = wizardHarness(teams: <NinoxTeam>[team('team-1')]);
 
       await wizard.controller.connect(host: 'NINOX.Example.DE', token: token);
 
@@ -344,7 +319,7 @@ void main() {
   test(
     'a host that is not an accepted form is reported and no call is made',
     () async {
-      final wizard = build(teams: <NinoxTeam>[team('team-1')]);
+      final wizard = wizardHarness(teams: <NinoxTeam>[team('team-1')]);
       final NinoxEndpoint before = wizard.controller.state.endpoint;
 
       // A plain-text scheme would put the token on the wire in clear (NinoxEndpoint.parse).
