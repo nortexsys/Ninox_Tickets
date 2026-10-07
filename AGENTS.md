@@ -48,7 +48,16 @@ assumed.
    | | |
    | --- | --- |
    | Test team | `qCq3JS7q7ptoap8Yg` |
-   | Test database | `db0000000000` |
+   | Test database | `jd1m8n8l4j7i` (`JI-PRUEBAS-CLAUDE`) |
+
+   **Corrected on 2026-10-07, confirmed by the product owner.** Earlier documents,
+   and this file until today, named `db0000000000`; that database is **not** among the
+   databases of the test team, and a read against it answers 404. Wherever a document
+   cites `db0000000000` it means `jd1m8n8l4j7i`. The test database is **a copy of a
+   whole ERP** (about a hundred tables, among them banks, bank cards, treasury and
+   cash), not a small scratch base: **no test reads the records of a
+   table the product owner has not named for the purpose**, and the table of a
+   test is named explicitly, never taken from a list.
 
    Pulling credentials from the environment and letting them pick the target is
    how the test records would have landed in a real company's ERP. It did not
