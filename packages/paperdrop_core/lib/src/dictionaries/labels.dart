@@ -153,6 +153,21 @@ const List<LabelTerm> labelTermsExtension = <LabelTerm>[
   LabelTerm(LabelKind.date, 'Belegdatum', {'de'}),
 ];
 
+/// Column names for the setup wizard's matcher, never read by extraction.
+///
+/// DEC-014's second list, the synonym source the wizard's German-table
+/// scenario expects to recognise. [findTerms] and the extraction pipeline
+/// never consult this list: `Betrag` labels every amount line and `Tax` opens
+/// labels such as *Tax Invoice*, so as extraction labels they would bind the
+/// wrong value. The two [labelTermsExtension] terms are repeated here because
+/// the wizard must propose them too.
+const List<LabelTerm> columnNameTerms = <LabelTerm>[
+  LabelTerm(LabelKind.total, 'Betrag', {'de'}),
+  LabelTerm(LabelKind.supplier, 'Supplier', {'en'}),
+  LabelTerm(LabelKind.tax, 'Tax', {'en'}),
+  ...labelTermsExtension,
+];
+
 bool _setEquals(Set<String> left, Set<String> right) {
   if (left.length != right.length) {
     return false;
