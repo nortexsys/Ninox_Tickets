@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:paperdrop/adapters/pdf_text/pdf_text_candidate.dart';
+import 'package:paperdrop_core/paperdrop_core.dart';
 
 import 'pdf_eval_json.dart';
 
@@ -12,34 +12,19 @@ import 'pdf_eval_json.dart';
 /// **What this proves.** That one document and candidate become one file of
 /// design §2's shape, with the keys, the units and the page order the comparison
 /// script reads: it parses the written text back and checks every key by name,
-/// and it checks that a word's box keeps its four numbers in points with the top
-/// above the bottom.
+/// that Core's thousandths of a point are written as points, and that a word's
+/// box keeps its four numbers with the top above the bottom.
 ///
 /// **Where it stops.** It writes and reads back its own text. It does not check
-/// that the numbers are true of a document — only a candidate reading a document
-/// can do that, and the device run is where that happens.
+/// that the numbers are true of a document — only the native library reading a
+/// document can do that, and that belongs to `app/integration_test/`.
 void main() {
-  const CandidatePage page = CandidatePage(
-    index: 0,
-    width: 595.28,
-    height: 841.89,
-    words: <CandidateWord>[
-      CandidateWord(
-        text: 'Gesamtbetrag',
-        x0: 42.5,
-        x1: 108.75,
-        top: 118.5,
-        bottom: 130.25,
-      ),
-      CandidateWord(
-        text: '1.234,50',
-        x0: 320.0,
-        x1: 366.25,
-        top: 128.0,
-        bottom: 138.0,
-      ),
-    ],
-  );
+  final TextPage page = TextPage(0, 595280, 841890, <PositionedWord>[
+    // 42.5 / 108.75, and a box from 118.5 down to 130.25, in points: Core holds
+    // them in thousandths, the schema is in points, and the writer divides.
+    PositionedWord('Gesamtbetrag', 42500, 108750, 118500, 130250),
+    PositionedWord('1.234,50', 320000, 366250, 128000, 138000),
+  ]);
 
   test('a document and a candidate become one file of design §2\'s shape', () {
     final String written = evalDocumentJson(
@@ -48,7 +33,7 @@ void main() {
       sha256Before: 'a' * 64,
       sha256After: 'a' * 64,
       msPerPage: <int>[31],
-      pages: const <CandidatePage>[page],
+      pages: <TextPage>[page],
     );
 
     final Map<String, Object?> json =
@@ -92,21 +77,14 @@ void main() {
     expect((first['top']! as num) < (first['bottom']! as num), isTrue);
   });
 
-  test('a document with no word is written as a page with no word', () {
+  test('a page with no word is written as a page with no word', () {
     final String written = evalDocumentJson(
       docId: 'scanned-01',
-      tool: 'pdfbox-android 2.0.27.0',
+      tool: 'pdfrx 2.6.5',
       sha256Before: 'b' * 64,
       sha256After: 'b' * 64,
       msPerPage: <int>[7],
-      pages: const <CandidatePage>[
-        CandidatePage(
-          index: 0,
-          width: 595.28,
-          height: 841.89,
-          words: <CandidateWord>[],
-        ),
-      ],
+      pages: <TextPage>[TextPage(0, 595280, 841890, const <PositionedWord>[])],
     );
 
     final Map<String, Object?> json =
@@ -119,10 +97,6 @@ void main() {
     expect(
       evalJsonFileName(docId: 'synthetic-01', candidateToken: 'pdfrx'),
       'synthetic-01.pdfrx-words.json',
-    );
-    expect(
-      evalJsonFileName(docId: 'synthetic-01', candidateToken: 'pdfbox-android'),
-      'synthetic-01.pdfbox-android-words.json',
     );
   });
 }

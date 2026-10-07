@@ -4,8 +4,8 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:paperdrop/adapters/pdf_text/pdf_text_candidate.dart';
-import 'package:paperdrop/adapters/pdf_text/pdfrx_text_candidate.dart';
+import 'package:paperdrop/adapters/pdf_text/pdfrx_text_source.dart';
+import 'package:paperdrop_core/paperdrop_core.dart';
 import 'package:path/path.dart' as p;
 
 import '../test/tool/pdf_eval_json.dart';
@@ -16,15 +16,15 @@ import '../test/tool/pdf_eval_json.dart';
 ///
 /// **What it does.** Given the directory of PDFs on the command line
 /// (`--dart-define=PDF_EVAL_DIR=…`, the app's private storage, where the
-/// orchestrator pushes the corpus with `adb`), it makes the candidate read
-/// every PDF, and writes one JSON per document and candidate next to the input —
+/// orchestrator pushes the corpus with `adb`), it reads every PDF through the
+/// adapter that ships, and writes one JSON per document next to the input —
 /// `<doc_id>.<candidate>-words.json`, in design §2's schema, to be pulled back
-/// to the private corpus's `out` directory and compared by QA's script.
+/// to the private corpus's `out` directory and read by QA's script.
 ///
 /// **What it proves besides the words.** The SHA-256 of each input is taken
 /// before and after the read and both are written into the file (design §1,
 /// "whether opening the file ever writes to it"): extraction is read-only
-/// (ADR-015, `received-files-are-attached-byte-for-byte`), and a candidate that
+/// (ADR-015, `received-files-are-attached-byte-for-byte`), and a read that
 /// changed the file is reported as a failure of the run and not as a clean
 /// result with a different hash nobody looked at.
 ///
@@ -64,46 +64,48 @@ void main() {
     final List<String> failures = <String>[];
     for (final File file in documents) {
       final String docId = p.basenameWithoutExtension(file.path);
-      for (final ({String token, PdfTextCandidate candidate}) entry
-          in _candidates) {
-        try {
-          final Uint8List before = file.readAsBytesSync();
-          final String sha256Before = sha256.convert(before).toString();
+      try {
+        final Uint8List before = file.readAsBytesSync();
+        final String sha256Before = sha256.convert(before).toString();
 
-          final CandidateDocument document = await entry.candidate.read(
-            file.path,
+        // The time each page took comes from the reader itself, because only it
+        // knows where one page's work ends and the next begins; the port does
+        // not carry timing (design §2 needs it, `ms_per_page`).
+        final List<int> msPerPage = <int>[];
+        final List<TextPage> pages = await PdfrxTextSource(
+          onPageRead: (Duration elapsed) =>
+              msPerPage.add(elapsed.inMilliseconds),
+        ).read(file.path);
+
+        final String sha256After = sha256
+            .convert(file.readAsBytesSync())
+            .toString();
+        File(
+          p.join(
+            file.parent.path,
+            evalJsonFileName(docId: docId, candidateToken: _candidateToken),
+          ),
+        ).writeAsStringSync(
+          evalDocumentJson(
+            docId: docId,
+            tool: PdfrxTextSource.toolName,
+            sha256Before: sha256Before,
+            sha256After: sha256After,
+            msPerPage: msPerPage,
+            pages: pages,
+          ),
+        );
+
+        // The written file holds both hashes whether they agree or not; the
+        // disagreement is what makes the run fail.
+        if (sha256Before != sha256After) {
+          failures.add(
+            '$docId: reading changed the file '
+            '($sha256Before became $sha256After)',
           );
-
-          final String sha256After = sha256
-              .convert(file.readAsBytesSync())
-              .toString();
-          File(
-            p.join(
-              file.parent.path,
-              evalJsonFileName(docId: docId, candidateToken: entry.token),
-            ),
-          ).writeAsStringSync(
-            evalDocumentJson(
-              docId: docId,
-              tool: entry.candidate.tool,
-              sha256Before: sha256Before,
-              sha256After: sha256After,
-              msPerPage: document.msPerPage,
-              pages: document.pages,
-            ),
-          );
-
-          // The written file holds both hashes whether they agree or not; the
-          // disagreement is what makes the run fail.
-          if (sha256Before != sha256After) {
-            failures.add(
-              '$docId / ${entry.token}: reading changed the file '
-              '($sha256Before became $sha256After)',
-            );
-          }
-        } catch (error) {
-          failures.add('$docId / ${entry.token}: $error');
         }
+      } catch (error) {
+        failures.add('$docId: $error');
       }
     }
 
@@ -117,18 +119,14 @@ void main() {
   }, skip: evalDirectory.isEmpty ? _noDirectory : null);
 }
 
-/// The candidate still measured, with the token it is written under in a file
-/// name (design §2).
+/// The token the one candidate is written under in a file name (design §2).
 ///
-/// There was a second one — candidate A, PdfBox-Android — until the product
-/// owner closed ADR-011 in favour of candidate B on 2026-10-07; its code and
-/// its dependency are gone (design §5) and its numbers stay in
+/// There were two — candidate A was PdfBox-Android — until the product owner
+/// closed ADR-011 in favour of candidate B on 2026-10-07; its code and its
+/// dependency are gone (design §5) and its numbers stay in
 /// `validation/reviews/adr-011-2026-10-07.md`. The schema below is unchanged,
 /// because that is what the comparison script reads.
-const List<({String token, PdfTextCandidate candidate})> _candidates =
-    <({String token, PdfTextCandidate candidate})>[
-      (token: 'pdfrx', candidate: PdfrxTextCandidate()),
-    ];
+const String _candidateToken = 'pdfrx';
 
 const String _noDirectory =
     'PDF_EVAL_DIR is not set: the harness runs on the device, over the private '

@@ -1,30 +1,30 @@
 import 'dart:convert';
 
-import 'package:paperdrop/adapters/pdf_text/pdf_text_candidate.dart';
+import 'package:paperdrop_core/paperdrop_core.dart';
 
 /// Design §2's JSON — the one file the harness writes per document and
 /// candidate, in the schema of the reference extraction, so that the comparison
-/// reads three files of one shape.
+/// reads files of one shape.
 ///
 /// **Why it lives here and not in `app/lib/`.** It is the evaluation's own
 /// output format and not a shape the application produces: nothing in `app/lib/`
-/// writes it, and when the decision of Tue 6 Oct is taken what stays is the
+/// writes it, and when the decision of 2026-10-07 is in force what stays is the
 /// numbers in the review file (design §5). The harness that calls it is
 /// `app/integration_test/pdf_text_eval_test.dart`, and the comparison script
 /// that reads it is QA's.
 ///
-/// Every number is in design §2's units: PDF points, origin at the page's
-/// top-left corner, `ms_per_page` in wall-clock milliseconds per page in page
-/// order. The writer takes the pieces and decides nothing: the tool string is
-/// the candidate's own, and the two hashes are taken around the read by the
-/// caller.
+/// **Units.** The schema is in PDF points with a top-left origin, which is what
+/// the reference extraction speaks. Core holds integer thousandths of a point,
+/// so this writer divides by a thousand — the exact inverse of the adapter's
+/// `(points * 1000).round()`, and lossless for the numbers a library reports,
+/// which are hundredths of a point at best.
 String evalDocumentJson({
   required String docId,
   required String tool,
   required String sha256Before,
   required String sha256After,
   required List<int> msPerPage,
-  required List<CandidatePage> pages,
+  required List<TextPage> pages,
 }) => const JsonEncoder.withIndent('  ').convert(<String, Object?>{
   'doc_id': docId,
   'tool': tool,
@@ -46,17 +46,20 @@ String evalJsonFileName({
   required String candidateToken,
 }) => '$docId.$candidateToken-words.json';
 
-Map<String, Object?> _pageJson(CandidatePage page) => <String, Object?>{
+Map<String, Object?> _pageJson(TextPage page) => <String, Object?>{
   'index': page.index,
-  'width': page.width,
-  'height': page.height,
+  'width': _points(page.width),
+  'height': _points(page.height),
   'words': page.words.map(_wordJson).toList(growable: false),
 };
 
-Map<String, Object?> _wordJson(CandidateWord word) => <String, Object?>{
+Map<String, Object?> _wordJson(PositionedWord word) => <String, Object?>{
   'text': word.text,
-  'x0': word.x0,
-  'x1': word.x1,
-  'top': word.top,
-  'bottom': word.bottom,
+  'x0': _points(word.x0),
+  'x1': _points(word.x1),
+  'top': _points(word.top),
+  'bottom': _points(word.bottom),
 };
+
+/// Milli-points back to the points design §2's schema reports.
+double _points(MilliPoint milli) => milli / 1000;

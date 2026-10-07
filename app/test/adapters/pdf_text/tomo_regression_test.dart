@@ -2,13 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:paperdrop/adapters/pdf_text/pdf_text_candidate.dart';
-import 'package:paperdrop/adapters/pdf_text/pdfrx_text_candidate.dart';
+import 'package:paperdrop/adapters/pdf_text/pdfrx_text_source.dart';
 import 'package:path/path.dart' as p;
-
-import '../../tool/pdfrx_host.dart';
 
 /// The synthetic regression of the failure ADR-011 exists for
 /// (`close-adr-011-pdf-text-route`, design §5, task 1.4).
@@ -18,17 +14,19 @@ import '../../tool/pdfrx_host.dart';
 /// really carries the structure that failed: a label and its value decoupled in
 /// the content stream, with a registry volume `Tomo 8.741` written immediately
 /// after the label and on the line below it, and the total written much later
-/// but **on the label's own line, to the right**. And that a candidate reading
-/// it returns boxes that put the total there and the volume one line down —
-/// which is the assertion design §5 names.
+/// but **on the label's own line, to the right**. The page's own operators are
+/// read here, so the fixture cannot drift from what this test claims about it.
+///
+/// **What it cannot prove here.** Reading that page needs PDFium, and what needs
+/// the native library lives in `app/integration_test/`
+/// (`pdfrx_text_source_test.dart`, and the binding through Core in
+/// `tomo_binding_test.dart`), where the orchestrator runs it.
 ///
 /// **What never enters the repository.** The fixture is invented end to end
 /// (see its generator). The private corpus is not read, copied or named here;
 /// the document that failed, PRO1013-26, is not reproduced — only the structure
 /// of the failure.
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
-
   late File fixture;
   late Uint8List bytes;
 
@@ -84,56 +82,9 @@ void main() {
     expect(placed[volume].x, placed[label].x);
   });
 
-  test('candidate B reads the fixture: the total is on the label\'s line', () async {
-    final Directory cache = Directory.systemTemp.createTempSync(
-      'paperdrop-tomo-regression',
-    );
-    addTearDown(() => cache.deleteSync(recursive: true));
-    mockPathProviderCacheDirectory(cache);
-
-    final String sha256Before = sha256.convert(bytes).toString();
-    final CandidateDocument document = await const PdfrxTextCandidate().read(
-      fixture.path,
-    );
-    // Read-only (ADR-015): the fixture on disk is the fixture that was read.
-    // On the device the harness does this against the intake hash as well.
-    expect(sha256.convert(fixture.readAsBytesSync()).toString(), sha256Before);
-
-    final CandidatePage page = document.pages.single;
-    final CandidateWord label = _only(page, 'Gesamtbetrag');
-    final CandidateWord total = _only(page, '1.234,50');
-    // The plugin's own segmentation: "Tomo 8.741" is two words, and neither of
-    // them is on the label's line.
-    final CandidateWord volume = _only(page, '8.741');
-
-    final List<CandidateWord> onTheLabelLine = page.words
-        .where((CandidateWord word) => _sameLine(word, label))
-        .toList();
+  test('the library the fixture is read with is the one that ships', () {
     expect(
-      onTheLabelLine.map((CandidateWord word) => word.text),
-      contains('1.234,50'),
-      reason: 'the total must be on the label\'s line',
-    );
-    expect(
-      onTheLabelLine.map((CandidateWord word) => word.text),
-      isNot(contains('8.741')),
-      reason: 'the registry volume is on the line below and must not be there',
-    );
-    expect(
-      total.x0,
-      greaterThan(label.x1),
-      reason: 'the value is to the right of its label',
-    );
-
-    // The volume is the nearest line below the label: the trap the fixture sets
-    // for the fallback branch is real, one line away.
-    expect(volume.top, greaterThan(label.bottom));
-    expect(volume.top - label.bottom, lessThan(30));
-  });
-
-  test('the candidate that reads the fixture is the one that ships', () {
-    expect(
-      const PdfrxTextCandidate().tool,
+      PdfrxTextSource.toolName,
       'pdfrx 2.6.5',
       reason:
           'ADR-011 closed in favour of candidate B on 2026-10-07, and candidate '
@@ -193,25 +144,4 @@ int _indexOf(List<PlacedText> placed, String text) {
   final int index = placed.indexWhere((PlacedText item) => item.text == text);
   expect(index, isNonNegative, reason: '$text is not in the fixture');
   return index;
-}
-
-CandidateWord _only(CandidatePage page, String text) {
-  final List<CandidateWord> matches = page.words
-      .where((CandidateWord word) => word.text == text)
-      .toList();
-  expect(matches, hasLength(1), reason: '"$text" once on the page');
-  return matches.single;
-}
-
-/// Whether two words are on the same line: their boxes overlap vertically by
-/// more than half of the shorter one. The fixture's lines are far enough apart
-/// for the answer not to depend on the threshold.
-bool _sameLine(CandidateWord a, CandidateWord b) {
-  final double overlap =
-      (a.bottom < b.bottom ? a.bottom : b.bottom) -
-      (a.top > b.top ? a.top : b.top);
-  final double shorter = (a.bottom - a.top) < (b.bottom - b.top)
-      ? a.bottom - a.top
-      : b.bottom - b.top;
-  return overlap > shorter / 2;
 }
