@@ -8,6 +8,7 @@ library;
 export 'src/checks/check_result.dart';
 export 'src/checks/ean13.dart';
 export 'src/checks/iban.dart';
+export 'src/confidence/date.dart';
 export 'src/confidence/finalize.dart';
 export 'src/confidence/redundancy.dart';
 export 'src/confidence/repair.dart';
