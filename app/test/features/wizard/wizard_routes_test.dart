@@ -88,7 +88,7 @@ void main() {
     );
     final GoRouter router = GoRouter(
       initialLocation: wizardRoute,
-      routes: wizardRoutesFor(
+      routes: wizardRoutes(
         controllerFactory: () => wizard.controller,
         browser: FakeSystemBrowser(),
       ),
@@ -147,7 +147,7 @@ void main() {
           builder: (BuildContext context, GoRouterState state) =>
               const Scaffold(),
         ),
-        ...wizardRoutesFor(
+        ...wizardRoutes(
           controllerFactory: () {
             built++;
             return wizardHarness(

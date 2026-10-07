@@ -26,7 +26,11 @@ String intakeLocationFor(String docId) => '/intake/$docId';
 
 /// Builds the router of the application.
 GoRouter buildAppRouter({required CaptureController controller}) {
-  return GoRouter(
+  /// The router itself, so that the wizard's closing screen can hand the user to capture: the
+  /// callback is the router's, because the router is what knows [captureRoute] (design §2 of
+  /// `implement-setup-wizard` — the wizard imports nothing from this file).
+  late final GoRouter router;
+  router = GoRouter(
     initialLocation: captureRoute,
     routes: <RouteBase>[
       GoRoute(
@@ -44,11 +48,13 @@ GoRouter buildAppRouter({required CaptureController controller}) {
       ),
       // The wizard's own routes, from the Ninox lane's one entry point: the setup wizard
       // (`wizard_routes.dart`) renders the step its controller is on, and a second visit
-      // starts a fresh run.
-      ...wizardRoutes,
+      // starts a fresh run. The callback is this file's, so the wizard can offer the first
+      // capture without knowing this file's routes.
+      ...wizardRoutes(onFinished: () => router.go(captureRoute)),
       // Ninox lane: `...sendRoutes` is added here once
       // `app/lib/features/send/send_routes.dart` exists (setup-mvp-foundations
       // §2). Until then the shell has no route to a screen that does not exist.
     ],
   );
+  return router;
 }

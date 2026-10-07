@@ -333,6 +333,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This database holds no table.'**
   String get wizardNoticeNoTables;
+
+  /// Question of the mapping step (FR-WIZ-005, FR-WIZ-006).
+  ///
+  /// In en, this message translates to:
+  /// **'Which column should each value go to?'**
+  String get wizardMappingHeadline;
+
+  /// Says what the step does, that the proposals are corrections, and that no mapping is mandatory (FR-WIZ-007).
+  ///
+  /// In en, this message translates to:
+  /// **'Paperdrop suggests a column where it recognises one. Correct it, choose another column, or leave the value unmapped: nothing here is required.'**
+  String get wizardMappingExplanation;
+
+  /// The visibly unmapped state of a core field — never an empty selector (FR-WIZ-005).
+  ///
+  /// In en, this message translates to:
+  /// **'Not mapped'**
+  String get wizardMappingUnmapped;
+
+  /// Introduces the per-field absent setting of a mapped field (FR-DST-006).
+  ///
+  /// In en, this message translates to:
+  /// **'If the document prints no value'**
+  String get wizardMappingAbsentLabel;
+
+  /// The default of the absent setting (FR-DST-006: empty, not zero).
+  ///
+  /// In en, this message translates to:
+  /// **'Leave it empty'**
+  String get wizardMappingAbsentEmpty;
+
+  /// The other value of the absent setting (FR-DST-006).
+  ///
+  /// In en, this message translates to:
+  /// **'Write zero'**
+  String get wizardMappingAbsentZero;
+
+  /// Finishes the mapping step, mapped, partly mapped or not at all (FR-WIZ-007).
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get wizardMappingContinueAction;
+
+  /// Plain-language name of the canonical field doc_date (FR-WIZ-005, FR-WIZ-008).
+  ///
+  /// In en, this message translates to:
+  /// **'Document date'**
+  String get wizardFieldDocDate;
+
+  /// Plain-language name of the canonical field supplier_name.
+  ///
+  /// In en, this message translates to:
+  /// **'Supplier'**
+  String get wizardFieldSupplierName;
+
+  /// Plain-language name of the canonical field supplier_tax_id.
+  ///
+  /// In en, this message translates to:
+  /// **'Supplier tax ID'**
+  String get wizardFieldSupplierTaxId;
+
+  /// Plain-language name of the canonical field doc_number.
+  ///
+  /// In en, this message translates to:
+  /// **'Document number'**
+  String get wizardFieldDocNumber;
+
+  /// Plain-language name of the canonical field gross_total.
+  ///
+  /// In en, this message translates to:
+  /// **'Gross total'**
+  String get wizardFieldGrossTotal;
+
+  /// Plain-language name of the canonical field net_total.
+  ///
+  /// In en, this message translates to:
+  /// **'Net total'**
+  String get wizardFieldNetTotal;
+
+  /// Plain-language name of the canonical field tax_total.
+  ///
+  /// In en, this message translates to:
+  /// **'Tax total'**
+  String get wizardFieldTaxTotal;
+
+  /// Plain-language name of the canonical field currency.
+  ///
+  /// In en, this message translates to:
+  /// **'Currency'**
+  String get wizardFieldCurrency;
 }
 
 class _AppLocalizationsDelegate

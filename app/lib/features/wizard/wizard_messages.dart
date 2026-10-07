@@ -16,6 +16,7 @@ library;
 
 import 'package:paperdrop/l10n/generated/app_localizations.dart';
 
+import 'destination.dart';
 import 'wizard_errors.dart';
 import 'wizard_step.dart';
 
@@ -41,4 +42,22 @@ String wizardNoticeMessage(AppLocalizations l10n, WizardNotice notice) =>
       WizardNotice.noTeams => l10n.wizardNoticeNoTeams,
       WizardNotice.noDatabases => l10n.wizardNoticeNoDatabases,
       WizardNotice.noTables => l10n.wizardNoticeNoTables,
+    };
+
+/// The plain-language name of a canonical field (FR-WIZ-008: *it does so in plain language rather
+/// than as a list of keys*).
+///
+/// One switch, used by the mapping step and by the closing summary, so the two name the same fields
+/// in the same words. Exhaustive, like the two above: a new mappable field cannot be added without
+/// the compiler asking what it is called.
+String wizardCoreFieldLabel(AppLocalizations l10n, CoreField coreField) =>
+    switch (coreField) {
+      CoreField.docDate => l10n.wizardFieldDocDate,
+      CoreField.supplierName => l10n.wizardFieldSupplierName,
+      CoreField.supplierTaxId => l10n.wizardFieldSupplierTaxId,
+      CoreField.docNumber => l10n.wizardFieldDocNumber,
+      CoreField.grossTotal => l10n.wizardFieldGrossTotal,
+      CoreField.netTotal => l10n.wizardFieldNetTotal,
+      CoreField.taxTotal => l10n.wizardFieldTaxTotal,
+      CoreField.currency => l10n.wizardFieldCurrency,
     };

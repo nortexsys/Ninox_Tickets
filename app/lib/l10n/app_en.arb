@@ -169,5 +169,66 @@
   "wizardNoticeNoTables": "This database holds no table.",
   "@wizardNoticeNoTables": {
     "description": "The table list came back empty (design §3)."
+  },
+
+  "wizardMappingHeadline": "Which column should each value go to?",
+  "@wizardMappingHeadline": {
+    "description": "Question of the mapping step (FR-WIZ-005, FR-WIZ-006)."
+  },
+  "wizardMappingExplanation": "Paperdrop suggests a column where it recognises one. Correct it, choose another column, or leave the value unmapped: nothing here is required.",
+  "@wizardMappingExplanation": {
+    "description": "Says what the step does, that the proposals are corrections, and that no mapping is mandatory (FR-WIZ-007)."
+  },
+  "wizardMappingUnmapped": "Not mapped",
+  "@wizardMappingUnmapped": {
+    "description": "The visibly unmapped state of a core field — never an empty selector (FR-WIZ-005)."
+  },
+  "wizardMappingAbsentLabel": "If the document prints no value",
+  "@wizardMappingAbsentLabel": {
+    "description": "Introduces the per-field absent setting of a mapped field (FR-DST-006)."
+  },
+  "wizardMappingAbsentEmpty": "Leave it empty",
+  "@wizardMappingAbsentEmpty": {
+    "description": "The default of the absent setting (FR-DST-006: empty, not zero)."
+  },
+  "wizardMappingAbsentZero": "Write zero",
+  "@wizardMappingAbsentZero": {
+    "description": "The other value of the absent setting (FR-DST-006)."
+  },
+  "wizardMappingContinueAction": "Continue",
+  "@wizardMappingContinueAction": {
+    "description": "Finishes the mapping step, mapped, partly mapped or not at all (FR-WIZ-007)."
+  },
+  "wizardFieldDocDate": "Document date",
+  "@wizardFieldDocDate": {
+    "description": "Plain-language name of the canonical field doc_date (FR-WIZ-005, FR-WIZ-008)."
+  },
+  "wizardFieldSupplierName": "Supplier",
+  "@wizardFieldSupplierName": {
+    "description": "Plain-language name of the canonical field supplier_name."
+  },
+  "wizardFieldSupplierTaxId": "Supplier tax ID",
+  "@wizardFieldSupplierTaxId": {
+    "description": "Plain-language name of the canonical field supplier_tax_id."
+  },
+  "wizardFieldDocNumber": "Document number",
+  "@wizardFieldDocNumber": {
+    "description": "Plain-language name of the canonical field doc_number."
+  },
+  "wizardFieldGrossTotal": "Gross total",
+  "@wizardFieldGrossTotal": {
+    "description": "Plain-language name of the canonical field gross_total."
+  },
+  "wizardFieldNetTotal": "Net total",
+  "@wizardFieldNetTotal": {
+    "description": "Plain-language name of the canonical field net_total."
+  },
+  "wizardFieldTaxTotal": "Tax total",
+  "@wizardFieldTaxTotal": {
+    "description": "Plain-language name of the canonical field tax_total."
+  },
+  "wizardFieldCurrency": "Currency",
+  "@wizardFieldCurrency": {
+    "description": "Plain-language name of the canonical field currency."
   }
 }

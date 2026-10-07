@@ -19,34 +19,38 @@ import 'package:go_router/go_router.dart';
 import 'package:paperdrop/features/wizard/choose/choose_screen.dart';
 import 'package:paperdrop/features/wizard/data/keystore_token_store.dart';
 import 'package:paperdrop/features/wizard/data/port_factory.dart';
+import 'package:paperdrop/features/wizard/destination.dart';
+import 'package:paperdrop/features/wizard/mapping/mapping_screen.dart';
 import 'package:paperdrop/features/wizard/token/system_browser.dart';
 import 'package:paperdrop/features/wizard/token/token_screen.dart';
 import 'package:paperdrop/features/wizard/wizard_controller.dart';
 import 'package:paperdrop/features/wizard/wizard_step.dart';
-import 'package:paperdrop/l10n/generated/app_localizations.dart';
 
 /// The wizard's route: the location the shell hands to `router.dart` as `...wizardRoutes`.
 const String wizardRoute = '/wizard';
 
-/// The wizard's routes, exactly as `router.dart` splices them in.
+/// The wizard's routes: the one entry point `router.dart` imports (design §2).
 ///
-/// A **value** and not a function, because the router's line is one line (task 2.2). It carries the
-/// device's composition — the classic adapter, the Keystore and the platform's browser — and
-/// [wizardRoutesFor] is what a test uses to splice in a fake instead.
-final List<RouteBase> wizardRoutes = wizardRoutesFor();
-
-/// The same routes over the composition a caller supplies.
+/// It is a **function** and not the value design §2 sketches, and the reason is the same sentence of
+/// that design: the routes *"take what they need (controller factory, `onFinished`) from deps passed
+/// by the router"*. A value can carry neither, and the shell is the only thing that knows
+/// `captureRoute`, so the closing screen's offer to capture has to arrive from there.
 ///
-/// [controllerFactory] is called once per visit, when the route is entered. Everything it does not
-/// supply is the device's: [deviceWizardController] and [UrlLauncherSystemBrowser].
-List<RouteBase> wizardRoutesFor({
+/// [controllerFactory] is called once per visit, when the route is entered; [browser] and
+/// [onFinished] are what a test replaces. Everything a caller does not supply is the device's:
+/// [deviceWizardController] and [UrlLauncherSystemBrowser].
+List<RouteBase> wizardRoutes({
   WizardController Function()? controllerFactory,
   SystemBrowser? browser,
+  VoidCallback? onFinished,
 }) => <RouteBase>[
   GoRoute(
     path: wizardRoute,
-    builder: (BuildContext context, GoRouterState state) =>
-        WizardFlow(controllerFactory: controllerFactory, browser: browser),
+    builder: (BuildContext context, GoRouterState state) => WizardFlow(
+      controllerFactory: controllerFactory,
+      browser: browser,
+      onFinished: onFinished,
+    ),
   ),
 ];
 
@@ -64,13 +68,22 @@ WizardController deviceWizardController() => WizardController(
 /// The step the controller is on, rendered — one widget, and never two steps at once.
 class WizardFlow extends StatefulWidget {
   /// Builds the flow over the composition the caller chose.
-  const WizardFlow({super.key, this.controllerFactory, this.browser});
+  const WizardFlow({
+    super.key,
+    this.controllerFactory,
+    this.browser,
+    this.onFinished,
+  });
 
   /// Builds the controller for this visit; the device's when it is `null`.
   final WizardController Function()? controllerFactory;
 
   /// The platform's browser; the device's when it is `null`, and a fake in every test.
   final SystemBrowser? browser;
+
+  /// What the wizard calls when the user accepts its offer to capture the first document — the
+  /// router's, because the router is what knows the capture route (design §2).
+  final VoidCallback? onFinished;
 
   @override
   State<WizardFlow> createState() => _WizardFlowState();
@@ -102,22 +115,23 @@ class _WizardFlowState extends State<WizardFlow> {
       ),
       WizardStep.team || WizardStep.database || WizardStep.table =>
         ChooseScreen(controller: _controller, onStepChanged: _stepChanged),
-      WizardStep.mapping => const _MappingStep(),
+      WizardStep.mapping => MappingScreen(
+        controller: _controller,
+        onCompleted: _mappingCompleted,
+      ),
     };
   }
-}
 
-/// The mapping step, until its screen lands.
-///
-/// The mapping step's screen is dispatch 3.3's and its summary 3.4's. Until they exist this is the
-/// wizard's own frame and nothing else: **no sixth screen** and no sentence invented for a screen
-/// that is not written yet (`setup-wizard/five-screens-at-most`, design §3).
-class _MappingStep extends StatelessWidget {
-  const _MappingStep();
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l10n = AppLocalizations.of(context);
-    return Scaffold(appBar: AppBar(title: Text(l10n.wizardTitle)));
+  /// The mapping step's completion.
+  ///
+  /// The mapping belongs to the run's state; what comes next is dispatch 3.4's closing summary, which
+  /// takes this step's place rather than becoming a sixth step (design §3). Until it lands the wizard
+  /// hands the user on through the callback the router supplied.
+  Future<void> _mappingCompleted(List<FieldMapping> mappings) async {
+    _controller.mapFields(mappings);
+    final VoidCallback? finished = widget.onFinished;
+    if (finished != null && mounted) {
+      finished();
+    }
   }
 }

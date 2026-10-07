@@ -147,4 +147,50 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get wizardNoticeNoTables => 'This database holds no table.';
+
+  @override
+  String get wizardMappingHeadline => 'Which column should each value go to?';
+
+  @override
+  String get wizardMappingExplanation =>
+      'Paperdrop suggests a column where it recognises one. Correct it, choose another column, or leave the value unmapped: nothing here is required.';
+
+  @override
+  String get wizardMappingUnmapped => 'Not mapped';
+
+  @override
+  String get wizardMappingAbsentLabel => 'If the document prints no value';
+
+  @override
+  String get wizardMappingAbsentEmpty => 'Leave it empty';
+
+  @override
+  String get wizardMappingAbsentZero => 'Write zero';
+
+  @override
+  String get wizardMappingContinueAction => 'Continue';
+
+  @override
+  String get wizardFieldDocDate => 'Document date';
+
+  @override
+  String get wizardFieldSupplierName => 'Supplier';
+
+  @override
+  String get wizardFieldSupplierTaxId => 'Supplier tax ID';
+
+  @override
+  String get wizardFieldDocNumber => 'Document number';
+
+  @override
+  String get wizardFieldGrossTotal => 'Gross total';
+
+  @override
+  String get wizardFieldNetTotal => 'Net total';
+
+  @override
+  String get wizardFieldTaxTotal => 'Tax total';
+
+  @override
+  String get wizardFieldCurrency => 'Currency';
 }

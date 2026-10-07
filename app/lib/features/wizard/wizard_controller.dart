@@ -77,6 +77,52 @@ final class WizardController {
   /// Which steps are shown, computed and never stored (design §3).
   List<WizardStep> get visibleSteps => _state.visibleSteps;
 
+  /// The table the user chose, with the fields the port returned with it, or `null` while the table
+  /// step is unanswered.
+  ///
+  /// It is what the mapping step is drawn from, and it is already in the state: the listing carries
+  /// each table's fields, so reaching the mapping step costs no round trip (FR-WIZ-004).
+  NinoxTable? get table {
+    final String? tableId = _state.tableId;
+    if (tableId == null) {
+      return null;
+    }
+    for (final NinoxTable candidate in _state.tables) {
+      if (candidate.id == tableId) {
+        return candidate;
+      }
+    }
+    return null;
+  }
+
+  /// The mapping the user built, as the destination's field mappings.
+  List<FieldMapping> get mappings => _state.mappings;
+
+  /// The mapping step's completion: the wizard stops asking and the destination is what it is
+  /// (FR-WIZ-007 — the list may be empty, partly filled or complete).
+  void mapFields(List<FieldMapping> mappings) =>
+      _state = _state.copyWith(mappings: mappings);
+
+  /// The destination the wizard has configured, or `null` while one of the three choices is missing.
+  ///
+  /// It holds identifiers and no secret (design §6): the host, the team, the database, the table and
+  /// the field mappings. The token is not here and never is — the device's keystore holds it.
+  Destination? get destination {
+    final String? teamId = _state.teamId;
+    final String? databaseId = _state.databaseId;
+    final String? tableId = _state.tableId;
+    if (teamId == null || databaseId == null || tableId == null) {
+      return null;
+    }
+    return Destination(
+      endpoint: _state.endpoint,
+      teamId: teamId,
+      databaseId: databaseId,
+      tableId: tableId,
+      mappings: _state.mappings,
+    );
+  }
+
   /// Whether there is a visible step before the current one.
   bool get canGoBack => visibleSteps.indexOf(_state.step) > 0;
 
