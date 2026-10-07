@@ -1,0 +1,20 @@
+{
+  "doc_id": "doc-06",
+  "tool": "pdfbox-android 2.0.27.0",
+  "sha256": "sha-doc06-a",
+  "sha256_after": "sha-doc06-a",
+  "ms_per_page": [10.0],
+  "pages": [
+    {
+      "index": 0,
+      "width": 595.0,
+      "height": 842.0,
+      "words": [
+        {"text": "AAAAA", "x0": 100.0, "x1": 130.0, "top": 700.0, "bottom": 712.0},
+        {"text": "BBBBB", "x0": 134.0, "x1": 164.0, "top": 700.0, "bottom": 712.0},
+        {"text": "CCCCC", "x0": 168.0, "x1": 198.0, "top": 700.0, "bottom": 712.0},
+        {"text": "DDDDD", "x0": 202.0, "x1": 232.0, "top": 700.0, "bottom": 712.0}
+      ]
+    }
+  ]
+}

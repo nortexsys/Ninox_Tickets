@@ -197,6 +197,35 @@ class ProbeResult:
     bound_confirmed: int
 
 
+@dataclass
+class SegmentationStats:
+    """How a source's tokens are shaped, pooled across every document (QA 2.2).
+
+    A candidate whose "words" are in fact multi-word runs degrades every word-level figure to
+    near zero without saying why; this is the diagnostic that says why — a token containing
+    whitespace is not a word by this schema's own definition (design §2: "the library's own
+    segmentation"), and a much longer median token length is the same symptom seen a second way.
+    """
+
+    tokens: int = 0
+    whitespace_tokens: int = 0
+    lengths: list[int] = field(default_factory=list)
+
+    def add(self, text: str) -> None:
+        self.tokens += 1
+        self.lengths.append(len(text))
+        if any(ch.isspace() for ch in text):
+            self.whitespace_tokens += 1
+
+    @property
+    def whitespace_share(self) -> Optional[float]:
+        return (self.whitespace_tokens / self.tokens) if self.tokens else None
+
+    @property
+    def median_length(self) -> Optional[float]:
+        return statistics.median(self.lengths) if self.lengths else None
+
+
 # --------------------------------------------------------------------------------------------
 # Loading
 # --------------------------------------------------------------------------------------------
@@ -422,12 +451,21 @@ def is_number_token(token: str) -> bool:
 # Total-label probe
 # --------------------------------------------------------------------------------------------
 
+# Leading or trailing punctuation around a label token (`Total:`, `TOTAL.`, `(Total)`): stripped
+# for label matching only (QA 2.2). Internal punctuation is kept, so a token that merely
+# *contains* a label as a substring (`Subtotal:`) still does not equal it after stripping: the
+# leading edge of "subtotal:" is a letter, not punctuation, so nothing is stripped from that end.
+_LABEL_PUNCT_STRIP = re.compile(r"^[^\w]+|[^\w]+$", re.UNICODE)
+
 
 def _normalize(text: str) -> str:
-    """Case- and diacritic-insensitive form for label matching."""
+    """Case- and diacritic-insensitive form for label matching, with leading and trailing
+    punctuation stripped (design §1.2, QA 2.2). Used for label matching only: the recall,
+    precision and number-parsing paths read `Word.text` directly and never go through this."""
     decomposed = unicodedata.normalize("NFKD", text)
     stripped = "".join(c for c in decomposed if not unicodedata.combining(c))
-    return stripped.casefold()
+    folded = stripped.casefold()
+    return _LABEL_PUNCT_STRIP.sub("", folded)
 
 
 def _label_word_lists() -> list[list[str]]:
@@ -614,6 +652,10 @@ def _fmt_ms(value: Optional[float]) -> str:
     return "—" if value is None else f"{value:.1f}"
 
 
+def _fmt_len(value: Optional[float]) -> str:
+    return "—" if value is None else f"{value:.1f}"
+
+
 def build_report(
     directory: Path, totals_path: Path, report_date: Optional[date] = None
 ) -> tuple[str, dict]:
@@ -633,11 +675,18 @@ def build_report(
     ms_pooled: dict[str, list[float]] = {c: [] for c in CANDIDATES}
     missing_files: list[tuple[str, str]] = []
     totals_missing: list[str] = []
+    segmentation: dict[str, SegmentationStats] = {
+        "reference": SegmentationStats(),
+        **{c: SegmentationStats() for c in CANDIDATES},
+    }
 
     for doc_id in doc_ids:
         ref_path = reference_path(directory, doc_id)
         ref_doc = load_doc(ref_path)
         ref_pages_by_index = {p.index: p for p in ref_doc.pages}
+        for page in ref_doc.pages:
+            for w in page.words:
+                segmentation["reference"].add(w.text)
 
         confirmed_cents = totals.get(doc_id)
         if doc_id not in totals or confirmed_cents is None:
@@ -657,6 +706,9 @@ def build_report(
                 tool_versions[candidate].add(cand_doc.tool)
             ms_pooled[candidate].extend(cand_doc.ms_per_page)
             read_only_ok[doc_id][candidate] = cand_doc.sha256 == cand_doc.sha256_after
+            for page in cand_doc.pages:
+                for w in page.words:
+                    segmentation[candidate].add(w.text)
 
             stats = DocCandidateStats(doc_id=doc_id, candidate=candidate)
             cand_pages_by_index = {p.index: p for p in cand_doc.pages}
@@ -770,6 +822,30 @@ def build_report(
         )
     lines.append("")
 
+    lines.append("## Segmentation")
+    lines.append("")
+    lines.append(
+        "A token that contains whitespace is not a word by this schema's own definition "
+        "(design §2); a much longer median token length against the reference's is the same "
+        "symptom seen a second way."
+    )
+    lines.append("")
+    lines.append("| source | tokens | contain whitespace | median token length (chars) |")
+    lines.append("| --- | --- | --- | --- |")
+    segmentation_data: dict[str, dict] = {}
+    for source in ("reference", *CANDIDATES):
+        seg = segmentation[source]
+        segmentation_data[source] = {
+            "tokens": seg.tokens,
+            "whitespace_share": seg.whitespace_share,
+            "median_token_length": seg.median_length,
+        }
+        lines.append(
+            f"| {source} | {seg.tokens} | {_fmt_ratio(seg.whitespace_share)} | "
+            f"{_fmt_len(seg.median_length)} |"
+        )
+    lines.append("")
+
     lines.append("## Total-label probe")
     lines.append("")
     lines.append("| doc_id | candidate | occurrences | bound confirmed total | outcome |")
@@ -839,6 +915,7 @@ def build_report(
             candidate: dict(read_only_summary[candidate]) for candidate in CANDIDATES
         },
         "timing": timing,
+        "segmentation": segmentation_data,
     }
     return report_text, data
 

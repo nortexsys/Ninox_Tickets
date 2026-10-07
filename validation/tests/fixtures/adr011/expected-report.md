@@ -2,7 +2,7 @@
 
 Candidates segment words their own way (design §2): word counts differ by design. The IoU ≥ 0.5 share, not the word count, is the comparable figure.
 
-Documents compared: 5.
+Documents compared: 6.
 
 ## Tool versions
 
@@ -20,6 +20,7 @@ Documents compared: 5.
 | doc-03 | 0 | 5 | 5 | 100.0% | 100.0% | 100.0% |
 | doc-04 | 0 | 1 | 1 | 100.0% | 100.0% | 100.0% |
 | doc-05 | 0 | 2 | 2 | 100.0% | 100.0% | 100.0% |
+| doc-06 | 0 | 4 | 4 | 100.0% | 100.0% | 100.0% |
 
 ### pdfrx
 
@@ -30,6 +31,7 @@ Documents compared: 5.
 | doc-03 | 0 | 5 | 4 | 60.0% | 75.0% | 60.0% |
 | doc-04 | 0 | 1 | 1 | 100.0% | 100.0% | 100.0% |
 | doc-05 | 0 | 2 | 2 | 100.0% | 100.0% | 100.0% |
+| doc-06 | 0 | 4 | 2 | 0.0% | 0.0% | 0.0% |
 
 ## Per-document totals
 
@@ -42,6 +44,7 @@ Documents compared: 5.
 | doc-03 | 5 | 5 | 100.0% | 100.0% | 100.0% |
 | doc-04 | 1 | 1 | 100.0% | 100.0% | 100.0% |
 | doc-05 | 2 | 2 | 100.0% | 100.0% | 100.0% |
+| doc-06 | 4 | 4 | 100.0% | 100.0% | 100.0% |
 
 ### pdfrx
 
@@ -52,13 +55,24 @@ Documents compared: 5.
 | doc-03 | 5 | 4 | 60.0% | 75.0% | 60.0% |
 | doc-04 | 1 | 1 | 100.0% | 100.0% | 100.0% |
 | doc-05 | 2 | 2 | 100.0% | 100.0% | 100.0% |
+| doc-06 | 4 | 2 | 0.0% | 0.0% | 0.0% |
 
 ## Overall
 
 | candidate | ref words | cand words | recall | precision | IoU≥0.5 share |
 | --- | --- | --- | --- | --- | --- |
-| pdfbox-android | 14 | 15 | 100.0% | 93.3% | 100.0% |
-| pdfrx | 14 | 13 | 85.7% | 92.3% | 78.6% |
+| pdfbox-android | 18 | 19 | 100.0% | 94.7% | 100.0% |
+| pdfrx | 18 | 15 | 66.7% | 80.0% | 61.1% |
+
+## Segmentation
+
+A token that contains whitespace is not a word by this schema's own definition (design §2); a much longer median token length against the reference's is the same symptom seen a second way.
+
+| source | tokens | contain whitespace | median token length (chars) |
+| --- | --- | --- | --- |
+| reference | 18 | 0.0% | 5.0 |
+| pdfbox-android | 19 | 0.0% | 5.0 |
+| pdfrx | 15 | 20.0% | 5.0 |
 
 ## Total-label probe
 
@@ -74,8 +88,10 @@ Documents compared: 5.
 | doc-04 | pdfrx | 0 | 0 | not probed |
 | doc-05 | pdfbox-android | 1 | 0 | no |
 | doc-05 | pdfrx | 1 | 0 | no |
+| doc-06 | pdfbox-android | 0 | 0 | not probed |
+| doc-06 | pdfrx | 0 | 0 | not probed |
 
-Documents with totals missing: 1.
+Documents with totals missing: 2.
 
 ## Read-only check (sha256 == sha256_after)
 
@@ -91,11 +107,13 @@ Documents with totals missing: 1.
 | doc-04 | pdfrx | yes |
 | doc-05 | pdfbox-android | yes |
 | doc-05 | pdfrx | yes |
+| doc-06 | pdfbox-android | yes |
+| doc-06 | pdfrx | yes |
 
 ## Timing (ms per page)
 
 | candidate | median | max | pages measured |
 | --- | --- | --- | --- |
-| pdfbox-android | 10.0 | 14.0 | 5 |
-| pdfrx | 8.0 | 9.0 | 5 |
+| pdfbox-android | 10.0 | 14.0 | 6 |
+| pdfrx | 8.0 | 9.0 | 6 |
 

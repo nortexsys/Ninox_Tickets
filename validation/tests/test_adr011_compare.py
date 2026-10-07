@@ -229,6 +229,41 @@ def test_probe_case_and_diacritic_insensitive():
     assert set(occurrences[0]) == {0, 1, 2}
 
 
+def test_probe_tolerates_a_trailing_colon_and_binds_the_value_to_the_right():
+    words = [
+        m.Word("Total:", 400.0, 440.0, 700.0, 712.0),
+        m.Word("19,99", 460.0, 500.0, 700.0, 712.0),
+    ]
+    occurrences = m.find_label_occurrences(words)
+    assert len(occurrences) == 1
+    assert set(occurrences[0]) == {0}
+    bbox = m._bbox_of(words, occurrences[0])
+    bound = m.find_bound_word(words, set(occurrences[0]), bbox)
+    assert bound is not None and bound.text == "19,99"
+
+
+def test_probe_tolerates_a_trailing_period_and_parentheses():
+    assert len(m.find_label_occurrences([m.Word("TOTAL.", 0.0, 40.0, 0.0, 12.0)])) == 1
+    assert len(m.find_label_occurrences([m.Word("(Total)", 0.0, 40.0, 0.0, 12.0)])) == 1
+
+
+def test_probe_does_not_match_a_word_that_merely_contains_a_label():
+    # "Subtotal:" starts with a letter, not punctuation, so nothing is stripped from that end —
+    # it stays "subtotal", distinct from "total", and is correctly not an occurrence.
+    words = [m.Word("Subtotal:", 0.0, 50.0, 0.0, 12.0)]
+    assert m.find_label_occurrences(words) == []
+
+
+def test_probe_tolerates_punctuation_on_a_multi_word_term():
+    words = [
+        m.Word("TOTAL", 300.0, 340.0, 700.0, 712.0),
+        m.Word("FACTURA:", 344.0, 410.0, 700.0, 712.0),
+    ]
+    occurrences = m.find_label_occurrences(words)
+    assert len(occurrences) == 1
+    assert set(occurrences[0]) == {0, 1}
+
+
 def test_total_probe_end_to_end_on_handwritten_words():
     doc = m.Doc(
         doc_id="x",
@@ -343,7 +378,7 @@ def test_sniff_delimiter_falls_back_to_counting_when_sniffing_is_ambiguous():
 
 def test_discover_doc_ids_finds_every_reference_file():
     ids = m.discover_doc_ids(FIXTURES)
-    assert ids == ["doc-01", "doc-02", "doc-03", "doc-04", "doc-05"]
+    assert ids == ["doc-01", "doc-02", "doc-03", "doc-04", "doc-05", "doc-06"]
 
 
 def test_load_doc_reads_the_schema():
@@ -366,16 +401,17 @@ def test_build_report_matches_the_crafted_fixture_set():
         FIXTURES, FIXTURES / "totals-main.csv", report_date=date(2026, 10, 2)
     )
 
-    assert data["documents"] == 5
+    assert data["documents"] == 6
     assert data["missing_candidate_files"] == 0
-    assert data["totals_missing"] == 1
+    assert data["totals_missing"] == 2
 
     overall = data["overall"]
     assert overall["pdfbox-android"]["recall"] == 1.0
     assert overall["pdfbox-android"]["iou_share"] == 1.0
-    assert round(overall["pdfbox-android"]["precision"], 4) == round(14 / 15, 4)
-    assert round(overall["pdfrx"]["recall"], 4) == round(12 / 14, 4)
-    assert round(overall["pdfrx"]["iou_share"], 4) == round(11 / 14, 4)
+    assert round(overall["pdfbox-android"]["precision"], 4) == round(18 / 19, 4)
+    assert round(overall["pdfrx"]["recall"], 4) == round(12 / 18, 4)
+    assert round(overall["pdfrx"]["precision"], 4) == round(12 / 15, 4)
+    assert round(overall["pdfrx"]["iou_share"], 4) == round(11 / 18, 4)
 
     probe = data["probe"]
     assert probe["doc-01"]["pdfbox-android"]["outcome"] == "yes"
@@ -387,16 +423,123 @@ def test_build_report_matches_the_crafted_fixture_set():
     assert probe["doc-04"]["pdfbox-android"]["outcome"] == "not probed"
     assert probe["doc-05"]["pdfbox-android"]["outcome"] == "no"
     assert probe["doc-05"]["pdfrx"]["outcome"] == "no"
+    assert probe["doc-06"]["pdfbox-android"]["outcome"] == "not probed"
+    assert probe["doc-06"]["pdfrx"]["outcome"] == "not probed"
 
     assert data["read_only_ok"]["pdfbox-android"]["doc-01"] is True
     assert data["read_only_ok"]["pdfrx"]["doc-01"] is False
 
     assert data["timing"]["pdfbox-android"]["median_ms"] == 10.0
     assert data["timing"]["pdfbox-android"]["max_ms"] == 14.0
+    assert data["timing"]["pdfbox-android"]["pages"] == 6
     assert data["timing"]["pdfrx"]["median_ms"] == 8.0
     assert data["timing"]["pdfrx"]["max_ms"] == 9.0
+    assert data["timing"]["pdfrx"]["pages"] == 6
 
+    # doc-06: a candidate whose "words" are two multi-word runs — every word-level figure for it
+    # is exactly zero, which is the bug this correction makes visible rather than hiding.
     assert "# ADR-011 comparison — 2026-10-02" in text
+    assert "| doc-06 | 0 | 4 | 2 | 0.0% | 0.0% | 0.0% |" in text
+
+    segmentation = data["segmentation"]
+    assert segmentation["reference"]["whitespace_share"] == 0.0
+    assert segmentation["pdfbox-android"]["whitespace_share"] == 0.0
+    assert segmentation["pdfrx"]["whitespace_share"] == 0.2
+    assert segmentation["reference"]["tokens"] == 18
+    assert segmentation["pdfbox-android"]["tokens"] == 19
+    assert segmentation["pdfrx"]["tokens"] == 15
+
+
+# --------------------------------------------------------------------------------------------
+# Segmentation — a candidate whose "words" are not words, reported rather than hidden
+# --------------------------------------------------------------------------------------------
+
+
+def _write_doc(path, doc_id, tool, words, sha="s", sha_after="s", ms=(1.0,)):
+    path.write_text(
+        json.dumps(
+            {
+                "doc_id": doc_id,
+                "tool": tool,
+                "sha256": sha,
+                "sha256_after": sha_after,
+                "ms_per_page": list(ms),
+                "pages": [
+                    {
+                        "index": 0,
+                        "width": 595.0,
+                        "height": 842.0,
+                        "words": [
+                            {"text": t, "x0": i * 50.0, "x1": i * 50.0 + 40.0, "top": 0.0, "bottom": 12.0}
+                            for i, t in enumerate(words)
+                        ],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def test_segmentation_reports_whitespace_tokens_and_a_much_longer_median_length(tmp_path):
+    # Reference: four five-character words, no whitespace in any of them — median length 5.
+    _write_doc(
+        tmp_path / "seg.ref-pdfplumber-words.json",
+        "seg",
+        "pdfplumber 0.11.4",
+        ["AAAAA", "BBBBB", "CCCCC", "DDDDD"],
+    )
+    # Good candidate: the same four words, unchanged — no whitespace, median 5.
+    _write_doc(
+        tmp_path / "seg.pdfbox-android-words.json",
+        "seg",
+        "pdfbox-android 2.0.27.0",
+        ["AAAAA", "BBBBB", "CCCCC", "DDDDD"],
+    )
+    # Bad candidate: two merged runs, 21 characters each, each containing one space.
+    _write_doc(
+        tmp_path / "seg.pdfrx-words.json",
+        "seg",
+        "pdfrx 0.5.0",
+        ["AAAAAAAAAA BBBBBBBBBB", "CCCCCCCCCC DDDDDDDDDD"],
+    )
+    totals = tmp_path / "totals.csv"
+    totals.write_text(
+        "doc_id;total_propuesto_EUR;correcto_si_no;total_correcto_si_no\n", encoding="utf-8"
+    )
+
+    _, data = m.build_report(tmp_path, totals)
+    seg = data["segmentation"]
+
+    assert seg["reference"]["whitespace_share"] == 0.0
+    assert seg["reference"]["median_token_length"] == 5
+    assert seg["pdfbox-android"]["whitespace_share"] == 0.0
+    assert seg["pdfbox-android"]["median_token_length"] == 5
+    assert seg["pdfrx"]["whitespace_share"] == 1.0
+    assert seg["pdfrx"]["median_token_length"] == 21
+
+    # Every word-level figure for the bad candidate is zero — exactly the symptom reported, not
+    # hidden behind a blank cell.
+    overall = data["overall"]["pdfrx"]
+    assert overall["recall"] == 0.0
+    assert overall["precision"] == 0.0
+    assert overall["iou_share"] == 0.0
+
+
+def test_segmentation_whitespace_share_distinguishes_a_well_and_badly_segmented_candidate(
+    tmp_path,
+):
+    _write_doc(tmp_path / "x.ref-pdfplumber-words.json", "x", "pdfplumber", ["ONE", "TWO"])
+    _write_doc(tmp_path / "x.pdfbox-android-words.json", "x", "pdfbox-android", ["ONE", "TWO"])
+    _write_doc(tmp_path / "x.pdfrx-words.json", "x", "pdfrx", ["ONE TWO"])
+    totals = tmp_path / "totals.csv"
+    totals.write_text(
+        "doc_id;total_propuesto_EUR;correcto_si_no;total_correcto_si_no\n", encoding="utf-8"
+    )
+
+    _, data = m.build_report(tmp_path, totals)
+    assert data["segmentation"]["pdfbox-android"]["whitespace_share"] == 0.0
+    assert data["segmentation"]["pdfrx"]["whitespace_share"] == 1.0
 
 
 # --------------------------------------------------------------------------------------------
@@ -464,7 +607,7 @@ def test_cli_writes_the_report_and_optional_json(tmp_path):
     assert out.exists()
     assert out_json.exists()
     data = json.loads(out_json.read_text(encoding="utf-8"))
-    assert data["documents"] == 5
+    assert data["documents"] == 6
 
 
 def test_cli_as_a_subprocess(tmp_path):
