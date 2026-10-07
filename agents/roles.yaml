@@ -66,7 +66,11 @@ roles:
       - dart-run-static-analysis
     # Wizard and send paths in app/ fixed by setup-mvp-foundations, design §2 and §5.
     writes: ["/packages/ninox_client/**", "/app/lib/features/wizard/**", "/app/lib/features/send/**",
-             "/app/test/features/wizard/**", "/app/test/features/send/**"]
+             "/app/test/features/wizard/**", "/app/test/features/send/**",
+             # TEMPORARY, approved by the PO on 2026-10-07 for `implement-setup-wizard` only
+             # (its design §7): three dependencies, the workspace lock, `wizard*` l10n keys and
+             # the single `...wizardRoutes` line. Remove these four entries when that change is archived.
+             "/app/pubspec.yaml", "/pubspec.lock", "/app/lib/l10n/**", "/app/lib/app/router.dart"]
 
   mobile:
     runtime: langgraph

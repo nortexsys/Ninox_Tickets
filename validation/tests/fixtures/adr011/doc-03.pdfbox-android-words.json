@@ -1,0 +1,21 @@
+{
+  "doc_id": "doc-03",
+  "tool": "pdfbox-android 2.0.27.0",
+  "sha256": "sha-doc03-a",
+  "sha256_after": "sha-doc03-a",
+  "ms_per_page": [14.0],
+  "pages": [
+    {
+      "index": 0,
+      "width": 595.0,
+      "height": 842.0,
+      "words": [
+        {"text": "TOTAL", "x0": 300.0, "x1": 340.0, "top": 700.0, "bottom": 712.0},
+        {"text": "FACTURA", "x0": 344.0, "x1": 400.0, "top": 700.0, "bottom": 712.0},
+        {"text": "Tomo", "x0": 450.0, "x1": 480.0, "top": 714.0, "bottom": 726.0},
+        {"text": "8.741", "x0": 484.0, "x1": 530.0, "top": 714.0, "bottom": 726.0},
+        {"text": "125,00", "x0": 310.0, "x1": 360.0, "top": 730.0, "bottom": 742.0}
+      ]
+    }
+  ]
+}

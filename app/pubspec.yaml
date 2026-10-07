@@ -28,6 +28,9 @@ dependencies:
   # PDFium through pdfrx. Both candidates stay in the build until the product
   # owner's decision of Tue 6 Oct; the loser's dependency leaves with its code.
   pdfrx: ^2.6.5
+  flutter_secure_storage: ^10.3.4
+  url_launcher: ^6.3.3
+  http: ^1.6.0
 
 dev_dependencies:
   flutter_test:

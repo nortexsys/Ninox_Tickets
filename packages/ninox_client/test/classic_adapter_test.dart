@@ -606,6 +606,70 @@ void main() {
       );
       expect(seen, isEmpty);
     });
+
+    test('a field value crosses the boundary unchanged, whether it looks like a choice '
+        "option's identifier or its text", () async {
+      final seen = <http.Request>[];
+      final adapter = _adapter(
+        _answering(classicFixture('create-response.json'), seen: seen),
+      );
+
+      // ADR-004, "Choice fields": accepts either the option identifier or the option text.
+      // QA review 2026-10-02 (`validation/reviews/ninox-contract-2026-10-02.md`): this half is
+      // provable at this layer and was not proved by name — the adapter imposes no shape on a
+      // field's value at all, so an option id and an option's text both cross the boundary
+      // exactly as given, with no validation or transformation of either. Whether Ninox itself
+      // accepts both, and what happens when the text matches none of the field's options, stays
+      // ADR-004's own "still open" and is unverified until a live call (T1.9).
+      await adapter.createRecord(_ref, const {'Category': 'opt_7'});
+      await adapter.createRecord(_ref, const {'Category': 'Groceries'});
+
+      expect(seen[0].body, '{"fields":{"Category":"opt_7"}}');
+      expect(seen[1].body, '{"fields":{"Category":"Groceries"}}');
+    });
+
+    test('the identifier a create returns is what a following attachment and read-back are built on', () async {
+      final seen = <http.Request>[];
+      final adapter = _adapter(_routing(seen));
+
+      // ADR-004, "Create response": returns HTTP 200 with the identifier of the new record,
+      // "which is what the attachment call and the deep link both need". QA review 2026-10-02:
+      // provable and not proved by name — this test chains the identifier `createRecord`
+      // returns into a following `uploadFile` and `readRecord` call and checks the URL each one
+      // is built on, which this layer can do without a live workspace. What it cannot prove: that
+      // the three calls are actually staged in this order with the matrix's failure handling
+      // between them (T1.11's `create-attach-read-back`), or that the record a live read-back
+      // returns actually carries that identifier — `_routing`'s fixtures are the same regardless
+      // of the id in the URL, so the body of a chained live round trip is T1.9's, not this one's.
+      final id = await adapter.createRecord(_ref, const {'Amount': 1999});
+
+      expect(id, const RecordId('1416'));
+
+      await adapter.uploadFile(
+        _ref,
+        id,
+        filename: 'receipt.pdf',
+        bytes: Uint8List.fromList(const [1, 2, 3]),
+        contentType: 'application/pdf',
+      );
+      await adapter.readRecord(_ref, id);
+
+      expect(
+        seen,
+        hasLength(3),
+        reason: 'create, then the attachment, then the read-back',
+      );
+      expect(
+        seen[1].url.path,
+        '/v1/teams/t1a2b3c4d5e6f7g8h/databases/db1a2b3c4d/tables/T1/records/1416/files',
+        reason: 'the attachment call is built on exactly the identifier the create returned',
+      );
+      expect(
+        seen[2].url.path,
+        '/v1/teams/t1a2b3c4d5e6f7g8h/databases/db1a2b3c4d/tables/T1/records/1416',
+        reason: 'the read-back is built on exactly the identifier the create returned',
+      );
+    });
   });
 
   group('the requests this layer can make', () {

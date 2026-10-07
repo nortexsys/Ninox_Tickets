@@ -23,6 +23,9 @@ root file is outside the lane's write bounds.
 | `path` 1.9.1 | Building `<documents>/originals/<docId>/original.<ext>` | BSD-3-Clause | No |
 | `path_provider` 2.1.6 | The application's documents directory | BSD-3-Clause | No |
 | `file_picker` 10.3.10 | The file-picker path of FR-CAP-001 | MIT | No |
+| `flutter_secure_storage` 10.3.4 | The Ninox token in the Android Keystore (FR-CFG-004, `implement-setup-wizard` §4) | BSD-3-Clause | No |
+| `url_launcher` 6.3.3 | Opens the Ninox settings page in the platform's system browser, never a WebView (FR-WIZ-003) | BSD-3-Clause | No |
+| `http` 1.6.0 | The one composition that builds the real Ninox adapter (`implement-setup-wizard` §3) | BSD-3-Clause | No |
 | `share_handler` 0.0.25, with `share_handler_platform_interface` 0.0.6 and `share_handler_android` 0.0.11 | Android share-in (FR-CAP-008): `ACTION_SEND` and `ACTION_SEND_MULTIPLE` | MIT | No |
 | `google_mlkit_document_scanner` 0.6.0 (wrapper only; the scanner itself is Google Play services) | The platform's document scanner, FR-CAP-002 (ADR-006) | MIT for the wrapper; ML Kit Terms of Service for the Google component | **Yes** (the Google component) |
 | AndroidX and the Kotlin standard library (through the Flutter Android embedding) | Platform integration | Apache-2.0 | No |

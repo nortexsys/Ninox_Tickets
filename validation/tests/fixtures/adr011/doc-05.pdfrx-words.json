@@ -1,0 +1,18 @@
+{
+  "doc_id": "doc-05",
+  "tool": "pdfrx 0.5.0",
+  "sha256": "sha-doc05-b",
+  "sha256_after": "sha-doc05-b",
+  "ms_per_page": [8.0],
+  "pages": [
+    {
+      "index": 0,
+      "width": 595.0,
+      "height": 842.0,
+      "words": [
+        {"text": "TOTAL", "x0": 400.0, "x1": 440.0, "top": 700.0, "bottom": 712.0},
+        {"text": "99,00", "x0": 460.0, "x1": 500.0, "top": 700.0, "bottom": 712.0}
+      ]
+    }
+  ]
+}

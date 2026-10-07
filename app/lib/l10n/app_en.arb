@@ -72,5 +72,196 @@
   "errorIntakeFailed": "The document could not be stored, and nothing was kept.",
   "@errorIntakeFailed": {
     "description": "Copy, hash or storage failure inside DocumentIntake."
+  },
+
+  "wizardTitle": "Set up Ninox",
+  "@wizardTitle": {
+    "description": "Title of every screen of the setup wizard (FR-WIZ-001)."
+  },
+  "wizardTokenInstructions": "Create an API token in Ninox's own settings, then paste it here. Paperdrop asks for a token and for nothing else: never for your user name or your password.",
+  "@wizardTokenInstructions": {
+    "description": "How the user obtains the token (FR-WIZ-003, product-invariants/token-is-the-only-credential). The address of Ninox's settings page is not established, so the screen names the place and opens nothing."
+  },
+  "wizardTokenFieldLabel": "API token",
+  "@wizardTokenFieldLabel": {
+    "description": "Label of the obscured field the token is pasted into (FR-WIZ-003)."
+  },
+  "wizardTokenFieldHint": "Paste the token from Ninox",
+  "@wizardTokenFieldHint": {
+    "description": "Hint of the token field."
+  },
+  "wizardTokenPasteAction": "Paste",
+  "@wizardTokenPasteAction": {
+    "description": "Fills the token field from the clipboard, trimmed (FR-WIZ-003)."
+  },
+  "wizardTokenOpenSettingsAction": "Open Ninox settings",
+  "@wizardTokenOpenSettingsAction": {
+    "description": "Opens Ninox's own settings page in the platform's browser (FR-WIZ-003). Shown only where the address of that page is established; while it is not, the app opens no page rather than a guessed one."
+  },
+  "wizardTokenAdvancedTitle": "Advanced setup",
+  "@wizardTokenAdvancedTitle": {
+    "description": "The collapsed section holding the Ninox host (FR-DST-008)."
+  },
+  "wizardTokenHostLabel": "Ninox host",
+  "@wizardTokenHostLabel": {
+    "description": "Label of the host field of the destination (FR-DST-008)."
+  },
+  "wizardTokenHostHint": "api.ninox.com",
+  "@wizardTokenHostHint": {
+    "description": "The vendor's public cloud host, the default of the field (ADR-017)."
+  },
+  "wizardTokenHostHelp": "Change this only for a Ninox private cloud.",
+  "@wizardTokenHostHelp": {
+    "description": "Why the host field exists: a private-cloud customer has another host (FR-DST-008)."
+  },
+  "wizardTokenConnectAction": "Connect",
+  "@wizardTokenConnectAction": {
+    "description": "The one action that validates the token and the host by their effect (FR-WIZ-003)."
+  },
+  "wizardTeamStepTitle": "Which team should Paperdrop use?",
+  "@wizardTeamStepTitle": {
+    "description": "Question of the team step (FR-WIZ-002)."
+  },
+  "wizardDatabaseStepTitle": "Which database?",
+  "@wizardDatabaseStepTitle": {
+    "description": "Question of the database step (FR-WIZ-002)."
+  },
+  "wizardTableStepTitle": "Which table should the documents go to?",
+  "@wizardTableStepTitle": {
+    "description": "Question of the table step (FR-WIZ-002, FR-WIZ-004)."
+  },
+  "wizardBackAction": "Back",
+  "@wizardBackAction": {
+    "description": "Returns to the previous step the lists still show (FR-WIZ-002)."
+  },
+  "wizardTryAgainAction": "Try again",
+  "@wizardTryAgainAction": {
+    "description": "Runs the call a step failed on again, without leaving the step (orchestrator, 2026-10-07)."
+  },
+  "wizardErrorHostNotValid": "That is not a valid host.",
+  "@wizardErrorHostNotValid": {
+    "description": "The host field holds something NinoxEndpoint.parse does not accept (design §4); reported at the field."
+  },
+  "wizardErrorTokenNotAccepted": "Ninox did not accept that token.",
+  "@wizardErrorTokenNotAccepted": {
+    "description": "The call answered Unauthorized (design §4)."
+  },
+  "wizardErrorHostUnreachable": "The host could not be reached. Check the address and your connection.",
+  "@wizardErrorHostUnreachable": {
+    "description": "The call answered TransportFailure (design §4)."
+  },
+  "wizardErrorNotANinoxApi": "That address answered, but it is not a Ninox API.",
+  "@wizardErrorNotANinoxApi": {
+    "description": "The call answered UnexpectedResponse (design §4)."
+  },
+  "wizardErrorNinoxError": "Ninox answered with an error. Try again.",
+  "@wizardErrorNinoxError": {
+    "description": "ServerError, RateLimited, NotFound and any other failure of a wizard call (design §4)."
+  },
+  "wizardNoticeNoTeams": "This account can see no team.",
+  "@wizardNoticeNoTeams": {
+    "description": "The team list came back empty (design §3: the step stays with this explanation)."
+  },
+  "wizardNoticeNoDatabases": "This team holds no database.",
+  "@wizardNoticeNoDatabases": {
+    "description": "The database list came back empty (design §3)."
+  },
+  "wizardNoticeNoTables": "This database holds no table.",
+  "@wizardNoticeNoTables": {
+    "description": "The table list came back empty (design §3)."
+  },
+
+  "wizardMappingHeadline": "Which column should each value go to?",
+  "@wizardMappingHeadline": {
+    "description": "Question of the mapping step (FR-WIZ-005, FR-WIZ-006)."
+  },
+  "wizardMappingExplanation": "Paperdrop suggests a column where it recognises one. Correct it, choose another column, or leave the value unmapped: nothing here is required.",
+  "@wizardMappingExplanation": {
+    "description": "Says what the step does, that the proposals are corrections, and that no mapping is mandatory (FR-WIZ-007)."
+  },
+  "wizardMappingUnmapped": "Not mapped",
+  "@wizardMappingUnmapped": {
+    "description": "The visibly unmapped state of a core field — never an empty selector (FR-WIZ-005)."
+  },
+  "wizardMappingAbsentLabel": "If the document prints no value",
+  "@wizardMappingAbsentLabel": {
+    "description": "Introduces the per-field absent setting of a mapped field (FR-DST-006)."
+  },
+  "wizardMappingAbsentEmpty": "Leave it empty",
+  "@wizardMappingAbsentEmpty": {
+    "description": "The default of the absent setting (FR-DST-006: empty, not zero)."
+  },
+  "wizardMappingAbsentZero": "Write zero",
+  "@wizardMappingAbsentZero": {
+    "description": "The other value of the absent setting (FR-DST-006)."
+  },
+  "wizardMappingContinueAction": "Continue",
+  "@wizardMappingContinueAction": {
+    "description": "Finishes the mapping step, mapped, partly mapped or not at all (FR-WIZ-007)."
+  },
+  "wizardFieldDocDate": "Document date",
+  "@wizardFieldDocDate": {
+    "description": "Plain-language name of the canonical field doc_date (FR-WIZ-005, FR-WIZ-008)."
+  },
+  "wizardFieldSupplierName": "Supplier",
+  "@wizardFieldSupplierName": {
+    "description": "Plain-language name of the canonical field supplier_name."
+  },
+  "wizardFieldSupplierTaxId": "Supplier tax ID",
+  "@wizardFieldSupplierTaxId": {
+    "description": "Plain-language name of the canonical field supplier_tax_id."
+  },
+  "wizardFieldDocNumber": "Document number",
+  "@wizardFieldDocNumber": {
+    "description": "Plain-language name of the canonical field doc_number."
+  },
+  "wizardFieldGrossTotal": "Gross total",
+  "@wizardFieldGrossTotal": {
+    "description": "Plain-language name of the canonical field gross_total."
+  },
+  "wizardFieldNetTotal": "Net total",
+  "@wizardFieldNetTotal": {
+    "description": "Plain-language name of the canonical field net_total."
+  },
+  "wizardFieldTaxTotal": "Tax total",
+  "@wizardFieldTaxTotal": {
+    "description": "Plain-language name of the canonical field tax_total."
+  },
+  "wizardFieldCurrency": "Currency",
+  "@wizardFieldCurrency": {
+    "description": "Plain-language name of the canonical field currency."
+  },
+
+  "wizardSummaryHeadline": "This is what Paperdrop will write",
+  "@wizardSummaryHeadline": {
+    "description": "Heading of the closing summary (FR-WIZ-008)."
+  },
+  "wizardSummarySaved": "It will save the {fields} on the record.",
+  "@wizardSummarySaved": {
+    "description": "Names the core fields that will be saved, in plain language rather than as keys (FR-WIZ-008).",
+    "placeholders": {
+      "fields": {
+        "type": "String",
+        "example": "document date, gross total"
+      }
+    }
+  },
+  "wizardSummaryNotSaved": "It will not save the {fields}: those columns stay as they are.",
+  "@wizardSummaryNotSaved": {
+    "description": "Names the core fields that will not be saved, so the consequence is stated rather than left to be discovered (FR-WIZ-008).",
+    "placeholders": {
+      "fields": {
+        "type": "String",
+        "example": "supplier, tax total"
+      }
+    }
+  },
+  "wizardSummaryNothingMapped": "Only the document will be attached, with no data: no column of the record will be filled.",
+  "@wizardSummaryNothingMapped": {
+    "description": "The empty-record case, in the requirement's own words: only the document will be attached, with no data (FR-WIZ-008, FR-WIZ-007)."
+  },
+  "wizardSummaryCaptureAction": "Capture a document",
+  "@wizardSummaryCaptureAction": {
+    "description": "The closing screen's offer: capture a document of any kind rather than returning the user to an empty application (FR-WIZ-008)."
   }
 }

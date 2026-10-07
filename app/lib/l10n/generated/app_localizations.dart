@@ -189,6 +189,270 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The document could not be stored, and nothing was kept.'**
   String get errorIntakeFailed;
+
+  /// Title of every screen of the setup wizard (FR-WIZ-001).
+  ///
+  /// In en, this message translates to:
+  /// **'Set up Ninox'**
+  String get wizardTitle;
+
+  /// How the user obtains the token (FR-WIZ-003, product-invariants/token-is-the-only-credential). The address of Ninox's settings page is not established, so the screen names the place and opens nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'Create an API token in Ninox\'s own settings, then paste it here. Paperdrop asks for a token and for nothing else: never for your user name or your password.'**
+  String get wizardTokenInstructions;
+
+  /// Label of the obscured field the token is pasted into (FR-WIZ-003).
+  ///
+  /// In en, this message translates to:
+  /// **'API token'**
+  String get wizardTokenFieldLabel;
+
+  /// Hint of the token field.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste the token from Ninox'**
+  String get wizardTokenFieldHint;
+
+  /// Fills the token field from the clipboard, trimmed (FR-WIZ-003).
+  ///
+  /// In en, this message translates to:
+  /// **'Paste'**
+  String get wizardTokenPasteAction;
+
+  /// Opens Ninox's own settings page in the platform's browser (FR-WIZ-003). Shown only where the address of that page is established; while it is not, the app opens no page rather than a guessed one.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Ninox settings'**
+  String get wizardTokenOpenSettingsAction;
+
+  /// The collapsed section holding the Ninox host (FR-DST-008).
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced setup'**
+  String get wizardTokenAdvancedTitle;
+
+  /// Label of the host field of the destination (FR-DST-008).
+  ///
+  /// In en, this message translates to:
+  /// **'Ninox host'**
+  String get wizardTokenHostLabel;
+
+  /// The vendor's public cloud host, the default of the field (ADR-017).
+  ///
+  /// In en, this message translates to:
+  /// **'api.ninox.com'**
+  String get wizardTokenHostHint;
+
+  /// Why the host field exists: a private-cloud customer has another host (FR-DST-008).
+  ///
+  /// In en, this message translates to:
+  /// **'Change this only for a Ninox private cloud.'**
+  String get wizardTokenHostHelp;
+
+  /// The one action that validates the token and the host by their effect (FR-WIZ-003).
+  ///
+  /// In en, this message translates to:
+  /// **'Connect'**
+  String get wizardTokenConnectAction;
+
+  /// Question of the team step (FR-WIZ-002).
+  ///
+  /// In en, this message translates to:
+  /// **'Which team should Paperdrop use?'**
+  String get wizardTeamStepTitle;
+
+  /// Question of the database step (FR-WIZ-002).
+  ///
+  /// In en, this message translates to:
+  /// **'Which database?'**
+  String get wizardDatabaseStepTitle;
+
+  /// Question of the table step (FR-WIZ-002, FR-WIZ-004).
+  ///
+  /// In en, this message translates to:
+  /// **'Which table should the documents go to?'**
+  String get wizardTableStepTitle;
+
+  /// Returns to the previous step the lists still show (FR-WIZ-002).
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get wizardBackAction;
+
+  /// Runs the call a step failed on again, without leaving the step (orchestrator, 2026-10-07).
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get wizardTryAgainAction;
+
+  /// The host field holds something NinoxEndpoint.parse does not accept (design §4); reported at the field.
+  ///
+  /// In en, this message translates to:
+  /// **'That is not a valid host.'**
+  String get wizardErrorHostNotValid;
+
+  /// The call answered Unauthorized (design §4).
+  ///
+  /// In en, this message translates to:
+  /// **'Ninox did not accept that token.'**
+  String get wizardErrorTokenNotAccepted;
+
+  /// The call answered TransportFailure (design §4).
+  ///
+  /// In en, this message translates to:
+  /// **'The host could not be reached. Check the address and your connection.'**
+  String get wizardErrorHostUnreachable;
+
+  /// The call answered UnexpectedResponse (design §4).
+  ///
+  /// In en, this message translates to:
+  /// **'That address answered, but it is not a Ninox API.'**
+  String get wizardErrorNotANinoxApi;
+
+  /// ServerError, RateLimited, NotFound and any other failure of a wizard call (design §4).
+  ///
+  /// In en, this message translates to:
+  /// **'Ninox answered with an error. Try again.'**
+  String get wizardErrorNinoxError;
+
+  /// The team list came back empty (design §3: the step stays with this explanation).
+  ///
+  /// In en, this message translates to:
+  /// **'This account can see no team.'**
+  String get wizardNoticeNoTeams;
+
+  /// The database list came back empty (design §3).
+  ///
+  /// In en, this message translates to:
+  /// **'This team holds no database.'**
+  String get wizardNoticeNoDatabases;
+
+  /// The table list came back empty (design §3).
+  ///
+  /// In en, this message translates to:
+  /// **'This database holds no table.'**
+  String get wizardNoticeNoTables;
+
+  /// Question of the mapping step (FR-WIZ-005, FR-WIZ-006).
+  ///
+  /// In en, this message translates to:
+  /// **'Which column should each value go to?'**
+  String get wizardMappingHeadline;
+
+  /// Says what the step does, that the proposals are corrections, and that no mapping is mandatory (FR-WIZ-007).
+  ///
+  /// In en, this message translates to:
+  /// **'Paperdrop suggests a column where it recognises one. Correct it, choose another column, or leave the value unmapped: nothing here is required.'**
+  String get wizardMappingExplanation;
+
+  /// The visibly unmapped state of a core field — never an empty selector (FR-WIZ-005).
+  ///
+  /// In en, this message translates to:
+  /// **'Not mapped'**
+  String get wizardMappingUnmapped;
+
+  /// Introduces the per-field absent setting of a mapped field (FR-DST-006).
+  ///
+  /// In en, this message translates to:
+  /// **'If the document prints no value'**
+  String get wizardMappingAbsentLabel;
+
+  /// The default of the absent setting (FR-DST-006: empty, not zero).
+  ///
+  /// In en, this message translates to:
+  /// **'Leave it empty'**
+  String get wizardMappingAbsentEmpty;
+
+  /// The other value of the absent setting (FR-DST-006).
+  ///
+  /// In en, this message translates to:
+  /// **'Write zero'**
+  String get wizardMappingAbsentZero;
+
+  /// Finishes the mapping step, mapped, partly mapped or not at all (FR-WIZ-007).
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get wizardMappingContinueAction;
+
+  /// Plain-language name of the canonical field doc_date (FR-WIZ-005, FR-WIZ-008).
+  ///
+  /// In en, this message translates to:
+  /// **'Document date'**
+  String get wizardFieldDocDate;
+
+  /// Plain-language name of the canonical field supplier_name.
+  ///
+  /// In en, this message translates to:
+  /// **'Supplier'**
+  String get wizardFieldSupplierName;
+
+  /// Plain-language name of the canonical field supplier_tax_id.
+  ///
+  /// In en, this message translates to:
+  /// **'Supplier tax ID'**
+  String get wizardFieldSupplierTaxId;
+
+  /// Plain-language name of the canonical field doc_number.
+  ///
+  /// In en, this message translates to:
+  /// **'Document number'**
+  String get wizardFieldDocNumber;
+
+  /// Plain-language name of the canonical field gross_total.
+  ///
+  /// In en, this message translates to:
+  /// **'Gross total'**
+  String get wizardFieldGrossTotal;
+
+  /// Plain-language name of the canonical field net_total.
+  ///
+  /// In en, this message translates to:
+  /// **'Net total'**
+  String get wizardFieldNetTotal;
+
+  /// Plain-language name of the canonical field tax_total.
+  ///
+  /// In en, this message translates to:
+  /// **'Tax total'**
+  String get wizardFieldTaxTotal;
+
+  /// Plain-language name of the canonical field currency.
+  ///
+  /// In en, this message translates to:
+  /// **'Currency'**
+  String get wizardFieldCurrency;
+
+  /// Heading of the closing summary (FR-WIZ-008).
+  ///
+  /// In en, this message translates to:
+  /// **'This is what Paperdrop will write'**
+  String get wizardSummaryHeadline;
+
+  /// Names the core fields that will be saved, in plain language rather than as keys (FR-WIZ-008).
+  ///
+  /// In en, this message translates to:
+  /// **'It will save the {fields} on the record.'**
+  String wizardSummarySaved(String fields);
+
+  /// Names the core fields that will not be saved, so the consequence is stated rather than left to be discovered (FR-WIZ-008).
+  ///
+  /// In en, this message translates to:
+  /// **'It will not save the {fields}: those columns stay as they are.'**
+  String wizardSummaryNotSaved(String fields);
+
+  /// The empty-record case, in the requirement's own words: only the document will be attached, with no data (FR-WIZ-008, FR-WIZ-007).
+  ///
+  /// In en, this message translates to:
+  /// **'Only the document will be attached, with no data: no column of the record will be filled.'**
+  String get wizardSummaryNothingMapped;
+
+  /// The closing screen's offer: capture a document of any kind rather than returning the user to an empty application (FR-WIZ-008).
+  ///
+  /// In en, this message translates to:
+  /// **'Capture a document'**
+  String get wizardSummaryCaptureAction;
 }
 
 class _AppLocalizationsDelegate

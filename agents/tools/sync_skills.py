@@ -112,9 +112,13 @@ def sync(data: dict) -> None:
         manifest = {}
         for s in skills:
             dst = target / s
-            if dst.exists():
-                shutil.rmtree(dst)
-            shutil.copytree(store / s, dst)
+            # Rewrite a skill only when it differs: lanes start in parallel and each one calls
+            # sync(), so an unconditional delete-and-copy removed files another lane was reading
+            # (2026-10-07, Ninox died on `rmtree` of `.claude/skills/ninox/references`).
+            if not (dst.exists() and tree_hash(dst) == tree_hash(store / s)):
+                if dst.exists():
+                    shutil.rmtree(dst)
+                shutil.copytree(store / s, dst)
             manifest[s] = tree_hash(dst)
         mf.write_text(json.dumps({"role": role, "source": data["skills_root"], "skills": manifest}, indent=2) + "\n", encoding="utf-8")
         print(f"{role:12s} -> {target.relative_to(REPO).as_posix()}  ({len(skills)} skills)")
