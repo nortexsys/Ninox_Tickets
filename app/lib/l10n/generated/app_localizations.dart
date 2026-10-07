@@ -453,6 +453,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Capture a document'**
   String get wizardSummaryCaptureAction;
+
+  /// A failure to write the destination (design §10.1). It claims nothing as saved, and the same screen offers the retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Paperdrop could not save this setup on the device, so nothing has been saved yet. Try again.'**
+  String get wizardSummarySaveFailed;
 }
 
 class _AppLocalizationsDelegate

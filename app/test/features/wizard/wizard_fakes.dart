@@ -9,6 +9,7 @@
 /// third, [FakeSystemBrowser], is the platform's browser.
 library;
 
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:ninox_client/ninox_client.dart';
@@ -65,11 +66,18 @@ class FakeDestinationStore implements DestinationStore {
   /// What the store holds: the last one saved, or nothing.
   List<Destination> stored = <Destination>[];
 
+  /// Makes the next save fail, as a device that cannot write does (design §10.1). A failed save
+  /// records nothing: nothing was saved.
+  bool failing = false;
+
   @override
   Future<List<Destination>> readAll() async => List<Destination>.of(stored);
 
   @override
   Future<void> save(Destination destination) async {
+    if (failing) {
+      throw const FileSystemException('this device cannot write right now');
+    }
     saved.add(destination);
     stored = <Destination>[destination];
   }

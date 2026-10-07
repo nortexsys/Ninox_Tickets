@@ -213,4 +213,8 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get wizardSummaryCaptureAction => 'Capture a document';
+
+  @override
+  String get wizardSummarySaveFailed =>
+      'Paperdrop could not save this setup on the device, so nothing has been saved yet. Try again.';
 }

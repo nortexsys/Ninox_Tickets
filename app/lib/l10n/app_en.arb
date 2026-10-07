@@ -263,5 +263,9 @@
   "wizardSummaryCaptureAction": "Capture a document",
   "@wizardSummaryCaptureAction": {
     "description": "The closing screen's offer: capture a document of any kind rather than returning the user to an empty application (FR-WIZ-008)."
+  },
+  "wizardSummarySaveFailed": "Paperdrop could not save this setup on the device, so nothing has been saved yet. Try again.",
+  "@wizardSummarySaveFailed": {
+    "description": "A failure to write the destination (design §10.1). It claims nothing as saved, and the same screen offers the retry."
   }
 }
