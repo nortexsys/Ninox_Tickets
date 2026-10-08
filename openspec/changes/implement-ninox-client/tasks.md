@@ -42,7 +42,9 @@ Detailed in design §6 before dispatch; needs the product owner's approval of `-
 - [x] 2.2 Run the GAP-023 check; record the result in `openspec/gaps-register.md` (through Spec).
       Done 2026-10-07 by the orchestrator with the PO's approval, GET only, on the disposable table
       `Paperdrop_test` of `JI-PRUEBAS-CLAUDE`; GAP-023 closed.
-- [ ] 2.3 Write tests within D-10's bounds; attachment size and timing from Spain (GAP-004).
+- [x] 2.3 Write tests within D-10's bounds; attachment size and timing from Spain (GAP-004).
+      Done 2026-10-08: `test/live/write_limits_test.dart`, run twice with the PO's approval on `Paperdrop_test`
+      (`EF`); second run green, table left as found. Results in `docs/Plan/status/2026-10-08.md`.
 
 ## 3. QA
 
