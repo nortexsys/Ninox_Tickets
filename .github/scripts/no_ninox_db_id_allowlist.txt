@@ -30,7 +30,7 @@ openspec/specs/product-invariants/spec.md | `NINOX_DB_ID` pointed at a productio
 .github/scripts/no_ninox_db_id_allowlist.txt | * | the allowlist names the forbidden variable to describe each allowed line
 .github/scripts/tests/test_no_ninox_db_id.py | * | the test plants the forbidden variable to prove the check fails
 openspec/changes/archive/2026-09-28-setup-mvp-foundations/proposal.md | (`NINOX_DB_ID` pointed at a production database | the archived proposal describes GAP-012, which the CI check mitigates
-openspec/changes/implement-ninox-client/proposal.md | **no** step of this change reads `NINOX_DB_ID` | the proposal asserts the change never uses the variable (GAP-012)
-openspec/changes/implement-ninox-client/proposal.md | **no step of this change uses `NINOX_DB_ID`** | the proposal asserts the change never uses the variable (GAP-012)
-openspec/changes/implement-ninox-client/proposal.md | `NINOX_DB_ID` points at a production database and the CI | the proposal records GAP-012 as a gap it acts on
+openspec/changes/archive/2026-10-08-implement-ninox-client/proposal.md | **no** step of this change reads `NINOX_DB_ID` | the proposal asserts the change never uses the variable (GAP-012)
+openspec/changes/archive/2026-10-08-implement-ninox-client/proposal.md | **no step of this change uses `NINOX_DB_ID`** | the proposal asserts the change never uses the variable (GAP-012)
+openspec/changes/archive/2026-10-08-implement-ninox-client/proposal.md | `NINOX_DB_ID` points at a production database and the CI | the proposal records GAP-012 as a gap it acts on
 openspec/changes/implement-android-capture-and-store/proposal.md | No step uses `NINOX_DB_ID` | the proposal asserts the change never uses the variable (GAP-012)
