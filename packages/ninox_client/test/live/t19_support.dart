@@ -69,6 +69,168 @@ bool sameValue(Object? submitted, Object? stored, {bool asDate = false}) {
 String rateMibPerSecond(int bytes, int elapsedMs) =>
     (bytes / mebibyte / (elapsedMs / 1000)).toStringAsFixed(2);
 
+/// What a DELETE answered, as the T1.9 run must read it.
+///
+/// The 404 case is not a formality: on the 2026-10-08 run every delete answered 200 and the same
+/// ten ids were also deleted by a second, overlapping pass, which saw the records already gone and
+/// answered 404 "Not Found" — seven ids that were recorded as delete **failures** although the
+/// records were gone, which is what made the run report a table it had cleaned up as dirty.
+enum DeleteOutcome {
+  /// HTTP 200 or 204: the record was deleted by this call.
+  deleted,
+
+  /// HTTP 404: the record is not there, which is what deleting it was for. It counts as **gone**,
+  /// because either a second pass or the API itself applied the delete twice — and a delete this
+  /// run asked for is not a failure when its only cause is that it had already happened.
+  alreadyGone,
+
+  /// Any other status, or a delete that never completed: reported, with its id, for a human.
+  failed,
+}
+
+/// Reads one delete's status the way the run must.
+DeleteOutcome deleteOutcome(int statusCode) => switch (statusCode) {
+  200 || 204 => DeleteOutcome.deleted,
+  404 => DeleteOutcome.alreadyGone,
+  _ => DeleteOutcome.failed,
+};
+
+/// How many listings a verification may take before it believes what it sees.
+const int verifyAttempts = 6;
+
+/// How long it waits between those listings.
+///
+/// A listing lags a delete: the 2026-10-08 run's own end-of-run check showed eight ids it had just
+/// deleted, while the same table was clean by the time it was read again. Five seconds a time, six
+/// times, is twenty-five seconds of patience — bounded, so a record that really did survive is
+/// still reported.
+const Duration verifyWait = Duration(seconds: 5);
+
+/// What a (possibly repeated) listing of the table says about a T1.9 run's records.
+final class ListingSnapshot {
+  /// Builds a snapshot.
+  const ListingSnapshot({
+    required this.attempts,
+    required this.left,
+    required this.missing,
+    required this.untracked,
+    required this.firstListingLeft,
+    required this.waited,
+  });
+
+  /// How many listings were made before the answer settled (or before the bound was reached).
+  final int attempts;
+
+  /// Ids this run created that the last listing still showed.
+  final Set<String> left;
+
+  /// Ids that were in the table before the run and that the last listing no longer shows.
+  final Set<String> missing;
+
+  /// Ids the last listing showed that were neither there before the run nor created by it.
+  final Set<String> untracked;
+
+  /// Ids this run created that the **first** listing still showed.
+  ///
+  /// This is the lag itself, recorded as evidence: when [left] is empty and this is not, the run
+  /// saw records that had already been deleted and saw them disappear, rather than finding records
+  /// that survived.
+  final List<String> firstListingLeft;
+
+  /// How long the listings were spaced by.
+  final Duration waited;
+
+  /// Whether the last listing says what the run wanted: nothing of its own left, and nothing that
+  /// was there before it missing.
+  bool get settled => left.isEmpty && missing.isEmpty;
+
+  /// The snapshot, for the results file.
+  Map<String, Object?> toJson() => {
+    'listings': attempts,
+    'listingsSpacedByMs': waited.inMilliseconds,
+    'settled': settled,
+    'preexistingAllPresent': missing.isEmpty,
+    'missingPreexistingIds': sortedIds(missing),
+    'recordsLeftByThisRun': sortedIds(left),
+    'createdIdsSeenOnTheFirstListing': firstListingLeft,
+    'untrackedIdsSeen': sortedIds(untracked),
+  };
+}
+
+/// Lists a table, re-listing while the answer is not settled, with a bounded number of attempts.
+///
+/// A listing lags a delete, so "a record this run created is still there" is not concluded from one
+/// reading. The loop stops as soon as nothing of the run's is left and nothing that was there
+/// before is missing, and otherwise runs to the bound — after which whatever it still sees is
+/// reported as a record to remove by hand.
+///
+/// [sleep] is injected so that this can be proved offline without waiting: the tests pass a
+/// no-op, the live run passes the real one.
+Future<ListingSnapshot> listUntilSettled({
+  required Future<Set<String>> Function() list,
+  required Set<String> preexisting,
+  required Set<String> created,
+  int attempts = verifyAttempts,
+  Duration wait = verifyWait,
+  Future<void> Function(Duration) sleep = realSleep,
+}) async {
+  if (attempts < 1) {
+    throw ArgumentError.value(
+      attempts,
+      'attempts',
+      'a verification lists at least once',
+    );
+  }
+  var seen = <String>{};
+  var left = <String>{};
+  var missing = <String>{};
+  var untracked = <String>{};
+  final firstListingLeft = <String>[];
+  for (var attempt = 1; attempt <= attempts; attempt++) {
+    if (attempt > 1) await sleep(wait);
+    seen = await list();
+    left = seen.intersection(created);
+    missing = preexisting.difference(seen);
+    untracked = seen.difference(preexisting).difference(created);
+    if (attempt == 1) firstListingLeft.addAll(sortedIds(left));
+    if (left.isEmpty && missing.isEmpty) {
+      return ListingSnapshot(
+        attempts: attempt,
+        left: left,
+        missing: missing,
+        untracked: untracked,
+        firstListingLeft: firstListingLeft,
+        waited: wait,
+      );
+    }
+  }
+  return ListingSnapshot(
+    attempts: attempts,
+    left: left,
+    missing: missing,
+    untracked: untracked,
+    firstListingLeft: firstListingLeft,
+    waited: wait,
+  );
+}
+
+/// Waits for real. The default of [listUntilSettled], and the only place it touches the clock.
+Future<void> realSleep(Duration duration) => Future<void>.delayed(duration);
+
+/// Record ids in the order a human reads them: numerically when they are all numbers, and
+/// lexicographically otherwise. A set has no order of its own, and "10 before 7" in a report is a
+/// reader's problem that costs nothing to avoid.
+List<String> sortedIds(Iterable<String> ids) {
+  final sorted = ids.toList();
+  final allNumeric = sorted.every((id) => int.tryParse(id) != null);
+  sorted.sort(
+    allNumeric
+        ? (one, other) => int.parse(one).compareTo(int.parse(other))
+        : (one, other) => one.compareTo(other),
+  );
+  return sorted;
+}
+
 /// The hard caps of the approved T1.9 run (product owner, 2026-10-08).
 ///
 /// The caps are counted, not asserted afterwards: every counter method is a *refusal* that throws

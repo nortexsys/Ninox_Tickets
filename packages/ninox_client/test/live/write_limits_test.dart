@@ -58,13 +58,29 @@
 /// so that an unexpected throw — a 5xx, a dropped connection, a bug in this file — cannot leave a
 /// record behind, and again in `tearDownAll`, which also writes the results file, prints the table
 /// and reports any record it could not delete, with its id, for the product owner to remove by
-/// hand.
+/// hand. The two passes are **serialised** (`deleteCreated` waits for a pass in flight), a delete
+/// that answers 404 for an id this run created counts as already gone rather than as a failure, and
+/// the verification re-lists, bounded, before it calls a record left — all three because of what the
+/// 2026-10-08 run's results showed (see `@Timeout` below for the cause of the first).
+///
+/// ## Why the timeout is stated here
+///
+/// The ladder uploads up to 78 MiB and the multipage document another 25 MiB, so the run takes
+/// minutes on a real network — and `package:test`'s **default timeout is 30 seconds per test**. The
+/// 2026-10-08 run's own step timings add up to ~28 s of measured work in the first test, and its wall
+/// clock to the end of cleanup was 35.2 s: the runner had abandoned that body's future mid-flight
+/// and gone on to the next test and `tearDownAll`. An abandoned body keeps running, so its `finally`
+/// and `tearDownAll`'s cleanup were both deleting at once — seventeen DELETEs for ten ids, seven of
+/// them 404 "Not Found" for records that were already gone, recorded as failures. The timeout below
+/// is generous on purpose (still bounded, and comfortable even at 0.3 MiB/s), so that the runner
+/// never abandons a body that is still writing to the product owner's table.
 ///
 /// ## What it does not do
 ///
 /// It adds nothing to the port's public API: the records are deleted with this file's own
 /// `http.Client`, because the port has no delete and this change does not add one.
 @Tags(['live'])
+@Timeout(Duration(minutes: 30))
 library;
 
 import 'dart:convert';
@@ -290,6 +306,17 @@ final class _Run {
   final List<String> createdRecordIds = [];
   final List<String> deletedRecordIds = [];
   final List<Map<String, Object?>> failedDeletes = [];
+
+  /// Ids whose delete answered 404: the record was already gone, which is not a failure.
+  final List<String> alreadyGoneIds = [];
+
+  /// How many delete passes ran. One is the normal number; two overlapping passes are what produced
+  /// defect 2 of the 2026-10-08 run, so the count is recorded as evidence.
+  int deletePasses = 0;
+
+  /// The pass in flight, so that a second call waits instead of competing with it.
+  Future<void>? _lastDeletePass;
+
   final List<Map<String, Object?>> steps = [];
   final List<String> findings = [];
 
@@ -401,8 +428,12 @@ final class _Run {
       _skipStep('the round trip', haltedReason!);
       return;
     }
-    final fields = _inventedValues('round trip');
-    final id = await _createForStep('the round-trip record');
+    // The map is built **once** and handed to the create, so the comparison below is against
+    // exactly what was sent. Building it twice — once for the create and once for the comparison —
+    // is what made the 2026-10-08 run report a difference in `Texto`: the two markers differed by
+    // the label they carried, and the run read that as a value the server had changed (defect 1).
+    final fields = _inventedValues('the round-trip record');
+    final id = await _createForStep('the round-trip record', fields);
     if (id == null) return;
 
     final stored = await _readBack(id, 'read after create', fields);
@@ -466,7 +497,10 @@ final class _Run {
     }
     const filename = 'paperdrop-t19-small.pdf';
     final bytes = syntheticPdf(pages: 1, targetBytes: 48 * 1024);
-    final id = await _createForStep('the small-attachment record');
+    final id = await _createForStep(
+      'the small-attachment record',
+      _inventedValues('the small-attachment record'),
+    );
     if (id == null) return;
     if (!await _upload(
       id,
@@ -490,7 +524,10 @@ final class _Run {
       if (halted || ladderStopReason != null) break;
       final target = mebibytes * mebibyte;
       final bytes = syntheticPdf(pages: 1, targetBytes: target);
-      final id = await _createForStep('the $mebibytes MiB record');
+      final id = await _createForStep(
+        'the $mebibytes MiB record',
+        _inventedValues('the $mebibytes MiB record'),
+      );
       if (id == null) return;
       final filename = 'paperdrop-t19-$mebibytes-miB.pdf';
       if (!await _upload(
@@ -533,7 +570,10 @@ final class _Run {
     final pages = (largest ~/ (256 * 1024)).clamp(2, 12);
     final bytes = syntheticPdf(pages: pages, targetBytes: largest);
     final filename = 'paperdrop-t19-multipage-$pages-pages.pdf';
-    final id = await _createForStep('the multipage record');
+    final id = await _createForStep(
+      'the multipage record',
+      _inventedValues('the multipage record'),
+    );
     if (id == null) return;
     if (!await _upload(
       id,
@@ -557,8 +597,14 @@ final class _Run {
   // ---------------------------------------------------------------------------------------------
 
   /// Creates one record for a step, or explains why the run stops here.
-  Future<RecordId?> _createForStep(String label) async {
-    final fields = _inventedValues(label);
+  ///
+  /// [fields] is passed in rather than built here: a caller that compares the record afterwards
+  /// must compare against the very map it sent, not against an equal-looking one built a second
+  /// time (defect 1 of the 2026-10-08 run).
+  Future<RecordId?> _createForStep(
+    String label,
+    Map<String, Object?> fields,
+  ) async {
     try {
       budget.beforeCreate();
     } on WriteBudgetExceeded catch (cap) {
@@ -880,10 +926,23 @@ final class _Run {
 
   /// Deletes every record this run created, and only those.
   ///
-  /// Idempotent: it is called from the run body's `finally` and again from `tearDownAll`, and each
-  /// id is deleted once. The port has no delete and this change does not add one, so the call is
-  /// made with this file's own client, on the same endpoint the adapter uses.
-  Future<void> deleteCreated() async {
+  /// Idempotent **and serialised**. The run body's `finally` and `tearDownAll` are two independent
+  /// call sites, and a call made while a pass is in flight waits for that pass and then runs a pass
+  /// of its own, which finds nothing left to delete. Overlapping passes are not hypothetical: on the
+  /// 2026-10-08 run they produced seventeen DELETEs for ten ids — ten answering 200 and seven
+  /// answering 404 "Not Found" for records that were already gone — because each pass issued its
+  /// DELETE before the other had recorded the id (defect 2). The guard that only ids this run
+  /// created may be deleted is untouched by any of this: it is checked in [_deleteOne], closest to
+  /// the call.
+  Future<void> deleteCreated() {
+    final pass = _deleteCreatedPass(_lastDeletePass);
+    _lastDeletePass = pass;
+    return pass;
+  }
+
+  Future<void> _deleteCreatedPass(Future<void>? previous) async {
+    await previous;
+    deletePasses++;
     for (final id in createdRecordIds.reversed.toList()) {
       if (deletedRecordIds.contains(id)) continue;
       await _deleteOne(id);
@@ -915,70 +974,95 @@ final class _Run {
         id,
       ],
     );
+    final watch = Stopwatch()..start();
     final http.Response response;
     try {
       response = await deleteClient
           .delete(uri, headers: {'Authorization': 'Bearer $token'})
           .timeout(const Duration(seconds: 60));
     } on Exception catch (error) {
+      watch.stop();
       failedDeletes.add({
         'id': id,
         'reason': 'the delete did not complete: ${_redact(error.toString())}',
+        'elapsedMs': watch.elapsedMilliseconds,
       });
       return;
     }
-    if (response.statusCode == 200 || response.statusCode == 204) {
-      deletedRecordIds.add(id);
-      _addStep(
-        'delete',
-        recordId: RecordId(id),
-        status: '${response.statusCode}',
-      );
-      return;
+    watch.stop();
+    switch (deleteOutcome(response.statusCode)) {
+      case DeleteOutcome.deleted:
+        deletedRecordIds.add(id);
+        _addStep(
+          'delete',
+          recordId: RecordId(id),
+          elapsedMs: watch.elapsedMilliseconds,
+          status: '${response.statusCode}',
+        );
+      case DeleteOutcome.alreadyGone:
+        // The record is not there, which is what deleting it was for. A second pass, or the API
+        // applying the delete twice, reads as "Not Found" — that is not a failure, and recording it
+        // as one made a table this run had cleaned up look dirty. It counts as deleted, and the
+        // evidence that it had already gone is kept.
+        deletedRecordIds.add(id);
+        alreadyGoneIds.add(id);
+        _addStep(
+          'delete',
+          recordId: RecordId(id),
+          elapsedMs: watch.elapsedMilliseconds,
+          status: '404',
+          note:
+              'already gone: this run created the id and it is no longer in the table, so the '
+              'delete had already happened',
+        );
+      case DeleteOutcome.failed:
+        failedDeletes.add({
+          'id': id,
+          'status': response.statusCode,
+          'reason': _redact(_messageOf(response.body)),
+          'elapsedMs': watch.elapsedMilliseconds,
+        });
     }
-    failedDeletes.add({
-      'id': id,
-      'status': response.statusCode,
-      'reason': _redact(_messageOf(response.body)),
-    });
   }
 
-  /// Lists the table again and records what it says about the records that were there before.
+  /// Lists the table again, re-listing while the answer is not settled, and records what it says.
   ///
   /// It asserts nothing: it records, and the test asserts on what it recorded, so that the results
-  /// file is written even when the verification finds something. Nothing is ever deleted here.
+  /// file is written even when the verification finds something. **A listing lags a delete** — the
+  /// 2026-10-08 run's own end-of-run check showed eight ids that had answered 200 to their DELETE
+  /// while the same table was clean when read again — so a record is only reported as left after
+  /// [verifyAttempts] listings spaced by [verifyWait]. Nothing is ever deleted here.
   Future<void> verify() async {
     if (verified) return;
-    final now = await _allRecordIds(adapter, ref);
-    final missing = preexistingRecordIds.difference(now);
-    final left = now.intersection(createdRecordIds.toSet());
-    final untracked = now
-        .difference(preexistingRecordIds)
-        .difference(createdRecordIds.toSet());
-    untrackedNewIds = untracked.toList();
+    final snapshot = await listUntilSettled(
+      list: () => _allRecordIds(adapter, ref),
+      preexisting: preexistingRecordIds,
+      created: createdRecordIds.toSet(),
+    );
+    untrackedNewIds = sortedIds(snapshot.untracked);
     verification = {
       'at': DateTime.now().toUtc().toIso8601String(),
       'preexistingCount': preexistingRecordIds.length,
-      'preexistingAllPresent': missing.isEmpty,
-      'missingPreexistingIds': missing.toList(),
-      'recordsLeftByThisRun': left.toList(),
-      'untrackedIdsSeen': untracked.toList(),
+      ...snapshot.toJson(),
     };
     verified = true;
-    if (missing.isNotEmpty) {
+    if (snapshot.missing.isNotEmpty) {
       findings.add(
-        'records that were in the table before the run are gone: ${missing.join(', ')}',
+        'records that were in the table before the run are gone: '
+        '${sortedIds(snapshot.missing).join(', ')}',
       );
     }
-    if (left.isNotEmpty) {
+    if (snapshot.left.isNotEmpty) {
       findings.add(
-        'records this run created were not deleted: ${left.join(', ')}',
+        'records this run created were not deleted: '
+        '${sortedIds(snapshot.left).join(', ')} (still listed after ${snapshot.attempts} '
+        'listings spaced by ${snapshot.waited.inSeconds}s)',
       );
     }
-    if (untracked.isNotEmpty) {
+    if (snapshot.untracked.isNotEmpty) {
       findings.add(
         'the table holds ids that were not there before the run and that this run did not create: '
-        '${untracked.join(', ')} (listed, not deleted)',
+        '${sortedIds(snapshot.untracked).join(', ')} (listed, not deleted)',
       );
     }
   }
@@ -1006,9 +1090,11 @@ final class _Run {
     },
     'caps': budget.toJson(),
     'capRefusals': capRefusals,
-    'preexistingRecordIds': preexistingRecordIds.toList(),
+    'preexistingRecordIds': sortedIds(preexistingRecordIds),
     'createdRecordIds': createdRecordIds,
     'deletedRecordIds': deletedRecordIds,
+    'alreadyGoneIds': sortedIds(alreadyGoneIds),
+    'deletePasses': deletePasses,
     'failedDeletes': failedDeletes,
     'verification': verification,
     'ladder': {
@@ -1093,11 +1179,12 @@ final class _Run {
     stdout.writeln('caps: $budget');
     stdout.writeln(
       'before the run the table held ${preexistingRecordIds.length} records: '
-      '${preexistingRecordIds.join(', ')}',
+      '${sortedIds(preexistingRecordIds).join(', ')}',
     );
     stdout.writeln(
-      'this run created ${createdRecordIds.length} and deleted ${deletedRecordIds.length}: '
-      '${createdRecordIds.join(', ')}',
+      'this run created ${createdRecordIds.length}, deleted ${deletedRecordIds.length} '
+      '(${alreadyGoneIds.length} of them were already gone: their delete answered 404) in '
+      '$deletePasses pass(es): ${createdRecordIds.join(', ')}',
     );
     stdout.writeln(
       'largest size that succeeded: '

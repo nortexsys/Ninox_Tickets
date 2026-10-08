@@ -182,6 +182,170 @@ void main() {
       expect(rateMibPerSecond(25 * mebibyte, 2000), '12.50');
     });
   });
+
+  group('deleteOutcome reads a delete the way the run must', () {
+    test('200 and 204 are a delete', () {
+      expect(deleteOutcome(200), DeleteOutcome.deleted);
+      expect(deleteOutcome(204), DeleteOutcome.deleted);
+    });
+
+    test('404 for an id this run created is already gone, never a failure', () {
+      // The 2026-10-08 run: every delete answered 200, a second overlapping pass answered 404 for
+      // seven records that were already deleted, and the run reported a table it had cleaned up as
+      // dirty. A 404 here means the delete had already happened, which is what it was for.
+      expect(deleteOutcome(404), DeleteOutcome.alreadyGone);
+      expect(deleteOutcome(404), isNot(DeleteOutcome.failed));
+    });
+
+    test('anything else is a failure to report', () {
+      expect(deleteOutcome(400), DeleteOutcome.failed);
+      expect(deleteOutcome(401), DeleteOutcome.failed);
+      expect(deleteOutcome(500), DeleteOutcome.failed);
+    });
+  });
+
+  group('listUntilSettled waits out a listing that lags a delete', () {
+    test('one listing is enough when the answer is already settled', () async {
+      final listings = <int>[];
+      final snapshot = await listUntilSettled(
+        list: () async {
+          listings.add(0);
+          return {'1', '2'};
+        },
+        preexisting: {'1', '2'},
+        created: {'7'},
+        sleep: (_) async {
+          fail('a settled listing must not be waited on');
+        },
+      );
+
+      expect(listings, hasLength(1));
+      expect(snapshot.attempts, 1);
+      expect(snapshot.settled, isTrue);
+      expect(snapshot.left, isEmpty);
+      expect(snapshot.missing, isEmpty);
+    });
+
+    test('it re-lists while an id this run deleted is still shown, then believes the listing', () async {
+      var listing = 0;
+      final slept = <Duration>[];
+      final snapshot = await listUntilSettled(
+        list: () async {
+          listing++;
+          // The first two readings still show the record; the third does not.
+          return listing < 3 ? {'1', '2', '7'} : {'1', '2'};
+        },
+        preexisting: {'1', '2'},
+        created: {'7'},
+        sleep: (duration) async => slept.add(duration),
+      );
+
+      expect(snapshot.attempts, 3);
+      expect(snapshot.settled, isTrue);
+      expect(snapshot.left, isEmpty, reason: 'the third listing is the answer');
+      expect(
+        snapshot.firstListingLeft,
+        ['7'],
+        reason:
+            'the first listing showed it: that is the lag, kept as evidence',
+      );
+      expect(slept, [verifyWait, verifyWait]);
+    });
+
+    test('it gives up at the bound and reports what it still sees', () async {
+      var listing = 0;
+      final snapshot = await listUntilSettled(
+        list: () async {
+          listing++;
+          return {'1', '7', '8'};
+        },
+        preexisting: {'1', '2'},
+        created: {'7', '8'},
+        attempts: 3,
+        sleep: (_) async {},
+      );
+
+      expect(listing, 3, reason: 'bounded: three listings and no more');
+      expect(snapshot.attempts, 3);
+      expect(snapshot.settled, isFalse);
+      expect(sortedIds(snapshot.left), ['7', '8']);
+      expect(
+        sortedIds(snapshot.missing),
+        ['2'],
+        reason: 'a pre-existing id the listing no longer shows is reported too',
+      );
+    });
+
+    test('an id that is neither pre-existing nor the run\'s is reported, and not waited for', () async {
+      var listing = 0;
+      final snapshot = await listUntilSettled(
+        list: () async {
+          listing++;
+          return {'1', '99'};
+        },
+        preexisting: {'1'},
+        created: {'7'},
+        sleep: (_) async {},
+      );
+
+      expect(
+        listing,
+        1,
+        reason:
+            'nothing of the run is left and nothing pre-existing is missing',
+      );
+      expect(snapshot.settled, isTrue);
+      expect(sortedIds(snapshot.untracked), ['99']);
+    });
+
+    test('the snapshot records the policy it ran with', () async {
+      final snapshot = await listUntilSettled(
+        list: () async => {'1'},
+        preexisting: {'1'},
+        created: {'7'},
+        attempts: 4,
+        wait: const Duration(milliseconds: 10),
+        sleep: (_) async {},
+      );
+
+      expect(snapshot.toJson(), {
+        'listings': 1,
+        'listingsSpacedByMs': 10,
+        'settled': true,
+        'preexistingAllPresent': true,
+        'missingPreexistingIds': <String>[],
+        'recordsLeftByThisRun': <String>[],
+        'createdIdsSeenOnTheFirstListing': <String>[],
+        'untrackedIdsSeen': <String>[],
+      });
+    });
+
+    test('a bound below one is refused rather than guessed at', () {
+      expect(
+        () => listUntilSettled(
+          list: () async => <String>{},
+          preexisting: const {},
+          created: const {},
+          attempts: 0,
+        ),
+        throwsArgumentError,
+      );
+    });
+  });
+
+  group('sortedIds orders ids the way a human reads them', () {
+    test('numerically when every id is a number', () {
+      expect(sortedIds({'10', '7', '16', '8'}), ['7', '8', '10', '16']);
+    });
+
+    test('lexicographically when any id is not a number', () {
+      expect(sortedIds({'team-2', 'team-10'}), ['team-10', 'team-2']);
+    });
+
+    test('an empty set is an empty list', () {
+      expect(sortedIds(const <String>{}), isEmpty);
+    });
+  });
 }
 
 /// Checks the document against what a PDF is: header, xref, trailer, and one `n 0 obj` at every

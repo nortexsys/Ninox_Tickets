@@ -93,5 +93,13 @@ were in the table before the run are recorded and never deleted, and only ids th
 be deleted (with the test's own `http.Client`, because the port has no delete); invented data and
 PDFs generated in-process only; and hard caps enforced **before** each call by a counter that throws
 — at most 30 records created, 25 MiB per attachment, 150 MiB in total. The pieces that must be right
-before the run — the cap counter, the PDF builder, the failure classification and the read-back
-comparison — are proved without a token in `test/t19_support_test.dart`, which runs in CI.
+before the run — the cap counter, the PDF builder, the failure classification, the delete-outcome
+rule and the lag-tolerant verification — are proved without a token in `test/t19_support_test.dart`,
+which runs in CI.
+
+The run states its own **30-minute timeout** (`@Timeout` in the file). That is not decoration: the
+ladder takes minutes, `package:test`'s default is 30 seconds per test, and the runner abandons a
+body that passes it — while the abandoned body keeps writing and `tearDownAll` starts cleaning up.
+The 2026-10-08 run's results show exactly that, which is also why deletion is serialised, why a 404
+on deleting an id this run created counts as already gone, and why the end-of-run verification
+re-lists (bounded) before it calls a record left: a listing lags a delete.
