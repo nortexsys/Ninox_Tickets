@@ -38,7 +38,9 @@ is run from the repository root on Flutter 3.47.5 / Dart 3.13.4:
 
 Detailed in design §6 before dispatch; needs the product owner's approval of `--allow-ninox-token`.
 
-- [ ] 2.1 Re-record the fixtures against the test base, GET only; diff against §1's.
+- [x] 2.1 Re-record the fixtures against the test base, GET only; diff against §1's.
+      Done 2026-10-08, GET only, structure compared (no live value copied); one difference found and recorded:
+      the single-record endpoint returns the audit keys. `create-response` and `error-500` not re-recorded (need a write).
 - [x] 2.2 Run the GAP-023 check; record the result in `openspec/gaps-register.md` (through Spec).
       Done 2026-10-07 by the orchestrator with the PO's approval, GET only, on the disposable table
       `Paperdrop_test` of `JI-PRUEBAS-CLAUDE`; GAP-023 closed.
@@ -48,7 +50,7 @@ Detailed in design §6 before dispatch; needs the product owner's approval of `-
 
 ## 3. QA
 
-- [ ] 3.1 Review the contract tests against ADR-004 and the `ninox` skill: every rule of ADR-004's
+- [x] 3.1 Review the contract tests against ADR-004 and the `ninox` skill: every rule of ADR-004's
       table that this layer can prove is proved; report any that is not.
 
 ## 4. Orchestrator
