@@ -84,21 +84,40 @@ void main() {
       expect(table.fields.last.type, 'rev');
     });
 
-    test(
-      'NinoxRecord reads the single-record shape, which carries no audit keys',
-      () {
-        final record = NinoxRecord.fromJson(_object('record.json'));
+    test('NinoxRecord reads the single-record shape, with the audit keys it returns', () {
+      // The single-record endpoint returned all five audit keys when its structure was confirmed
+      // against the test tenant on 2026-10-08 (structure only: keys and types; the values in the
+      // fixture are invented).
+      final record = NinoxRecord.fromJson(_object('record.json'));
 
-        expect(record.id, const RecordId('1413'));
-        expect(record.id.value, '1413');
-        expect(record.fields['Issued on'], '2026-08-08');
-        expect(record.fields['Amount'], 1651);
-        expect(record.fields['VAT amount'], 347);
-        expect(record.createdAt, isNull);
-        expect(record.createdBy, isNull);
-        expect(record.sequence, isNull);
-      },
-    );
+      expect(record.id, const RecordId('1413'));
+      expect(record.id.value, '1413');
+      expect(record.fields['Issued on'], '2026-08-08');
+      expect(record.fields['Amount'], 1651);
+      expect(record.fields['VAT amount'], 347);
+      expect(record.createdAt, '2026-08-08T09:12:44Z');
+      expect(record.createdBy, 'synthetic-user');
+      expect(record.modifiedAt, '2026-08-08T09:12:44Z');
+      expect(record.modifiedBy, 'synthetic-user');
+      expect(record.sequence, 90000);
+    });
+
+    test('NinoxRecord reads a record without the audit keys', () {
+      // The audit keys stay optional in the model on purpose: a tenant or a version that omits
+      // them must not turn a readable record into a failed read.
+      final record = NinoxRecord.fromJson(const {
+        'id': 1413,
+        'fields': <String, Object?>{'Amount': 1651},
+      });
+
+      expect(record.id, const RecordId('1413'));
+      expect(record.fields['Amount'], 1651);
+      expect(record.createdAt, isNull);
+      expect(record.createdBy, isNull);
+      expect(record.modifiedAt, isNull);
+      expect(record.modifiedBy, isNull);
+      expect(record.sequence, isNull);
+    });
 
     test('NinoxRecord reads the listing shape, with createdAt, createdBy and sequence', () {
       final record = NinoxRecord.fromJson(_element('records.json', 0));

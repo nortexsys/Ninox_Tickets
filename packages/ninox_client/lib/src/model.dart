@@ -173,9 +173,13 @@ final class NinoxTable {
 ///
 /// `createdAt` and `createdBy` are present on every record **regardless of mapping**, which is what
 /// makes the read-side reconciliation of an uncertain create possible without a marker field in
-/// the user's table (`ninox-send/reconciliation-of-an-uncertain-create`). The list endpoint returns
-/// all five keys; the single-record endpoint returns the identifier and the fields and may omit the
-/// rest, so they are read when present and `null` when not.
+/// the user's table (`ninox-send/reconciliation-of-an-uncertain-create`).
+///
+/// The listing endpoint returns all five audit keys, and the single-record endpoint returned them
+/// too when its structure was confirmed against the test tenant on 2026-10-08 (structure only: the
+/// keys and their types; every value in the fixtures is invented). They stay **optional** in this
+/// model — a tenant, an endpoint or a version that omits them must not turn a readable record into
+/// a failed read — so they are read when present and `null` when not.
 final class NinoxRecord {
   /// Builds a record.
   const NinoxRecord({

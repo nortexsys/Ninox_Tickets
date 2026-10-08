@@ -87,15 +87,16 @@ produced by the machine that runs it, printed to stdout and written to
 3. a **multipage** PDF near the largest size that succeeded;
 4. the timings of all of it (GAP-004) — the elapsed milliseconds and the MiB/s of every upload.
 
-Its bounds are the approved scope of 2026-10-08: **only** table `EF` (`Paperdrop_test`) of
-`jd1m8n8l4j7i`, whose literals it checks against the listing before the first write; the ids that
-were in the table before the run are recorded and never deleted, and only ids this run created may
-be deleted (with the test's own `http.Client`, because the port has no delete); invented data and
-PDFs generated in-process only; and hard caps enforced **before** each call by a counter that throws
-— at most 30 records created, 25 MiB per attachment, 150 MiB in total. The pieces that must be right
-before the run — the cap counter, the PDF builder, the failure classification, the delete-outcome
-rule and the lag-tolerant verification — are proved without a token in `test/t19_support_test.dart`,
-which runs in CI.
+Its bounds are the approved scope of 2026-10-08: **one** disposable table of the test database and
+nothing else — the team, database and table are literals in `test/live/write_limits_test.dart`, as
+the live tests require, and are deliberately not repeated here — whose literals the run checks
+against the listing before the first write; the ids that were in the table before the run are
+recorded and never deleted, and only ids this run created may be deleted (with the test's own
+`http.Client`, because the port has no delete); invented data and PDFs generated in-process only; and
+hard caps enforced **before** each call by a counter that throws — at most 30 records created, 25 MiB
+per attachment, 150 MiB in total. The pieces that must be right before the run — the cap counter, the
+PDF builder, the failure classification, the delete-outcome rule and the lag-tolerant verification —
+are proved without a token in `test/t19_support_test.dart`, which runs in CI.
 
 The run states its own **30-minute timeout** (`@Timeout` in the file). That is not decoration: the
 ladder takes minutes, `package:test`'s default is 30 seconds per test, and the runner abandons a
