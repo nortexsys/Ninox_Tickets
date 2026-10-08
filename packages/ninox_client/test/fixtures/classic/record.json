@@ -5,5 +5,10 @@
     "Amount": 1651,
     "VAT amount": 347,
     "Category": "One-off charge"
-  }
+  },
+  "createdAt": "2026-08-08T09:12:44Z",
+  "createdBy": "synthetic-user",
+  "modifiedAt": "2026-08-08T09:12:44Z",
+  "modifiedBy": "synthetic-user",
+  "sequence": 90000
 }
