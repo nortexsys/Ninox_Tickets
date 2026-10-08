@@ -74,3 +74,32 @@ PAPERDROP_LIVE_NINOX=1 dart test packages/ninox_client --run-skipped -t live
 
 (on Windows: `set PAPERDROP_LIVE_NINOX=1 && dart test packages/ninox_client --run-skipped -t live`).
 Without the opt-in it skips from any directory, and `--run-skipped` does not override it.
+
+`test/live/write_limits_test.dart` is T1.9's **write** run (tasks 2.3: *written, not run*). It is
+under the same opt-in guard, and the lane that wrote it claims no measured result: the numbers are
+produced by the machine that runs it, printed to stdout and written to
+`test/live/out/t19_results.json`. It measures, in one pass:
+
+1. create → read back → merge update → read back, on one record with invented values;
+2. a small PDF uploaded and read back (name, size, content type), then a ladder of
+   **1, 2, 5, 10, 15, 20 and 25 MiB**, stopping at the first failure, each step on a record of its
+   own, recording the failure type, the status and the elapsed time;
+3. a **multipage** PDF near the largest size that succeeded;
+4. the timings of all of it (GAP-004) — the elapsed milliseconds and the MiB/s of every upload.
+
+Its bounds are the approved scope of 2026-10-08: **only** table `EF` (`Paperdrop_test`) of
+`jd1m8n8l4j7i`, whose literals it checks against the listing before the first write; the ids that
+were in the table before the run are recorded and never deleted, and only ids this run created may
+be deleted (with the test's own `http.Client`, because the port has no delete); invented data and
+PDFs generated in-process only; and hard caps enforced **before** each call by a counter that throws
+— at most 30 records created, 25 MiB per attachment, 150 MiB in total. The pieces that must be right
+before the run — the cap counter, the PDF builder, the failure classification, the delete-outcome
+rule and the lag-tolerant verification — are proved without a token in `test/t19_support_test.dart`,
+which runs in CI.
+
+The run states its own **30-minute timeout** (`@Timeout` in the file). That is not decoration: the
+ladder takes minutes, `package:test`'s default is 30 seconds per test, and the runner abandons a
+body that passes it — while the abandoned body keeps writing and `tearDownAll` starts cleaning up.
+The 2026-10-08 run's results show exactly that, which is also why deletion is serialised, why a 404
+on deleting an id this run created counts as already gone, and why the end-of-run verification
+re-lists (bounded) before it calls a record left: a listing lags a delete.
