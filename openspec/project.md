@@ -366,6 +366,11 @@ around: validation belongs to the capability's definition of done
 (`AGENTS.md` §4), not to the review of its proposal. Do not add a placeholder spec
 file to make the red go away. Still true under 1.13.2.
 
+**Which validation counts.** While implementation-only changes are open, `openspec validate --all --strict`
+is red for each of them ("Change must have at least one delta"), which is expected. The gate for the
+living specs is `openspec validate --specs --strict` (12 of 12 on 2026-10-09). The "19/19" quoted on
+2026-10-07 is not reproducible and is not a reference.
+
 **`skip_specs: true` is for changes that alter no behaviour** — the
 implementation-only changes of plan §8.2. It is not a way to turn a behaviour change green
 before its delta is written: such a change stays red until its delta exists, as
