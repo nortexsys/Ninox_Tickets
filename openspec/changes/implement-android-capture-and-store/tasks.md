@@ -36,6 +36,9 @@ Detailed in design §5 before dispatch. Runs after `close-adr-011-pdf-text-route
 ## 3. Orchestrator and product owner
 
 - [x] 3.1 Review the lane's report, diff and dependencies; run the checks at the top of this file.
-- [ ] 3.2 Device check of design §4 with the product owner.
+- [x] 3.2 Device check of design §4 with the product owner (Galaxy S22, Android 16, debug build, 2026-10-09):
+      scan of a two-page document (one scanner session, one PDF with 2 pages, hash shown = hash of the stored file);
+      PDF picked from the file picker and the same PDF shared from another app: the stored original is
+      byte-identical to the source (3,167 bytes, same SHA-256). See status 2026-10-09.
 - [x] 3.3 Merge `change/implement-android-capture-and-store` with `--no-ff` after the product owner
       approves.
