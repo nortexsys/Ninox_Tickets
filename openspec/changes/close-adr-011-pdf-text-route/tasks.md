@@ -59,4 +59,6 @@ S22 timings are still to be taken.
 - [x] 5.3 The synthetic regression read through the adapter and bound by Core's `bindLabel`: the total
       and never the registry volume (passes on the emulator).
 - [x] 5.4 PDFium's licence notices ship in the app and are registered with `LicenseRegistry`.
-- [ ] 5.5 Extraction time per page on the Galaxy S22 (needs the phone linked; emulator timings are not comparable).
+- [x] 5.5 Extraction time per page on the Galaxy S22 (SM-S901B, Android 16, debug build, 2026-10-09): 8 documents,
+      9 pages, median 8 ms, mean 12.3 ms, maximum 37 ms (the first reads of a run are the slowest, 23 and 37 ms);
+      see status 2026-10-09. Input hash unchanged in 8 of 8. JSON kept in the private corpus.
