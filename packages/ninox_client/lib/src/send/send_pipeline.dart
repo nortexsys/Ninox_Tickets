@@ -58,13 +58,21 @@ const String _filesUnreadable =
 const String _attachmentNotStored =
     'the read-back does not carry the document that was uploaded';
 
+/// How many rows one page of the reconciliation's read asks for.
+///
+/// The API's own default page is 100 records, so this is that page asked for explicitly rather than
+/// the whole table assumed: `?limit=` and `?pageSize=` are accepted and ignored, and only `page` and
+/// `perPage` were measured to page correctly (`ninox` skill, `references/rest-api.md`).
+const int _perPage = 100;
+
 /// The send pipeline (T1.11): the sequence, the retry matrix and the reconciliation.
 ///
 /// It is built over a [NinoxPort] and three injected collaborators — a [SendJournal], a [Clock] and
 /// a [Sleeper] — plus an optional `refreshSchema` (the *refresh the schema* step of the 500 row, a
-/// callback because reading a schema is the wizard's, T1.10) and the two bounds of the design's
-/// matrix. It touches no environment variable and holds no credential: the port carries the token
-/// in one header, and this class never sees it.
+/// callback because reading a schema is the wizard's, T1.10) and the three bounds: the
+/// reconciliation window, the attempts of a step that cannot duplicate a record, and the pages the
+/// reconciliation may read. It touches no environment variable and holds no credential: the port
+/// carries the token in one header, and this class never sees it.
 ///
 /// **What it returns, and what it never does.** Every method returns a [SendOutcome] and classifies
 /// every [NinoxFailure] the port can throw, including the ones its caller cannot: a lost create,
@@ -79,10 +87,12 @@ final class SendPipeline {
   /// Builds a pipeline over one port.
   ///
   /// [reconcileWindow] bounds how old a record may be to be a candidate of an uncertain create
-  /// (design §4), and [attachmentAttempts] is the **total** number of attempts — not the number of
-  /// retries — of a step that cannot duplicate a record, so four attempts sleep 1 s, 2 s and 4 s.
-  /// Both are validated here rather than trusted: a bound of zero attempts would silently skip the
-  /// step it is meant to bound.
+  /// (design §4), [attachmentAttempts] is the **total** number of attempts — not the number of
+  /// retries — of a step that cannot duplicate a record, so four attempts sleep 1 s, 2 s and 4 s,
+  /// and [maxPages] bounds how many pages of the destination the reconciliation may read before it
+  /// stops and asks rather than deciding. All three are validated here rather than trusted: a bound
+  /// of zero attempts would silently skip the step it is meant to bound, and a bound of zero pages
+  /// would let a reconciliation call a table it has not read empty.
   factory SendPipeline(
     NinoxPort port, {
     SendJournal journal = const NoopSendJournal(),
@@ -91,6 +101,7 @@ final class SendPipeline {
     Future<void> Function()? refreshSchema,
     Duration reconcileWindow = const Duration(minutes: 2),
     int attachmentAttempts = 4,
+    int maxPages = 200,
   }) => SendPipeline._(
     port,
     journal,
@@ -99,6 +110,7 @@ final class SendPipeline {
     refreshSchema,
     reconcileWindow,
     attachmentAttempts,
+    maxPages,
   );
 
   /// The one constructor: the public factory above decides the defaults, this one validates and
@@ -111,6 +123,7 @@ final class SendPipeline {
     this._refreshSchema,
     this._reconcileWindow,
     this._attachmentAttempts,
+    this._maxPages,
   ) {
     if (_attachmentAttempts < 1) {
       throw ArgumentError.value(
@@ -126,6 +139,13 @@ final class SendPipeline {
         'the window cannot be negative',
       );
     }
+    if (_maxPages < 1) {
+      throw ArgumentError.value(
+        _maxPages,
+        'maxPages',
+        'at least one page may be read',
+      );
+    }
   }
 
   final NinoxPort _port;
@@ -135,6 +155,7 @@ final class SendPipeline {
   final Future<void> Function()? _refreshSchema;
   final Duration _reconcileWindow;
   final int _attachmentAttempts;
+  final int _maxPages;
 
   /// The token's own user, learned from the audit key of a record this pipeline created, and never
   /// guessed. `null` until then, which makes a reconciliation ask rather than assume.
@@ -373,12 +394,40 @@ final class SendPipeline {
     return stored == sent;
   }
 
-  /// The reconciliation's read: the destination's most recently created records, bounded.
-  Future<List<NinoxRecord>> _listRecent(SendRequest r) => _retrying(
-    r,
-    () => _port.listRecords(r.ref, perPage: 50),
-    onExhausted: () => _uncertainStep(r, const <NinoxRecord>[]),
-  );
+  /// The reconciliation's read: **every** page of the destination's records, oldest first as the
+  /// API happens to return them, and the local filtering after it ([_weigh]).
+  ///
+  /// **Why every page.** `?order=` and `?desc=` are accepted by the API and their ordering is
+  /// unverified (GAP-023), and the default order is not known to put the newest records first. On a
+  /// table of more than one page the record a lost POST created can therefore sit on the **last**
+  /// page: reading one page and calling it *no candidates* would write the duplicate this whole
+  /// requirement exists to prevent. So the read starts at `page: 0`, asks for [_perPage] rows, and
+  /// goes on while a page comes back full — a short or empty page is the end of the table. No
+  /// `order` and no `desc` is ever sent; [ref] and the paging parameters are all this read says.
+  ///
+  /// **The bound.** [maxPages] caps the pages read. A table longer than that is not read to its
+  /// end, so the tail was not seen and nothing about it can be concluded: the answer is
+  /// [Uncertain] with **no** candidates — never the *zero candidates, create one* path, which is
+  /// only sound once the read reached the end of the table. The `Uncertain` outcome says exactly
+  /// that in its own dartdoc: an empty candidate list means the evidence could not be read, not
+  /// that no record exists. Each page read carries the same bounded safe retry as every other step
+  /// that cannot duplicate a record (design §3); when that is exhausted, the same [Uncertain]
+  /// follows.
+  Future<List<NinoxRecord>> _listRecent(SendRequest r) async {
+    final List<NinoxRecord> collected = <NinoxRecord>[];
+    for (var page = 0; page < _maxPages; page++) {
+      final List<NinoxRecord> read = await _retrying(
+        r,
+        () => _port.listRecords(r.ref, page: page, perPage: _perPage),
+        onExhausted: () => _uncertainStep(r, const <NinoxRecord>[]),
+      );
+      collected.addAll(read);
+      if (read.length < _perPage) return collected;
+    }
+    // The bound was reached with a full last page: there is at least one page this read has not
+    // seen, so it cannot say what is out there and it must not create on the strength of it.
+    await _uncertainStep(r, const <NinoxRecord>[]);
+  }
 
   /// The attach step and the read-back that follows it (FR-SND-003, design §5).
   ///

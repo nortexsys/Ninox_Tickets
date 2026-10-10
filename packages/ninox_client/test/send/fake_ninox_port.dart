@@ -39,9 +39,12 @@ final class FakeNinoxPort implements NinoxPort {
   /// The table the last listing was asked for.
   TableRef? listedRef;
 
-  /// The `perPage` the last listing was asked with — the pipeline bounds its read, it does not read
-  /// a whole table (`ninox-send/reconciliation-of-an-uncertain-create`).
+  /// The `perPage` the last listing was asked with.
   int? listedPerPage;
+
+  /// Every `listRecords` call, in order, with the arguments it was made with — so that a test can
+  /// assert which pages were read, in which order, and that no `order` or `desc` was asked for.
+  final List<ListingCall> pageReads = <ListingCall>[];
 
   /// The answers `createRecord` gives, one per call: a `RecordId`, or a [NinoxFailure] to throw.
   List<Object> creates = <Object>[];
@@ -71,7 +74,12 @@ final class FakeNinoxPort implements NinoxPort {
   /// What `listFiles` answers when its script has run out.
   List<NinoxFile> nextFiles = const <NinoxFile>[];
 
-  /// What `listRecords` answers when its script has run out.
+  /// What `listRecords` answers when its script has run out, **paged honestly**.
+  ///
+  /// The records are returned in the order they are given here — a test that wants the record a
+  /// reconciliation must find at the end of a long table puts it last, which is exactly the case the
+  /// vendor's unknown default order can produce — one page of `perPage` rows at a time, following
+  /// `page`. A page past the end is empty, and the default `perPage` is the API's own page of 100.
   List<NinoxRecord> nextListing = const <NinoxRecord>[];
 
   @override
@@ -133,7 +141,13 @@ final class FakeNinoxPort implements NinoxPort {
     calls.add('listRecords:${ref.tableId}');
     listedRef = ref;
     listedPerPage = perPage;
-    return _answer<List<NinoxRecord>>(listings, () => nextListing);
+    pageReads.add(
+      ListingCall(page: page, perPage: perPage, order: order, desc: desc),
+    );
+    return _answer<List<NinoxRecord>>(
+      listings,
+      () => _pageOf(nextListing, page: page, perPage: perPage),
+    );
   }
 
   @override
@@ -178,4 +192,46 @@ final class FakeNinoxPort implements NinoxPort {
 
   @override
   String toString() => 'FakeNinoxPort(${calls.length} calls)';
+}
+
+/// One page of a table, as the API serves it: the rows that `page` and `perPage` select, in the
+/// order the table holds them, and an empty list past the end.
+///
+/// A `perPage` the caller did not give is the API's own default page of 100.
+List<NinoxRecord> _pageOf(
+  List<NinoxRecord> records, {
+  int? page,
+  int? perPage,
+}) {
+  final int size = perPage ?? 100;
+  final int first = (page ?? 0) * size;
+  if (first >= records.length) return const <NinoxRecord>[];
+  final int last = first + size;
+  return records.sublist(first, last < records.length ? last : records.length);
+}
+
+/// One `listRecords` call, as the fake received it.
+///
+/// It exists so that a test can assert **which pages** a read asked for, in which order, and that
+/// it asked for no `order` and no `desc` — the two parameters whose server-side effect is
+/// unverified (GAP-023) and which the reconciliation must therefore not depend on.
+final class ListingCall {
+  /// Builds the record of one call.
+  const ListingCall({this.page, this.perPage, this.order, this.desc});
+
+  /// The page asked for; `null` when the caller asked for none.
+  final int? page;
+
+  /// The rows per page asked for; `null` when the caller asked for none.
+  final int? perPage;
+
+  /// The `order` asked for; `null` is what a caller that does not trust server-side ordering sends.
+  final String? order;
+
+  /// The `desc` asked for.
+  final bool? desc;
+
+  @override
+  String toString() =>
+      'ListingCall(page: $page, perPage: $perPage, order: $order, desc: $desc)';
 }

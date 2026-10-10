@@ -46,7 +46,10 @@ void main() {
       // The call after the lost create is the reconciliation's read, never a second POST.
       expect(h.port.calls.first, 'createRecord:T1');
       expect(h.port.calls[1], 'listRecords:T1');
-      expect(h.port.listedPerPage, 50);
+      expect(h.port.listedPerPage, 100);
+      // And the read asked for no server-side ordering, whose effect is unverified (GAP-023).
+      expect(h.port.pageReads.single.order, isNull);
+      expect(h.port.pageReads.single.desc, isNull);
       // Nothing was found, so exactly one create followed — and the send completed.
       expect(
         h.port.calls.where((String c) => c == 'createRecord:T1').length,

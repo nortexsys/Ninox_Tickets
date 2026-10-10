@@ -61,9 +61,14 @@ failures. Its behaviour is `ninox-send`'s, stated as a matrix, and each row is a
   not reveal it, so showing the user what was sent would be showing something the app cannot vouch
   for (FR-SND-001, `ninox-send/create-attach-read-back`).
 * **A create whose response was lost is never retried.** It enters the reconciliation, which reads
-  the destination's recent records, sorts and filters **locally** (`?order=`/`?desc=` are accepted
-  by the API and unverified, GAP-023), and adopts the one record that is ours, inside the window,
-  carrying what was sent — or asks the user, because the app never guesses (FR-SND-005, ADR-013).
+  the destination's records — **every page** of the table, 100 rows at a time, until a page comes
+  back short — and then sorts and filters **locally** (`?order=`/`?desc=` are accepted by the API
+  and their effect is unverified, GAP-023, and the default order is not known to be newest-first, so
+  the record a lost POST created can sit on the last page of a long table). It adopts the one record
+  that is ours, inside the window, carrying what was sent — or asks the user, because the app never
+  guesses (FR-SND-005, ADR-013). `maxPages` (200 by default) bounds the read: a table longer than
+  the bound is not read to its end, and an unseen tail can only produce `Uncertain`, never the
+  *zero candidates, create one* path.
 * **An HTTP 500 is a mapping error, not an outage**: the schema is refreshed, the request is retried
   **exactly once**, and the second failure is reported as `SendFailureKind.mapping` (FR-SND-004).
 * **A record created without its document is `Incomplete`, never `Sent`**: the attachment is retried

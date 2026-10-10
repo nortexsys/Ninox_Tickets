@@ -53,6 +53,7 @@ final class SendHarness {
     DateTime? now,
     Duration reconcileWindow = const Duration(minutes: 2),
     int attachmentAttempts = 4,
+    int maxPages = 200,
     bool withRefreshSchema = true,
   }) : now = now ?? testNow {
     pipeline = SendPipeline(
@@ -67,6 +68,7 @@ final class SendHarness {
           : null,
       reconcileWindow: reconcileWindow,
       attachmentAttempts: attachmentAttempts,
+      maxPages: maxPages,
     );
   }
 
@@ -104,9 +106,11 @@ final class SendHarness {
     return pipeline.send(teaching);
   }
 
-  /// Clears the call log and the journal, so that the scenario under test is the only evidence.
+  /// Clears the call log, the page reads and the journal, so that the scenario under test is the
+  /// only evidence.
   void forget() {
     port.calls.clear();
+    port.pageReads.clear();
     journal.entries.clear();
   }
 }
