@@ -31,7 +31,7 @@ check is run from the repository root on Flutter 3.47.5 / Dart 3.13.4:
 
 Detailed in design §5 (2026-10-10). Runs after `close-adr-011-pdf-text-route`, which is decided.
 
-- [ ] 2.1 T1.14 — local store and document state machine (FR-HIS-001, FR-HIS-002).
+- [x] 2.1 T1.14 — local store and document state machine (FR-HIS-001, FR-HIS-002).
 
 ## 3. Orchestrator and product owner
 
