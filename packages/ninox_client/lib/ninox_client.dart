@@ -13,13 +13,19 @@
 ///   [RecordId] — what the endpoints return;
 /// * [NinoxFailure] and its subtypes, including [CreateOutcomeUncertain], which is how a create
 ///   whose response was lost is told apart from one that never left (ADR-013);
-/// * [ClassicNinoxAdapter] — the classic REST implementation over `package:http`.
+/// * [ClassicNinoxAdapter] — the classic REST implementation over `package:http`;
+/// * [SendPipeline] — the send itself: create → attach → read back, the retry matrix
+///   (`ninox-send/the-retry-matrix`, FR-SND-004), the reconciliation of an uncertain create
+///   (FR-SND-005) and the bounds of both, with [SendRequest], [SendOutcome] and its outcomes
+///   ([Sent], [Queued], [Uncertain], [Incomplete], [Failed]) and the [SendJournal] a send reports
+///   its steps to ([Clock] and [Sleeper] are what the pipeline reads the time and the backoff
+///   from, and both are injected).
 ///
 /// **What this library never does.** It reads no environment variable: the team, the database and
 /// the table are arguments of every call, and the production-database variable of `AGENTS.md` §1.4
-/// is never named here (GAP-012). It holds one credential and transmits no second one. It retries
-/// nothing: classifying a failure and reconciling an uncertain create are the send pipeline's
-/// (T1.11).
+/// is never named here (GAP-012). It holds one credential and transmits no second one. The adapter
+/// retries nothing: classifying a failure and reconciling an uncertain create are the send
+/// pipeline's, and the pipeline is where the matrix lives.
 ///
 /// **One call still carries documentation-shaped provenance.** [NinoxPort.updateRecord] — the merge
 /// primitive of `ninox-send/updates-are-merges` (FR-SND-008) — takes its verb, path and body from
@@ -46,6 +52,11 @@ export 'src/model.dart'
         NinoxFile;
 
 export 'src/port.dart';
+
+export 'src/send/send_journal.dart';
+export 'src/send/send_outcome.dart';
+export 'src/send/send_pipeline.dart';
+export 'src/send/send_request.dart';
 
 /// The package's name, so the workspace can prove it resolves before any real API exists.
 const String packageName = 'ninox_client';
