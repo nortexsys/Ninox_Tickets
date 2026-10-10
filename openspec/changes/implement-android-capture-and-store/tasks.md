@@ -29,7 +29,7 @@ check is run from the repository root on Flutter 3.47.5 / Dart 3.13.4:
 
 ## 2. Mobile — second dispatch: local store and state machine (T1.14)
 
-Detailed in design §5 before dispatch. Runs after `close-adr-011-pdf-text-route` (design §6).
+Detailed in design §5 (2026-10-10). Runs after `close-adr-011-pdf-text-route`, which is decided.
 
 - [ ] 2.1 T1.14 — local store and document state machine (FR-HIS-001, FR-HIS-002).
 
