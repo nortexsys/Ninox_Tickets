@@ -19,7 +19,11 @@
 ///   (FR-SND-005) and the bounds of both, with [SendRequest], [SendOutcome] and its outcomes
 ///   ([Sent], [Queued], [Uncertain], [Incomplete], [Failed]) and the [SendJournal] a send reports
 ///   its steps to ([Clock] and [Sleeper] are what the pipeline reads the time and the backoff
-///   from, and both are injected).
+///   from, and both are injected);
+/// * [recordLink] and [databaseLink] — the deep link back into the web application
+///   (`ninox-send/deep-link-back-to-the-record`, FR-SND-006, ADR-008): pure functions of a
+///   destination and a record identifier, with no call and no credential, and [databaseLink] as the
+///   form the confirmation degrades to.
 ///
 /// **What this library never does.** It reads no environment variable: the team, the database and
 /// the table are arguments of every call, and the production-database variable of `AGENTS.md` §1.4
@@ -54,6 +58,7 @@ export 'src/model.dart'
 export 'src/port.dart';
 
 export 'src/send/send_journal.dart';
+export 'src/send/send_links.dart';
 export 'src/send/send_outcome.dart';
 export 'src/send/send_pipeline.dart';
 export 'src/send/send_request.dart';

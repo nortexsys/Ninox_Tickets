@@ -25,6 +25,7 @@ One import, `package:ninox_client/ninox_client.dart`, gives:
 | `SendOutcome` and its five outcomes | `Sent` — with the **read-back** (`readBack`, `files`), which is what the UI shows, never what was sent; `Queued` — nothing left the device, so nothing is lost; `Uncertain(candidates)` — the app will not guess, the user chooses; `Incomplete(recordId, reason)` — a record exists without a confirmed document, and its attachment is retried alone; `Failed(kind, failure)` — terminal, with `SendFailureKind` saying what the user has to do (`auth`, `destinationGone`, `mapping`, `server`). |
 | `SendJournal`, `SendStep`, `NoopSendJournal`, `InMemorySendJournal` | Where a send reports its transitions. The nine states a document's history carries are `document-history`'s (T1.14), which implements this interface over a local store; `InMemorySendJournal` is the one this package ships, for tests. |
 | `Clock`, `Sleeper` | What the pipeline reads the time and the backoff from, both injected so that a test crosses a reconciliation window and asserts the backoff instead of waiting for it. |
+| `recordLink`, `databaseLink`, `ninoxWebHost` | The deep link back into the web application (FR-SND-006, ADR-008): pure, no call, no credential, an explicit `webHost` (default `ninoxWebHost`), and the database form as the degraded fallback. |
 
 `packageName` is exported too, so the workspace can prove the package resolves.
 
@@ -81,12 +82,36 @@ the user chose through `adopt`, which may belong to somebody else.
 
 **What is deliberately not here.** No connectivity detection, no offline queue and no state machine:
 the pipeline receives a connectivity failure and returns `Queued`, emits transitions to a
-`SendJournal`, and leaves the nine states of `document-history` to T1.14. And no deep link: the URL
-structure of `deep-link-back-to-the-record` (FR-SND-006, ADR-008) is **not documented** in the
-`ninox` skill or in the ADR — both state the components (*host, team, database, table identifier,
-record identifier; the view segment is optional*) and that the structure was verified once, but
-neither gives the layout — so the two link builders are **not** written here. Guessing a URL shape is
-exactly what the change's design says to report instead of doing.
+`SendJournal`, and leaves the nine states of `document-history` to T1.14.
+
+## The deep link
+
+`recordLink(ref, id, webHost:)` and `databaseLink(ref, webHost:)` are the two pure functions of
+`ninox-send/deep-link-back-to-the-record` (FR-SND-006, ADR-008): they take no port, make no call and
+carry no credential, and everything in the URL is the destination the app already stores plus the
+identifier the create returned.
+
+```
+https://{webHost}/#/teams/{team}/database/{database}/module/{table}/node/{table}{recordId}
+https://{webHost}/#/teams/{team}/database/{database}          <- the degraded form
+```
+
+**Provenance.** The record shape was measured: the product owner copied the URL of a record of the
+**test base** out of the vendor's web application (a read — nothing was written). The URL it had
+looks like `.../module/S/view/{viewId}/node/S869/tab/0`; the `view/{viewId}` and `tab/0` segments
+are **optional** (ADR-008), and this builder holds no view identifier, so it emits neither. The
+shape is **not a published vendor contract** (GAP-008) and can change without notice — which is why
+the confirmation falls back to the database form instead of failing.
+
+**The web host is not the API host.** The API answers `api.ninox.com` (`NinoxEndpoint`); the web
+application is at `next.ninox.com`. Nothing about one follows from the other, so the host is an
+argument with a default (`ninoxWebHost`), and a private-cloud destination passes the host of its own
+deployment.
+
+**The degraded form is not measured.** `databaseLink` is the record shape with the table and record
+segments removed — an inference from the measured URL, **not** a second browser reading. It is
+marked as such in its dartdoc, and it is `recordLink`'s prefix, so a fallback lands on the same
+destination.
 
 ## What it never does
 

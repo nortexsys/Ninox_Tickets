@@ -166,6 +166,26 @@ void main() {
       isA<SendPipeline>(),
     );
   });
+  test(
+    'the deep link back to the record is built from what the app already holds',
+    () {
+      const TableRef ref = TableRef(
+        teamId: 't1',
+        databaseId: 'db1',
+        tableId: 'S',
+      );
+
+      final Uri record = recordLink(ref, const RecordId('869'));
+      final Uri database = databaseLink(ref, webHost: 'ninox.example.de');
+
+      expect(ninoxWebHost, 'next.ninox.com');
+      expect(record.host, ninoxWebHost);
+      expect(record.fragment, '/teams/t1/database/db1/module/S/node/S869');
+      expect(record.toString(), startsWith(databaseLink(ref).toString()));
+      expect(database.host, 'ninox.example.de');
+      expect(database.fragment, '/teams/t1/database/db1');
+    },
+  );
 }
 
 /// A clock that stands still, for the public-API test.
