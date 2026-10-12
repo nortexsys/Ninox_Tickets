@@ -7,19 +7,19 @@ private corpus is read, copied or committed by a lane. No write to Ninox.
 
 ## 1. Mobile — dispatch (design §1–§4)
 
-- [ ] 1.1 `OcrTextSource`, `OcrPass`, `OcrFailure` in `app/lib/adapters/ocr/`. *Done when* the types
+- [x] 1.1 `OcrTextSource`, `OcrPass`, `OcrFailure` in `app/lib/adapters/ocr/`. *Done when* the types
       compile and are exercised by tests with a fake backend.
-- [ ] 1.2 ML Kit Latin implementation behind `TextRecognizerBackend`, pinned exactly in
+- [x] 1.2 ML Kit Latin implementation behind `TextRecognizerBackend`, pinned exactly in
       `app/pubspec.yaml`. *Done when* `flutter build apk --debug` is green.
-- [ ] 1.3 PDF page rendering via pdfrx, read-only, cache files always removed. *Done when* the
+- [x] 1.3 PDF page rendering via pdfrx, read-only, cache files always removed. *Done when* the
       hash-unchanged and cleanup tests pass.
-- [ ] 1.4 The four passes of design §3, ordered, injectable, failing pass dropped and recorded.
+- [x] 1.4 The four passes of design §3, ordered, injectable, failing pass dropped and recorded.
       *Done when* the order/id/drop tests pass.
-- [ ] 1.5 Pixel→milli-point conversion, tested with a known box. *Done when* exact integer
+- [x] 1.5 Pixel→milli-point conversion, tested with a known box. *Done when* exact integer
       expectations pass.
-- [ ] 1.6 Device harness `app/integration_test/ocr_eval_test.dart` (design §4) and the synthetic
+- [x] 1.6 Device harness `app/integration_test/ocr_eval_test.dart` (design §4) and the synthetic
       fixture with its generator. *Done when* it compiles and is skipped without `OCR_EVAL_DIR`.
-- [ ] 1.7 Size delta (bundled and unbundled, release arm64) and licence of the resolved artefact in
+- [x] 1.7 Size delta (bundled and unbundled, release arm64) and licence of the resolved artefact in
       the lane report.
 
 ## 2. Orchestrator and product owner
