@@ -22,6 +22,7 @@ export 'src/countries/tax_id.dart';
 export 'src/dictionaries/labels.dart';
 export 'src/dictionaries/lookup.dart';
 export 'src/dictionaries/negative.dart';
+export 'src/extraction/extract_document.dart';
 export 'src/format/date.dart';
 export 'src/format/decimal.dart';
 export 'src/layout/binding.dart';
