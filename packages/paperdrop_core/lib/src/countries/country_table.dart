@@ -45,10 +45,15 @@ class CountryRow {
   /// The cash-rounding rule; `none` for both launch rows.
   final CashRounding cashRounding;
 
+  /// The country names used as medium detection evidence, in the dictionary
+  /// languages (`España`/`Spain`/`Spanien`, `Deutschland`/`Germany`/
+  /// `Alemania`). The list is closed per row and carries no document text.
+  final List<String> countryNames;
+
   /// Creates a country row.
   ///
-  /// The [countryCode] must be two upper-case letters. [taxIdTypes] and
-  /// [legalRates] are copied into unmodifiable collections.
+  /// The [countryCode] must be two upper-case letters. [taxIdTypes],
+  /// [legalRates] and [countryNames] are copied into unmodifiable collections.
   CountryRow({
     required this.countryCode,
     required this.currency,
@@ -58,8 +63,10 @@ class CountryRow {
     required this.dateSeparator,
     required this.decimalConvention,
     required this.cashRounding,
+    List<String> countryNames = const <String>[],
   }) : taxIdTypes = List.unmodifiable(taxIdTypes),
-       legalRates = Set.unmodifiable(legalRates) {
+       legalRates = Set.unmodifiable(legalRates),
+       countryNames = List.unmodifiable(countryNames) {
     if (!_countryCodeShape.hasMatch(countryCode)) {
       throw ArgumentError.value(
         countryCode,
@@ -95,7 +102,8 @@ class CountryRow {
         other.dateOrder == dateOrder &&
         other.dateSeparator == dateSeparator &&
         other.decimalConvention == decimalConvention &&
-        other.cashRounding == cashRounding;
+        other.cashRounding == cashRounding &&
+        _stringListEquals(other.countryNames, countryNames);
   }
 
   @override
@@ -108,6 +116,7 @@ class CountryRow {
     dateSeparator,
     decimalConvention,
     cashRounding,
+    Object.hashAll(countryNames),
   );
 }
 
@@ -130,6 +139,7 @@ class CountryTable {
     dateSeparator: '/',
     decimalConvention: DecimalConvention.commaDecimal,
     cashRounding: CashRounding.none,
+    countryNames: <String>['España', 'Spain', 'Spanien', 'Espagne', 'Spagna'],
   );
 
   /// The German row: EUR; `DE_USTID`, `DE_STNR`; 1900, 700, 0;
@@ -143,6 +153,13 @@ class CountryTable {
     dateSeparator: '.',
     decimalConvention: DecimalConvention.commaDecimal,
     cashRounding: CashRounding.none,
+    countryNames: <String>[
+      'Deutschland',
+      'Germany',
+      'Alemania',
+      'Allemagne',
+      'Germania',
+    ],
   );
 
   /// The launch table containing [es] and [de].
@@ -213,4 +230,16 @@ bool _setEquals(Set<RateBp> left, Set<RateBp> right) {
     return false;
   }
   return left.containsAll(right);
+}
+
+bool _stringListEquals(List<String> left, List<String> right) {
+  if (left.length != right.length) {
+    return false;
+  }
+  for (var i = 0; i < left.length; i++) {
+    if (left[i] != right[i]) {
+      return false;
+    }
+  }
+  return true;
 }

@@ -10,6 +10,7 @@ import '../dictionaries/lookup.dart';
 import '../format/date.dart';
 import '../format/decimal.dart';
 import '../model/calendar_date.dart';
+import '../money/currency.dart';
 import '../money/money.dart';
 import 'lines.dart';
 import 'positioned_word.dart';
@@ -143,8 +144,15 @@ LabelBinding? bindLabel(
   LabelOccurrence label,
   TextPage page,
   ValueKind kind,
-  CountryRow country,
-) {
+  CountryRow? country, {
+  DecimalConvention? decimalConvention,
+  DateOrder? dateOrder,
+  CurrencyCode? currency,
+}) {
+  final convention = decimalConvention ?? country?.decimalConvention;
+  final dateOrderValue = dateOrder ?? country?.dateOrder;
+  final currencyCode = currency ?? country?.currency;
+
   final lines = groupIntoLines(page);
   final labelLine = _lineContaining(lines, label.words);
   if (labelLine == null) {
@@ -157,7 +165,9 @@ LabelBinding? bindLabel(
   final sameLine = _bindOnLine(
     _wordsToTheRight(labelLine.words, labelRight),
     kind,
-    country,
+    convention,
+    dateOrderValue,
+    currencyCode,
     page.index,
   );
   if (sameLine != null) {
@@ -179,7 +189,9 @@ LabelBinding? bindLabel(
     final below = _bindOnLine(
       _wordsNotLeftOf(line.words, labelLeft),
       kind,
-      country,
+      convention,
+      dateOrderValue,
+      currencyCode,
       page.index,
     );
     if (below != null) {
@@ -236,14 +248,23 @@ bool _horizontallyOverlaps(
 LabelBinding? _bindOnLine(
   List<PositionedWord> candidates,
   ValueKind kind,
-  CountryRow country,
+  DecimalConvention? decimalConvention,
+  DateOrder? dateOrder,
+  CurrencyCode? currency,
   int pageIndex,
 ) {
   final ordered = [...candidates]..sort(_byX0);
   for (var start = 0; start < ordered.length; start++) {
     for (var length = 1; start + length <= ordered.length; length++) {
       final run = ordered.sublist(start, start + length);
-      final binding = _bindingForRun(run, kind, country, pageIndex);
+      final binding = _bindingForRun(
+        run,
+        kind,
+        decimalConvention,
+        dateOrder,
+        currency,
+        pageIndex,
+      );
       if (binding != null) {
         return binding;
       }
@@ -255,17 +276,18 @@ LabelBinding? _bindOnLine(
 LabelBinding? _bindingForRun(
   List<PositionedWord> run,
   ValueKind kind,
-  CountryRow country,
+  DecimalConvention? decimalConvention,
+  DateOrder? dateOrder,
+  CurrencyCode? currency,
   int pageIndex,
 ) {
   final text = run.map((PositionedWord word) => word.text).join(' ');
   switch (kind) {
     case ValueKind.amount:
-      final money = parsePrintedAmount(
-        text,
-        country.decimalConvention,
-        country.currency,
-      );
+      if (decimalConvention == null || currency == null) {
+        return null;
+      }
+      final money = parsePrintedAmount(text, decimalConvention, currency);
       if (money == null) {
         return null;
       }
@@ -278,7 +300,10 @@ LabelBinding? _bindingForRun(
         pageIndex: pageIndex,
       );
     case ValueKind.date:
-      final date = parsePrintedDate(text, country.dateOrder);
+      if (dateOrder == null) {
+        return null;
+      }
+      final date = parsePrintedDate(text, dateOrder);
       if (date == null) {
         return null;
       }

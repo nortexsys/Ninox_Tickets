@@ -19,9 +19,9 @@ Plan v0.2 M2, T2.1. A task is done when its check passes. Core checks run from `
 
 ## 2. Mobile — dispatch B (after A is merged and T1.14 is on `main`)
 
-- [ ] 2.1 `ExtractionRouter` with the four routes of design §2, over the two ports, fakes in tests.
-- [ ] 2.2 Read-only proven by hash before/after; failures become `ExtractionFailure`.
-- [ ] 2.3 Wired to the store's document state machine.
+- [x] 2.1 `ExtractionRouter` with the four routes of design §2, over the two ports, fakes in tests.
+- [x] 2.2 Read-only proven by hash before/after; failures become `ExtractionFailure`.
+- [x] 2.3 Wired to the store's document state machine.
 
 ## 3. Orchestrator and product owner
 

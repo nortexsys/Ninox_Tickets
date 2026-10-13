@@ -14,6 +14,8 @@ import '../consensus/consensus.dart';
 import '../countries/country_table.dart';
 import '../dictionaries/labels.dart';
 import '../dictionaries/lookup.dart';
+import '../format/date.dart';
+import '../format/decimal.dart';
 import '../layout/binding.dart';
 import '../layout/lines.dart';
 import '../layout/positioned_word.dart';
@@ -82,11 +84,29 @@ class ExtractionPass {
 /// survived consensus are handed to the amount solver.
 CanonicalDocument extractDocument({
   required List<ExtractionPass> passes,
-  required CountryRow country,
+  required CountryRow? country,
   required CountryTable table,
   required String sourceHash,
 }) {
   final route = _routeLabel(passes);
+
+  final DecimalConvention? decimalConvention;
+  final DateOrder? dateOrder;
+  final CurrencyCode? documentCurrency;
+  if (country == null) {
+    final allPages = <TextPage>[for (final pass in passes) ...pass.pages];
+    final printedTokens = <String>[
+      for (final page in allPages)
+        for (final word in page.words) word.text,
+    ];
+    decimalConvention = inferDecimalConvention(printedTokens);
+    dateOrder = inferDateOrder(printedTokens);
+    documentCurrency = _resolveUniversalCurrency(allPages, table);
+  } else {
+    decimalConvention = country.decimalConvention;
+    dateOrder = country.dateOrder;
+    documentCurrency = country.currency;
+  }
 
   final grossReadings = <Reading<Money>>[];
   final baseReadings = <Reading<Money>>[];
@@ -101,11 +121,18 @@ CanonicalDocument extractDocument({
   for (final pass in passes) {
     final pages = [...pass.pages]..sort(_byPageIndex);
 
-    final operands = readOperands(pages, country);
+    final operands = readOperands(
+      pages,
+      country,
+      decimalConvention: decimalConvention,
+      currency: documentCurrency,
+    );
     final negative = applyNegativeContext(
       operands: operands,
       pages: pages,
       country: country,
+      decimalConvention: decimalConvention,
+      currency: documentCurrency,
     );
 
     _addReadingIfUnanimous<Money>(grossReadings, <Money>[
@@ -122,7 +149,7 @@ CanonicalDocument extractDocument({
     ], pass.passId);
 
     final currency = resolveCurrency(
-      readCurrencyEvidence(pages, issuerCountry: country.countryCode),
+      readCurrencyEvidence(pages, issuerCountry: country?.countryCode),
       table,
     );
     if (currency is Present<CurrencyCode>) {
@@ -137,6 +164,7 @@ CanonicalDocument extractDocument({
       LabelKind.date,
       ValueKind.date,
       country,
+      dateOrder,
       pass.passId,
       (LabelBinding binding) => binding.date,
     );
@@ -146,6 +174,7 @@ CanonicalDocument extractDocument({
       LabelKind.supplier,
       ValueKind.documentNumber,
       country,
+      dateOrder,
       pass.passId,
       (LabelBinding binding) => binding.documentNumber,
     );
@@ -155,6 +184,7 @@ CanonicalDocument extractDocument({
       LabelKind.docNumber,
       ValueKind.documentNumber,
       country,
+      dateOrder,
       pass.passId,
       (LabelBinding binding) => binding.documentNumber,
     );
@@ -214,7 +244,15 @@ CanonicalDocument extractDocument({
         ? const <ReadOperand>[]
         : <ReadOperand>[_rateOperand(rateValue)];
 
-    final gate = gatePrintedRates(rates, country);
+    final RateGateResult gate;
+    if (country == null) {
+      // The universal core has no legal-rate set: every printed rate is
+      // admitted and none is discarded.
+      gate = RateGateResult(admitted: rates, discarded: const <ReadOperand>[]);
+    } else {
+      gate = gatePrintedRates(rates, country);
+    }
+
     final breakdown = solveBreakdown(
       bases: bases,
       taxes: taxes,
@@ -228,13 +266,15 @@ CanonicalDocument extractDocument({
     grossTotal = _finalizeAmount(breakdown.gross, grossConsensus, check);
     netTotal = _finalizeAmount(breakdown.base, baseConsensus, check);
     taxTotal = _finalizeAmount(rawTax, taxConsensus, check);
-    taxSlots = buildTaxSlots(
-      bases: bases,
-      taxes: taxes,
-      grosses: grosses,
-      admittedRates: gate.admitted,
-      country: country,
-    );
+    taxSlots = country == null
+        ? const <TaxSlot>[]
+        : buildTaxSlots(
+            bases: bases,
+            taxes: taxes,
+            grosses: grosses,
+            admittedRates: gate.admitted,
+            country: country,
+          );
   }
 
   final docDate = _nonAmountField<CalendarDate>(dateReadings, FieldKind.other);
@@ -268,7 +308,7 @@ CanonicalDocument extractDocument({
     taxTotal: taxTotal,
     taxSlots: taxSlots,
     surcharges: _uniqueSurcharges(surcharges),
-    needsReview: _needsReview(reviewFields),
+    needsReview: country == null || _needsReview(reviewFields),
     recognitionEngine: route,
     sourceHash: sourceHash,
   );
@@ -290,6 +330,14 @@ String _routeLabel(List<ExtractionPass> passes) {
     }
   }
   return route;
+}
+
+CurrencyCode? _resolveUniversalCurrency(
+  Iterable<TextPage> pages,
+  CountryTable table,
+) {
+  final value = resolveCurrency(readCurrencyEvidence(pages), table);
+  return value is Present<CurrencyCode> ? value.value : null;
 }
 
 void _addReadingIfUnanimous<T>(
@@ -322,11 +370,18 @@ void _addNonAmountReadings<T>(
   Iterable<TextPage> pages,
   LabelKind labelKind,
   ValueKind valueKind,
-  CountryRow country,
+  CountryRow? country,
+  DateOrder? dateOrder,
   String passId,
   T? Function(LabelBinding binding) value,
 ) {
-  final bindings = _bindingsFor(pages, labelKind, valueKind, country);
+  final bindings = _bindingsFor(
+    pages,
+    labelKind,
+    valueKind,
+    country,
+    dateOrder,
+  );
   if (bindings.isEmpty) {
     return;
   }
@@ -347,7 +402,8 @@ List<LabelBinding> _bindingsFor(
   Iterable<TextPage> pages,
   LabelKind labelKind,
   ValueKind valueKind,
-  CountryRow country,
+  CountryRow? country,
+  DateOrder? dateOrder,
 ) {
   final bindings = <LabelBinding>[];
   for (final page in pages) {
@@ -365,6 +421,7 @@ List<LabelBinding> _bindingsFor(
           page,
           valueKind,
           country,
+          dateOrder: dateOrder,
         );
         if (binding != null) {
           bindings.add(binding);

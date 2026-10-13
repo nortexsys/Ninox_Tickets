@@ -17,6 +17,7 @@ import '../model/canonical_document.dart';
 import '../model/confidence.dart';
 import '../model/field_value.dart';
 import '../model/provenance.dart';
+import '../money/currency.dart';
 import '../money/money.dart';
 import 'operands.dart';
 
@@ -73,9 +74,13 @@ class NegativeContextResult {
 NegativeContextResult applyNegativeContext({
   required ReadOperands operands,
   required Iterable<TextPage> pages,
-  required CountryRow country,
+  required CountryRow? country,
+  DecimalConvention? decimalConvention,
+  CurrencyCode? currency,
   int radiusMilliPoints = negativeInfluenceRadiusMilliPoints,
 }) {
+  final convention = decimalConvention ?? country?.decimalConvention;
+  final currencyCode = currency ?? country?.currency;
   final terms = _negativeTerms(pages);
 
   final kept = <ReadOperand>[];
@@ -91,7 +96,8 @@ NegativeContextResult applyNegativeContext({
   final surcharges = _captureSurcharges(
     terms,
     pages,
-    country,
+    convention,
+    currencyCode,
     radiusMilliPoints,
   );
 
@@ -152,7 +158,8 @@ bool _withinRadiusOfAnyTerm(
 List<Surcharge> _captureSurcharges(
   List<_NegativeTerm> terms,
   Iterable<TextPage> pages,
-  CountryRow country,
+  DecimalConvention? convention,
+  CurrencyCode? currencyCode,
   int radius,
 ) {
   final surcharges = <Surcharge>[];
@@ -164,7 +171,13 @@ List<Surcharge> _captureSurcharges(
       continue;
     }
 
-    final captured = _nearestAmount(term.words, pages, country, radius);
+    final captured = _nearestAmount(
+      term.words,
+      pages,
+      convention,
+      currencyCode,
+      radius,
+    );
     if (captured == null) {
       continue;
     }
@@ -191,9 +204,14 @@ List<Surcharge> _captureSurcharges(
 _CapturedAmount? _nearestAmount(
   List<PositionedWord> termWords,
   Iterable<TextPage> pages,
-  CountryRow country,
+  DecimalConvention? convention,
+  CurrencyCode? currencyCode,
   int radius,
 ) {
+  if (convention == null || currencyCode == null) {
+    return null;
+  }
+
   final radiusSquared = radius * radius;
   _CapturedAmount? best;
   var bestDistance = 0;
@@ -208,11 +226,7 @@ _CapturedAmount? _nearestAmount(
         }
 
         final word = words[i];
-        final money = parsePrintedAmount(
-          word.text,
-          country.decimalConvention,
-          country.currency,
-        );
+        final money = parsePrintedAmount(word.text, convention, currencyCode);
         if (money == null) {
           continue;
         }

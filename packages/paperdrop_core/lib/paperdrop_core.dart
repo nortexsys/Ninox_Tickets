@@ -15,6 +15,7 @@ export 'src/confidence/repair.dart';
 export 'src/confidence/states.dart';
 export 'src/consensus/consensus.dart';
 export 'src/countries/country_table.dart';
+export 'src/countries/detect_country.dart';
 export 'src/countries/es_cif.dart';
 export 'src/countries/es_nie.dart';
 export 'src/countries/es_nif.dart';
