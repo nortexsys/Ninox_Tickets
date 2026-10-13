@@ -20,6 +20,12 @@ One import, `package:ninox_client/ninox_client.dart`, gives:
 | `NinoxFailure` and its subtypes | `Unauthorized` (401/403), `NotFound` (404), `RateLimited` (429), `ServerError(status, …)` (5xx, **usually a field-name problem, not an outage**), `UnexpectedResponse` (any other status, or a 2xx whose body does not carry the documented shape), `TransportFailure` (no response), and `CreateOutcomeUncertain` — a `TransportFailure` subtype for a create whose response was lost, which is never blind-retried (ADR-013). |
 | `NinoxPort` | The interface: `listTeams`, `listDatabases`, `listTables`, `createRecord`, `readRecord`, `updateRecord`, `uploadFile`, `listFiles`, `listRecords`. Every method returns `Future<T>` and throws only `NinoxFailure` subtypes. |
 | `ClassicNinoxAdapter` | The classic implementation, built from an endpoint, credentials, a required `http.Client` and an optional `timeout` (default 30 s). |
+| `SendPipeline` | The send itself (T1.11): create → attach → read back, the retry matrix, the reconciliation of an uncertain create, and the bounds of both. It is pure Dart over `NinoxPort` and takes an injected `SendJournal`, `Clock` and `Sleeper`, plus an optional `refreshSchema` callback. Its methods are `send`, `resume` (attachment-only retry), `adopt` (the record the user chose) and `createAnyway` (the user said *none of these*). |
+| `SendRequest` | Where a send goes and what it carries: the `TableRef`, the payload already built under the destination's **current field names** (the pipeline decides no value and builds no mapping), the `docId` the journal is keyed by, and the document's name, bytes and content type. |
+| `SendOutcome` and its five outcomes | `Sent` — with the **read-back** (`readBack`, `files`), which is what the UI shows, never what was sent; `Queued` — nothing left the device, so nothing is lost; `Uncertain(candidates)` — the app will not guess, the user chooses; `Incomplete(recordId, reason)` — a record exists without a confirmed document, and its attachment is retried alone; `Failed(kind, failure)` — terminal, with `SendFailureKind` saying what the user has to do (`auth`, `destinationGone`, `mapping`, `server`). |
+| `SendJournal`, `SendStep`, `NoopSendJournal`, `InMemorySendJournal` | Where a send reports its transitions. The nine states a document's history carries are `document-history`'s (T1.14), which implements this interface over a local store; `InMemorySendJournal` is the one this package ships, for tests. |
+| `Clock`, `Sleeper` | What the pipeline reads the time and the backoff from, both injected so that a test crosses a reconciliation window and asserts the backoff instead of waiting for it. |
+| `recordLink`, `databaseLink`, `ninoxWebHost` | The deep link back into the web application (FR-SND-006, ADR-008): pure, no call, no credential, an explicit `webHost` (default `ninoxWebHost`), and the database form as the degraded fallback. |
 
 `packageName` is exported too, so the workspace can prove the package resolves.
 
@@ -44,6 +50,74 @@ state: every other call is either verified in the skill's trace or covered by AD
 A lost update response is a **plain `TransportFailure`**, never `CreateOutcomeUncertain`: an update
 cannot create a record, and sending the same fields twice leaves the record as one update would.
 
+## The send pipeline
+
+`SendPipeline` is where the sequencing lives, because the expensive failures are sequencing
+failures. Its behaviour is `ninox-send`'s, stated as a matrix, and each row is a test in
+`test/send/`:
+
+* **create → attach → read back, in that order**, and the outcome carries the **read-back**: fields
+  carrying formulas or defaults silently override what was submitted, and the create response does
+  not reveal it, so showing the user what was sent would be showing something the app cannot vouch
+  for (FR-SND-001, `ninox-send/create-attach-read-back`).
+* **A create whose response was lost is never retried.** It enters the reconciliation, which reads
+  the destination's records — **every page** of the table, 100 rows at a time, until a page comes
+  back short — and then sorts and filters **locally** (`?order=`/`?desc=` are accepted by the API
+  and their effect is unverified, GAP-023, and the default order is not known to be newest-first, so
+  the record a lost POST created can sit on the last page of a long table). It adopts the one record
+  that is ours, inside the window, carrying what was sent — or asks the user, because the app never
+  guesses (FR-SND-005, ADR-013). `maxPages` (200 by default) bounds the read: a table longer than
+  the bound is not read to its end, and an unseen tail can only produce `Uncertain`, never the
+  *zero candidates, create one* path.
+* **An HTTP 500 is a mapping error, not an outage**: the schema is refreshed, the request is retried
+  **exactly once**, and the second failure is reported as `SendFailureKind.mapping` (FR-SND-004).
+* **A record created without its document is `Incomplete`, never `Sent`**: the attachment is retried
+  alone by `resume`, and nothing else about the record is touched (FR-SND-003, FR-SND-008).
+* **A 401 is not worth sleeping for**: `Failed(auth)`, no retry. A 404 is `Failed(destinationGone)`,
+  no retry. A timeout on an attachment, a read-back or a listing backs off 1 s, 2 s, 4 s … up to
+  `attachmentAttempts` (a **total**, not a number of retries) and then stops as `Incomplete`.
+* **A connectivity failure before a request left, while no record exists yet, is `Queued`** — the
+  offline queue is Mobile's; the pipeline hands it the outcome.
+
+**One input the pipeline has to learn.** A candidate record is one whose `createdBy` is the token's
+own user, and the port has no "who am I" call. The pipeline learns that audit key from the read-back
+of a record it created itself; until it has read one back, it cannot apply the filter and asks the
+user (`Uncertain`) instead of skipping the check. It is deliberately **not** learned from a record
+the user chose through `adopt`, which may belong to somebody else.
+
+**What is deliberately not here.** No connectivity detection, no offline queue and no state machine:
+the pipeline receives a connectivity failure and returns `Queued`, emits transitions to a
+`SendJournal`, and leaves the nine states of `document-history` to T1.14.
+
+## The deep link
+
+`recordLink(ref, id, webHost:)` and `databaseLink(ref, webHost:)` are the two pure functions of
+`ninox-send/deep-link-back-to-the-record` (FR-SND-006, ADR-008): they take no port, make no call and
+carry no credential, and everything in the URL is the destination the app already stores plus the
+identifier the create returned.
+
+```
+https://{webHost}/#/teams/{team}/database/{database}/module/{table}/node/{table}{recordId}
+https://{webHost}/#/teams/{team}/database/{database}          <- the degraded form
+```
+
+**Provenance.** The record shape was measured: the product owner copied the URL of a record of the
+**test base** out of the vendor's web application (a read — nothing was written). The URL it had
+looks like `.../module/S/view/{viewId}/node/S869/tab/0`; the `view/{viewId}` and `tab/0` segments
+are **optional** (ADR-008), and this builder holds no view identifier, so it emits neither. The
+shape is **not a published vendor contract** (GAP-008) and can change without notice — which is why
+the confirmation falls back to the database form instead of failing.
+
+**The web host is not the API host.** The API answers `api.ninox.com` (`NinoxEndpoint`); the web
+application is at `next.ninox.com`. Nothing about one follows from the other, so the host is an
+argument with a default (`ninoxWebHost`), and a private-cloud destination passes the host of its own
+deployment.
+
+**The degraded form is not measured.** `databaseLink` is the record shape with the table and record
+segments removed — an inference from the measured URL, **not** a second browser reading. It is
+marked as such in its dartdoc, and it is `recordLink`'s prefix, so a fallback lands on the same
+destination.
+
 ## What it never does
 
 * **Reads no environment variable.** The target is explicit in every call (`AGENTS.md` §1.4,
@@ -59,6 +133,13 @@ cannot create a record, and sending the same fields twice leaves the record as o
 `dart test` runs everything except what is tagged `live` (`dart_test.yaml`), on recorded,
 sanitised bodies from `test/fixtures/classic/` — no test of this package reaches the network: the
 adapter's `http.Client` is a required constructor argument, and every test passes a `MockClient`.
+
+The send pipeline's tests (`test/send/`) never touch the adapter at all: they run on
+`test/send/fake_ninox_port.dart`, a `NinoxPort` that answers from scripts — one entry per call, a
+value or a typed failure — and keeps the order of the calls, plus an in-memory journal, a frozen
+clock and a sleeper that records the backoff instead of waiting. That is what makes the matrix
+assertable row by row: a timeout on the *second* upload is two scripted entries, and *no create
+after an uncertain one* is a call log.
 
 `test/live/order_desc_check_test.dart` is the GAP-023 read-only check. It is **written and never run
 by the lane**: it issues GET requests only, and it refuses to run unless it is opted into explicitly

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:ninox_client/ninox_client.dart';
@@ -112,4 +114,82 @@ void main() {
       const {'Amount': 2049},
     );
   });
+
+  test('the send pipeline and the five outcomes are reachable from the single import', () {
+    final SendRequest request = SendRequest(
+      ref: const TableRef(teamId: 't1', databaseId: 'db1', tableId: 'T1'),
+      fieldsByName: const <String, Object?>{'Amount': 1999},
+      docId: 'document-1',
+      filename: 'receipt.pdf',
+      bytes: Uint8List(4),
+      contentType: 'application/pdf',
+    );
+    const NinoxRecord record = NinoxRecord(
+      id: RecordId('1416'),
+      fields: <String, Object?>{'Amount': 1999},
+    );
+    const List<SendOutcome> outcomes = <SendOutcome>[
+      Sent(recordId: RecordId('1416'), readBack: record, files: <NinoxFile>[]),
+      Queued(),
+      Uncertain(candidates: <NinoxRecord>[record]),
+      Incomplete(
+        recordId: RecordId('1416'),
+        reason: 'the document is not confirmed',
+      ),
+      Failed(
+        kind: SendFailureKind.mapping,
+        failure: ServerError(500, 'Unknown field'),
+      ),
+    ];
+    const Clock clock = _fixedClock;
+    const Sleeper sleeper = _noSleep;
+    const SendJournal journal = NoopSendJournal();
+
+    expect(request.fieldsByName.keys, <String>['Amount']);
+    expect(outcomes.length, 5);
+    expect(clock(), DateTime.utc(2026));
+    expect(sleeper(const Duration(seconds: 1)), isA<Future<void>>());
+    expect(journal, isA<SendJournal>());
+    expect(
+      SendPipeline(
+        ClassicNinoxAdapter(
+          endpoint: NinoxEndpoint.cloud,
+          credentials: const NinoxCredentials('synthetic-token'),
+          client: MockClient(
+            (http.Request request) async => http.Response('', 200),
+          ),
+        ),
+        journal: journal,
+        clock: clock,
+        sleep: sleeper,
+      ),
+      isA<SendPipeline>(),
+    );
+  });
+  test(
+    'the deep link back to the record is built from what the app already holds',
+    () {
+      const TableRef ref = TableRef(
+        teamId: 't1',
+        databaseId: 'db1',
+        tableId: 'S',
+      );
+
+      final Uri record = recordLink(ref, const RecordId('869'));
+      final Uri database = databaseLink(ref, webHost: 'ninox.example.de');
+
+      expect(ninoxWebHost, 'next.ninox.com');
+      expect(record.host, ninoxWebHost);
+      expect(record.fragment, '/teams/t1/database/db1/module/S/node/S869');
+      expect(record.toString(), startsWith(databaseLink(ref).toString()));
+      expect(database.host, 'ninox.example.de');
+      expect(database.fragment, '/teams/t1/database/db1');
+    },
+  );
 }
+
+/// A clock that stands still, for the public-API test.
+DateTime _fixedClock() => DateTime.utc(2026);
+
+/// A sleeper that does not wait, for the public-API test.
+Future<void> _noSleep(Duration duration) async {}

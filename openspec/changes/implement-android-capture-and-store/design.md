@@ -105,11 +105,81 @@ share a PDF from another app. The orchestrator compares the SHA-256 of the store
 source for the picked and shared files (`adb shell run-as com.nortexsys.paperdrop sha256sum ...`).
 Results go in the daily status.
 
-## 5. T1.14 — Local store and document state machine
+## 5. T1.14 — Local store and document state machine (FR-HIS-001, FR-HIS-002)
 
-To be detailed before dispatch: `document-history` · `content-of-a-history-entry`, `document-states`
-(Funcional §6.2.3); documents serialised with `paperdrop_core`'s JSON (BR-09); the store is local-only
-(ADR-009) and declared (`both-local-stores-are-declared`).
+Detailed by the orchestrator on 2026-10-10. Mobile lane. Pure Dart plus `dart:io`; no new dependency.
+
+**Decisions of the product owner (2026-10-10).** (a) `duplicate-flagged` is a separate flag, not a ninth
+value of the state (DEC-016). (b) One JSON file per document, not SQLite.
+
+### 5.1 Layout and store
+
+```
+app/lib/history/history_entry.dart      HistoryEntry, DocumentState (8 values), toJson/fromJson
+app/lib/history/document_machine.dart   allowed transitions, `transition(entry, to, ...)`
+app/lib/history/history_store.dart      HistoryStore interface + FileHistoryStore
+app/test/history/                       one test file per file above
+```
+
+* `FileHistoryStore(Directory root)`: the entry of a document lives at `<root>/<docId>/entry.json`, next to the
+  folder `DocumentIntake` already creates for that `docId`. Writes are atomic: write `entry.json.tmp`, flush,
+  rename over `entry.json`. A `.tmp` left by a crash is ignored on read and removed on the next write.
+* API: `create(entry)`, `get(docId)`, `update(docId, entry)` (rejects a stale `revision`), `list()` newest first.
+  A corrupt `entry.json` is reported as a failure for that entry, never throws out of `list()`.
+* Serialisation uses `paperdrop_core`'s JSON for every money, rate and provenance value (BR-09): the store is a
+  reader of the contract, not a second author. It stores **no** value that `paperdrop_core` cannot round-trip.
+
+### 5.2 The entry (`content-of-a-history-entry`)
+
+`docId`, `revision`, `createdAt`, `state`, `duplicateFlagged`, `documentHash` (SHA-256 from intake),
+`thumbnailPath` (nullable until one exists), `destination` (a `TableRef` as plain ids, nothing else),
+`values` (extracted values with their provenance, `paperdrop_core` JSON, nullable until extraction), `confidence`
+(nullable until validation), `ninoxRecordId` (nullable until created), `failureReason` (a code, never free text with
+a value). `ninoxRecordId` is set when a create is confirmed and survives into `sent`.
+
+### 5.3 States and transitions
+
+Eight stored values: `pending`, `queued`, `extracting`, `reviewing`, `sending`, `uncertain`, `sent`, `failed`.
+The functional's finer steps (`capturing`, `ingested`, `attaching`, `reading-back`, `reconciling`, `discarded`) are
+**not** stored states: `capturing`/`ingested` are `pending`; `attaching`/`reading-back` are `sending`;
+`reconciling` is `uncertain`; discarding deletes the entry and its folder. Allowed transitions, and no others:
+
+```
+pending -> extracting | failed
+extracting -> reviewing | failed
+reviewing -> queued | sending          (save online / offline); reviewing -> (deleted) on discard
+queued -> sending
+sending -> sent | uncertain | failed | queued
+uncertain -> sending | sent | failed   (after reconciliation or the user's choice)
+failed -> reviewing                    (corrected and re-sent)
+sent -> reviewing                      (correction; see FR-HIS-003, an update of the same record)
+```
+
+An illegal transition throws a `StateError` named after both states and changes nothing on disk. `sent` requires
+`ninoxRecordId`; `queued` is never reached by a failure (`queued` != `failed`; `uncertain` != `failed`).
+`duplicateFlagged` can be set in any state and never blocks a transition.
+
+### 5.4 The seam with the send pipeline (not in this change's code)
+
+`ninox_client` (merged on the housekeeping branch, not yet on `main` when this was written) has `SendJournal` /
+`SendStep`. The adapter `HistoryEntry` <-> `SendJournal` lives in `app/lib/features/send/` (the Ninox lane's
+folder) and is a later task. This change must not import `SendJournal`. Mapping the pipeline wants, for the later
+task: `queued -> queued`, `sending/created/attaching/attached -> sending`, `uncertain -> uncertain`, `sent -> sent`,
+`failed -> failed`, `incomplete -> sending` with `failureReason = attachment_incomplete`.
+
+### 5.5 Retention (`file-retention`, FR-HIS-004)
+
+Not done here (it depends on a confirmed send). The store exposes `deleteOriginal(docId)` that removes the stored
+document file only, leaving `entry.json`; it refuses unless the state is `sent`.
+
+### 5.6 Done when
+
+Tests tagged per plan §11.1: all eight stored values readable; every allowed transition passes and every other
+pair throws with nothing changed on disk; `queued` and `uncertain` never read as `failed`; `sent` without a record
+identifier is refused; a kill between tmp write and rename leaves the previous entry intact; a corrupt entry does not
+break `list()`; round trip with money `{"minor": 1999, "currency": "EUR"}` and provenance by wire name; no two
+states at once; `deleteOriginal` refuses outside `sent`. `flutter analyze --fatal-infos`, `dart format`, `flutter test`
+from `app/`, `py -3 .github/scripts/privacy_check.py`. Strings, if any, externalised (NFR-I18N-001).
 
 ## 6. Decisions of the product owner (2026-09-30)
 
