@@ -15,6 +15,7 @@ import '../layout/lines.dart';
 import '../layout/positioned_word.dart';
 import '../layout/text_page.dart';
 import '../model/provenance.dart';
+import '../money/currency.dart';
 import '../money/money.dart';
 import '../money/rate.dart';
 
@@ -179,7 +180,18 @@ class ReadOperands {
 /// Amount operands are bound to their labels by visual layout; rate operands
 /// are read from tokens that print a percentage sign. Nothing is computed:
 /// every returned operand carries [Provenance.read].
-ReadOperands readOperands(Iterable<TextPage> pages, CountryRow country) {
+ReadOperands readOperands(
+  Iterable<TextPage> pages,
+  CountryRow? country, {
+  DecimalConvention? decimalConvention,
+  CurrencyCode? currency,
+}) {
+  final convention = decimalConvention ?? country?.decimalConvention;
+  final currencyCode = currency ?? country?.currency;
+  if (convention == null || currencyCode == null) {
+    return ReadOperands(const <ReadOperand>[]);
+  }
+
   final operands = <ReadOperand>[];
 
   for (final page in pages) {
@@ -202,6 +214,8 @@ ReadOperands readOperands(Iterable<TextPage> pages, CountryRow country) {
           page,
           ValueKind.amount,
           country,
+          decimalConvention: convention,
+          currency: currencyCode,
         );
         final money = binding?.amount;
         if (binding == null || money == null) {
@@ -219,7 +233,7 @@ ReadOperands readOperands(Iterable<TextPage> pages, CountryRow country) {
         );
       }
 
-      _readRatesFromLine(line, country, page.index, operands);
+      _readRatesFromLine(line, convention, page.index, operands);
     }
   }
 
@@ -249,7 +263,7 @@ List<PositionedWord> _wordsCoveredBy(LayoutLine line, TermMatch match) {
 
 void _readRatesFromLine(
   LayoutLine line,
-  CountryRow country,
+  DecimalConvention convention,
   int pageIndex,
   List<ReadOperand> operands,
 ) {
@@ -273,7 +287,7 @@ void _readRatesFromLine(
       continue;
     }
 
-    final rate = _parseRateText(candidate, country);
+    final rate = _parseRateText(candidate, convention);
     if (rate != null) {
       _addIfNew(
         operands,
@@ -283,16 +297,18 @@ void _readRatesFromLine(
   }
 }
 
-RateBp? _parseRateText(String text, CountryRow country) {
+RateBp? _parseRateText(String text, DecimalConvention convention) {
   var normalized = text.trim();
   if (normalized.isEmpty) {
     return null;
   }
 
-  final groupingSeparator =
-      country.decimalConvention == DecimalConvention.commaDecimal ? '.' : ',';
-  final decimalSeparator =
-      country.decimalConvention == DecimalConvention.commaDecimal ? ',' : '.';
+  final groupingSeparator = convention == DecimalConvention.commaDecimal
+      ? '.'
+      : ',';
+  final decimalSeparator = convention == DecimalConvention.commaDecimal
+      ? ','
+      : '.';
 
   normalized = normalized
       .replaceAll(groupingSeparator, '')
