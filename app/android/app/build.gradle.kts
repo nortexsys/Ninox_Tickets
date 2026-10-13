@@ -33,6 +33,14 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            // The R8 warnings the photo route's engine needs suppressed
+            // (implement-photo-route, design §2): ML Kit's plugin names the
+            // option classes of four scripts whose artefacts do not ship. See
+            // android/app/proguard-rules.pro.
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }

@@ -28,6 +28,7 @@ root file is outside the lane's write bounds.
 | `http` 1.6.0 | The one composition that builds the real Ninox adapter (`implement-setup-wizard` §3) | BSD-3-Clause | No |
 | `share_handler` 0.0.25, with `share_handler_platform_interface` 0.0.6 and `share_handler_android` 0.0.11 | Android share-in (FR-CAP-008): `ACTION_SEND` and `ACTION_SEND_MULTIPLE` | MIT | No |
 | `google_mlkit_document_scanner` 0.6.0 (wrapper only; the scanner itself is Google Play services) | The platform's document scanner, FR-CAP-002 (ADR-006) | MIT for the wrapper; ML Kit Terms of Service for the Google component | **Yes** (the Google component) |
+| `google_mlkit_text_recognition` 0.17.1, with `google_mlkit_commons` 0.13.0 (wrapper only; the recogniser is Google ML Kit) | The photo route's recognition: ML Kit text recognition, Latin script (`implement-photo-route`, FR-EXT-015; ADR-010 is **proposed**) | MIT for the Dart wrapper (its own `LICENSE`); ML Kit Terms of Service for every Google component it links (each resolved artefact's POM says so) | **Yes** (the Google components) |
 | AndroidX and the Kotlin standard library (through the Flutter Android embedding) | Platform integration | Apache-2.0 | No |
 
 Transitive packages of the dependencies above — platform interfaces, `cross_file`,
@@ -47,11 +48,62 @@ between `share_handler` and `receive_sharing_intent` by which one builds on Flut
 * `share_handler` **0.0.25 — chosen**: its Android package compiles against SDK 34, and the debug
   build succeeds unchanged.
 
-**Planned, not yet in the build** — listed so this table is never behind the code:
+**The photo route's engine took that row's place** (`implement-photo-route`): ML Kit text recognition is in the build, and the row above says so with the version this application resolves and the licence read from the artefacts. ADR-010 itself stays **proposed** — the approach is decided, and the engine is confirmed by the screening of T2.5 on the photographed corpus, which no lane has run yet. The size numbers the choice is made on are in the section below; the accuracy is not measured here at all.
 
-| Dependency | For | Licence | Proprietary |
-| --- | --- | --- | --- |
-| Google ML Kit text recognition | Photo route (ADR-010, proposed) | ML Kit Terms of Service | **Yes** |
+### ADR-010 (proposed) — the photo route's engine, `implement-photo-route`
+
+The port is `OcrTextSource` (`app/lib/adapters/ocr/`), the photo-route twin of
+`PdfTextSource`: pages of Core's `TextPage` in integer thousandths of a point, top-left
+origin, so the rule that binds a label to its value is written once. The implementation is
+`MlKitOcrTextSource` over ML Kit's **Latin** script recogniser, and it reads the same page
+several times — `p1-native` at 150 dpi, `p2-hi` at 200, `p3-lo` at 100 and `p4-contrast` at
+150 with the levels stretched. The passes are returned separately and never merged here:
+choosing a value across them is Core's consensus (T1.5/T2.1, FR-EXT-006). PDF pages are
+rendered with the PDFium this project already links for the invoice route (`pdfrx`).
+
+**The packaged form is measured, not chosen** (design §2, NFR-SIZ-001). The plugin's default
+form is the one that bundles the Latin model; the other form was built by substituting
+`com.google.mlkit:text-recognition` with `com.google.android.gms:play-services-mlkit-text-recognition:19.0.1`
+in `android/app/build.gradle.kts` for the length of one measurement and taking the
+substitution out again. Three release arm64 APKs of the same commit, built with
+`flutter build apk --release --split-per-abi` on Flutter 3.47.5, `compileSdk` 36, signed with
+the debug key this project already configures for release, each measured as the byte size of
+`build/app/outputs/flutter-apk/app-arm64-v8a-release.apk`:
+
+| Build | arm64 release APK, bytes | Delta vs baseline |
+| --- | --- | --- |
+| Baseline, without the text recognition dependency | 25,688,040 | — |
+| **Bundled** (the plugin's default) | 38,239,844 | **+12,551,804** |
+| **Unbundled** (the Play-services form) | 25,787,439 | **+99,399** |
+
+The bundled delta is the model and its pipeline: `lib/arm64-v8a/libmlkit_google_ocr_pipeline.so`
+is **11,064,544** bytes, stored uncompressed, the twenty-one files under
+`assets/mlkit-google-ocr-models/` come to **1,486,803** bytes, and `classes.dex` grows by
+**510,008**. The unbundled delta is that same client in `classes.dex` (**+239,068**) and the
+three `.properties` markers of the Play-services modules, with no model and no pipeline
+library: the model is downloaded by Google Play services at run time instead, which is why
+that form is small and why it needs Play services on the device. Neither number is a
+decision: the product owner chooses, and the accuracy those two forms reach is what T2.5
+measures.
+
+**Licence, read from the artefacts the build resolved** (NFR-LIC-001). The Dart wrapper
+`google_mlkit_text_recognition` 0.17.1 states **MIT** in its own `LICENSE`. Every Google
+component under it states **ML Kit Terms of Service** in its own POM
+(`com.google.mlkit:text-recognition:16.0.1`, `text-recognition-bundled-common:17.0.0`,
+`vision-common:17.3.0`, `vision-interfaces:16.3.0`, `com.google.mlkit:common:18.11.0`, and the
+`com.google.android.gms` family of the unbundled form), and the Google Play services
+foundations declare the Android Software Development Kit Licence. **No AGPL and no GPL
+component is introduced**, and no licence notice ships inside the APK with the model: the
+Google components are proprietary, as the table above says.
+
+**R8 needs eight rules, and they are in the repository.** ML Kit's plugin builds a recogniser
+for five scripts and declares four of them — Chinese, Devanagari, Japanese, Korean —
+`compileOnly`: its `TextRecognizer.initialize` names their option classes and no artefact
+carries them, so the release build failed on eight missing classes until
+`android/app/proguard-rules.pro` suppressed them, one line each, alongside the same eight
+lines the Android Gradle plugin generates for itself. The application uses the Latin
+recogniser only, and the file says so. Its `proguardFiles` lines are the application's, in
+`android/app/build.gradle.kts`.
 
 ### ADR-011 — closed on candidate B, `pdfrx`
 
