@@ -1,12 +1,20 @@
-/// The extraction step against the real store: the state machine, the stored values, the
-/// reason a failure leaves and the document that is never touched (T2.1, tasks 2.2–2.3).
+/// The extraction step against the real store: the state machine, the country the
+/// document's own evidence picks, the stored values, the reason a failure leaves and the
+/// document that is never touched (T2.1 tasks 2.2–2.3; `implement-country-detection` task
+/// 2.2).
 ///
 /// Requirement served: `document-history` · `document-states` (FR-HIS-002) — an entry
 /// holds exactly one of the eight states and every change goes through
-/// `document_machine.dart`; `extraction-pipeline` · `invoice-route-priority` (FR-EXT-002)
-/// — the route taken is recorded in the recognition engine the values carry;
-/// `extraction-pipeline` · `multi-page-consolidation` (FR-EXT-012) — the pages of one
-/// document become one model; and `capture-intake` ·
+/// `document_machine.dart`; `countries-languages` ·
+/// `deterministic-country-detection` (FR-CTR-001) — the row that governs a document is the
+/// document's own evidence and never a caller's argument; `countries-languages` ·
+/// `universal-core` (FR-CTR-002) — a document no row governs is read anyway, `needsReview`,
+/// with the reason in its engine metadata and never as a failure (design §4);
+/// `extraction-pipeline` · `invoice-route-priority` (FR-EXT-002) — the route taken is
+/// recorded in the recognition engine the values carry; `extraction-pipeline` ·
+/// `multi-page-consolidation` (FR-EXT-012) — the pages of one document become one model;
+/// `extraction-pipeline` · `consensus-by-majority` (FR-EXT-006) as design §3 applies it to
+/// the country — the passes of one extraction must agree about it; and `capture-intake` ·
 /// `received-files-are-attached-byte-for-byte` (FR-CAP-005, ADR-015) — the stored copy is
 /// the same bytes before and after it was read.
 ///
@@ -22,6 +30,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:paperdrop/adapters/ocr/mlkit_ocr_text_source.dart';
 import 'package:paperdrop/adapters/ocr/ocr_text_source.dart';
+import 'package:paperdrop/adapters/ocr/render_passes.dart';
 import 'package:paperdrop/adapters/pdf_text/pdf_text_source.dart';
 import 'package:paperdrop/adapters/pdf_text/pdfrx_text_source.dart';
 import 'package:paperdrop/features/extraction/extraction_failure.dart';
@@ -137,9 +146,9 @@ void main() {
       service: ExtractionService(
         store: store,
         router: ExtractionRouter(pdfText: text, ocr: ocr),
-        // Which country row a document is read against is its caller's decision, so
-        // nothing here invents production wiring for it.
-        country: CountryTable.es,
+        // No country row is handed over: the document's own evidence picks it
+        // (`deterministic-country-detection`, design §1), and the launch table is
+        // the one it is read in.
       ),
       text: text,
       ocr: ocr,
@@ -175,7 +184,9 @@ void main() {
         FakeOcrTextSource ocr,
       })
       fakes = serviceOver(
-        textPages: <TextPage>[invoicePage(0)],
+        // The document's own evidence: a Spanish issuer's CIF, which is what picks the
+        // ES row now that the service is not told one (design §1).
+        textPages: <TextPage>[spanishInvoicePage(0)],
         onRead: (String path) async {
           statesWhileReading.add((await files.get(document.docId)).state);
         },
@@ -240,6 +251,22 @@ void main() {
       );
       expect(values.needsReview, isTrue);
       expect(values.recognitionEngine, 'pdf-text/$pdfEngine');
+      expect(
+        completed.detection,
+        Detected(
+          row: CountryTable.es,
+          evidence: const <CountryEvidenceKind>[CountryEvidenceKind.taxId],
+        ),
+        reason: 'the country is the document\'s own evidence, not a setting',
+      );
+      expect(
+        values.taxSlots,
+        hasLength(CountryTable.es.slotCount),
+        reason:
+            'the detected row governs the reading: its rate set is the slot count '
+            '(`country-table-contract`), and a document no row governs has no slot '
+            'at all',
+      );
       expect(values, completed.entry.values);
     },
   );
@@ -295,7 +322,7 @@ void main() {
         _RouteCase(
           mediaType: 'application/pdf',
           bytes: sourceBytes,
-          textPages: <TextPage>[invoicePage(0)],
+          textPages: <TextPage>[spanishInvoicePage(0)],
           passes: const <OcrPass>[],
           engine: 'pdf-text/$pdfEngine',
         ),
@@ -303,14 +330,14 @@ void main() {
           mediaType: 'application/pdf',
           bytes: sourceBytes,
           textPages: <TextPage>[blankPage(0)],
-          passes: fourPasses(<TextPage>[recognisedPage(0)]),
+          passes: fourPasses(<TextPage>[spanishInvoicePage(0)]),
           engine: 'pdf-ocr/$ocrEngine',
         ),
         _RouteCase(
           mediaType: 'application/pdf',
           bytes: sourceBytes,
-          textPages: <TextPage>[invoicePage(0), blankPage(1)],
-          passes: fourPasses(<TextPage>[recognisedPage(0), recognisedPage(1)]),
+          textPages: <TextPage>[spanishInvoicePage(0), blankPage(1)],
+          passes: fourPasses(<TextPage>[spanishInvoicePage(0), invoicePage(1)]),
           engine: 'pdf-mixed/$pdfEngine + $ocrEngine',
         ),
         _RouteCase(
@@ -319,7 +346,7 @@ void main() {
           textPages: const <TextPage>[],
           passes: <OcrPass>[
             OcrPass(MlKitOcrTextSource.imagePassId, <TextPage>[
-              recognisedPage(0),
+              spanishInvoicePage(0),
             ]),
           ],
           engine: 'photo-ocr/$ocrEngine',
@@ -366,9 +393,11 @@ void main() {
       FakeOcrTextSource ocr,
     })
     // The total is on page 1 and the date on page 2, and the pass carries both pages:
-    // what `PdfTextSource` returns for a two-page PDF, handed on as one pass.
+    // what `PdfTextSource` returns for a two-page PDF, handed on as one pass. Page 1
+    // prints the issuer's CIF, so the ES row — and with it the day-first date order —
+    // is the document's own evidence.
     fakes = serviceOver(
-      textPages: <TextPage>[invoicePage(0), datePage(1, '01/01/2024')],
+      textPages: <TextPage>[spanishInvoicePage(0), datePage(1, '01/01/2024')],
     );
 
     final ExtractionOutcome outcome = await fakes.service.extract(document);
@@ -390,6 +419,377 @@ void main() {
     );
     expect(values, (await files.get(document.docId)).values);
   });
+
+  test('[countries-languages/deterministic-country-detection] the row is the '
+      'document\'s own evidence: a Spanish ticket reads under ES and a German '
+      'invoice under DE', () async {
+    // Two documents, one service, no country handed over: which row reads them is
+    // what their own words say (design §1).
+    final List<({String name, TextPage page, CountryRow row})> cases =
+        <({String name, TextPage page, CountryRow row})>[
+          (
+            name: 'a Spanish issuer\'s CIF',
+            page: spanishInvoicePage(0),
+            row: CountryTable.es,
+          ),
+          (
+            name: 'a German issuer\'s VAT identifier',
+            page: germanInvoicePage(0),
+            row: CountryTable.de,
+          ),
+        ];
+
+    for (var i = 0; i < cases.length; i++) {
+      final ({String name, TextPage page, CountryRow row}) detectionCase =
+          cases[i];
+      final IntakeResult document = await storedDocument(seed: 75 + i);
+      final ({
+        ExtractionService service,
+        FakePdfTextSource text,
+        FakeOcrTextSource ocr,
+      })
+      fakes = serviceOver(textPages: <TextPage>[detectionCase.page]);
+
+      final ExtractionOutcome outcome = await fakes.service.extract(document);
+
+      expect(outcome, isA<ExtractionCompleted>(), reason: detectionCase.name);
+      final ExtractionCompleted completed = outcome as ExtractionCompleted;
+      expect(
+        completed.detection,
+        Detected(
+          row: detectionCase.row,
+          evidence: const <CountryEvidenceKind>[CountryEvidenceKind.taxId],
+        ),
+        reason: detectionCase.name,
+      );
+      expect(
+        completed.document.taxSlots,
+        hasLength(detectionCase.row.slotCount),
+        reason:
+            'the detected row governed the reading: the slot count is the '
+            'row\'s own rate set (`country-table-contract`) and a document '
+            'with no row has no slot (${detectionCase.name})',
+      );
+      expect(
+        completed.document.recognitionEngine,
+        'pdf-text/$pdfEngine',
+        reason:
+            'a detected country needs no reason in the engine metadata '
+            '(${detectionCase.name})',
+      );
+      expect(completed.entry.state, DocumentState.reviewing);
+      expect(completed.entry.failureReason, isNull);
+    }
+  });
+
+  test('[countries-languages/universal-core] an Undetected document is not a '
+      'failure: it is read by the universal core and goes to review', () async {
+    final IntakeResult document = await storedDocument(seed: 90);
+    final ({
+      ExtractionService service,
+      FakePdfTextSource text,
+      FakeOcrTextSource ocr,
+    })
+    // No tax identifier, no country name and no currency no row declares: the
+    // Spanish label words are weak evidence and never decide on their own.
+    fakes = serviceOver(
+      textPages: <TextPage>[invoicePage(0)],
+    );
+
+    final ExtractionOutcome outcome = await fakes.service.extract(document);
+
+    expect(
+      outcome,
+      isA<ExtractionCompleted>(),
+      reason:
+          'a country nobody could name is not a document nobody could read '
+          '(design §4)',
+    );
+    final ExtractionCompleted completed = outcome as ExtractionCompleted;
+    expect(
+      completed.detection,
+      const Undetected(reason: UndetectedReason.noEvidence),
+    );
+    expect(completed.entry.state, DocumentState.reviewing);
+    expect(store.writtenStates, <DocumentState>[
+      DocumentState.extracting,
+      DocumentState.reviewing,
+    ], reason: '`failed` is not on an undetected document\'s path');
+    expect(
+      completed.entry.failureReason,
+      isNull,
+      reason:
+          'a reason in that field would say the route could not read the '
+          'document; this one was read',
+    );
+    expect(
+      completed.document.recognitionEngine,
+      'pdf-text/$pdfEngine [country=noEvidence]',
+      reason: 'the reason is engine metadata, beside the route it came with',
+    );
+
+    // What the universal core reads: the amounts and the convention they are
+    // printed in, no legal-rate gate and no slot.
+    expect(
+      completed.document.grossTotal,
+      Present<Money>(Money(12100, eur), Provenance.read, ConfidenceState.amber),
+    );
+    expect(
+      completed.document.netTotal,
+      Present<Money>(Money(10000, eur), Provenance.read, ConfidenceState.amber),
+    );
+    expect(
+      completed.document.taxSlots,
+      isEmpty,
+      reason: 'no row, so no rate set and no slot',
+    );
+    expect(completed.document.needsReview, isTrue);
+
+    // The reason is *added to the engine metadata and to nothing else*: Core's
+    // own answer for the same passes with no country is the stored document, in
+    // every field but that one string.
+    final CanonicalDocument universalCore = extractDocument(
+      passes: <ExtractionPass>[
+        ExtractionPass(
+          passId: textLayerPassId,
+          routeLabel: 'pdf-text/$pdfEngine',
+          pages: <TextPage>[invoicePage(0)],
+        ),
+      ],
+      country: null,
+      table: CountryTable.launch,
+      sourceHash: document.sha256,
+    );
+    final Map<String, Object?> stored = completed.document.toJson();
+    final Map<String, Object?> fromCore = universalCore.toJson();
+    expect(stored.keys, fromCore.keys);
+    for (final String field in fromCore.keys) {
+      if (field == 'recognitionEngine') {
+        continue;
+      }
+      expect(
+        stored[field],
+        fromCore[field],
+        reason: 'the service added a reason and changed no value ($field)',
+      );
+    }
+    expect(
+      (await files.get(document.docId)).values?.recognitionEngine,
+      'pdf-text/$pdfEngine [country=noEvidence]',
+      reason: 'the reason survives the store round trip',
+    );
+    expect(
+      sha256Of(File(document.storedPath).readAsBytesSync()),
+      document.sha256,
+      reason: 'an unresolved item keeps its file',
+    );
+  });
+
+  test(
+    '[countries-languages/universal-core] the reason of every Undetected '
+    'document is stored in its engine metadata, and the document is reviewed',
+    () async {
+      final List<({String name, List<TextPage> pages, UndetectedReason reason})>
+      cases = <({String name, List<TextPage> pages, UndetectedReason reason})>[
+        (
+          name: 'no evidence at all',
+          pages: <TextPage>[invoicePage(0)],
+          reason: UndetectedReason.noEvidence,
+        ),
+        (
+          name: 'two tax identifiers of two countries and no tiebreak',
+          pages: <TextPage>[
+            evidencePage(0, <String>['B12345678', 'DE987654321']),
+          ],
+          reason: UndetectedReason.conflictingEvidence,
+        ),
+        (
+          name: 'evidence of a country with no row',
+          pages: <TextPage>[
+            evidencePage(0, <String>['CHE123456789', 'CHF']),
+          ],
+          reason: UndetectedReason.countryWithoutRow,
+        ),
+      ];
+
+      for (var i = 0; i < cases.length; i++) {
+        final ({String name, List<TextPage> pages, UndetectedReason reason})
+        detectionCase = cases[i];
+        final IntakeResult document = await storedDocument(seed: 80 + i);
+        final ({
+          ExtractionService service,
+          FakePdfTextSource text,
+          FakeOcrTextSource ocr,
+        })
+        fakes = serviceOver(textPages: detectionCase.pages);
+
+        final ExtractionOutcome outcome = await fakes.service.extract(document);
+
+        expect(outcome, isA<ExtractionCompleted>(), reason: detectionCase.name);
+        final ExtractionCompleted completed = outcome as ExtractionCompleted;
+        expect(
+          completed.detection,
+          Undetected(reason: detectionCase.reason),
+          reason: detectionCase.name,
+        );
+        expect(
+          completed.entry.state,
+          DocumentState.reviewing,
+          reason: detectionCase.name,
+        );
+        expect(store.writtenStates, <DocumentState>[
+          DocumentState.extracting,
+          DocumentState.reviewing,
+        ], reason: detectionCase.name);
+        expect(
+          completed.entry.failureReason,
+          isNull,
+          reason:
+              'the reason is never a failure, whichever reason it is '
+              '(${detectionCase.name})',
+        );
+        expect(
+          completed.document.needsReview,
+          isTrue,
+          reason: detectionCase.name,
+        );
+        final String metadata =
+            'pdf-text/$pdfEngine [country=${detectionCase.reason.name}]';
+        expect(
+          completed.document.recognitionEngine,
+          metadata,
+          reason: detectionCase.name,
+        );
+        expect(
+          (await files.get(document.docId)).values?.recognitionEngine,
+          metadata,
+          reason:
+              'the reason is stored, and survives the store round trip '
+              '(${detectionCase.name})',
+        );
+        store.writtenStates.clear();
+      }
+    },
+  );
+
+  test('[extraction-pipeline/consensus-by-majority] passes that name different '
+      'countries detect neither, and the reason is the conflict', () async {
+    final IntakeResult document = await storedDocument(seed: 95);
+    final ({
+      ExtractionService service,
+      FakePdfTextSource text,
+      FakeOcrTextSource ocr,
+    })
+    // One document read four times: the renderings do not agree about the
+    // issuer's country, so no row governs it (design §3).
+    fakes = serviceOver(
+      textPages: <TextPage>[blankPage(0)],
+      passes: <OcrPass>[
+        OcrPass(ocrRenderPasses[0].passId, <TextPage>[spanishInvoicePage(0)]),
+        OcrPass(ocrRenderPasses[1].passId, <TextPage>[germanInvoicePage(0)]),
+        OcrPass(ocrRenderPasses[2].passId, <TextPage>[blankPage(0)]),
+        OcrPass(ocrRenderPasses[3].passId, <TextPage>[spanishInvoicePage(0)]),
+      ],
+    );
+
+    final ExtractionOutcome outcome = await fakes.service.extract(document);
+
+    expect(outcome, isA<ExtractionCompleted>());
+    final ExtractionCompleted completed = outcome as ExtractionCompleted;
+    expect(
+      completed.detection,
+      const Undetected(reason: UndetectedReason.conflictingEvidence),
+      reason: 'two passes name ES and one names DE: this is a conflict',
+    );
+    expect(
+      completed.document.recognitionEngine,
+      'pdf-ocr/$ocrEngine [country=conflictingEvidence]',
+    );
+    expect(
+      completed.document.taxSlots,
+      isEmpty,
+      reason: 'no row governs the document, so nothing is read under one',
+    );
+    expect(completed.entry.state, DocumentState.reviewing);
+    expect(completed.entry.failureReason, isNull);
+  });
+
+  test('[extraction-pipeline/consensus-by-majority] a pass that names a country and '
+      'a pass that names none are a conflict, not a vote', () async {
+    final IntakeResult document = await storedDocument(seed: 96);
+    final ({
+      ExtractionService service,
+      FakePdfTextSource text,
+      FakeOcrTextSource ocr,
+    })
+    fakes = serviceOver(
+      textPages: <TextPage>[blankPage(0)],
+      passes: <OcrPass>[
+        OcrPass(ocrRenderPasses[0].passId, <TextPage>[spanishInvoicePage(0)]),
+        OcrPass(ocrRenderPasses[1].passId, <TextPage>[invoicePage(0)]),
+      ],
+    );
+
+    final ExtractionOutcome outcome = await fakes.service.extract(document);
+
+    final ExtractionCompleted completed = outcome as ExtractionCompleted;
+    expect(
+      completed.detection,
+      const Undetected(reason: UndetectedReason.conflictingEvidence),
+      reason: 'one reading found ES and the other found no evidence at all',
+    );
+    expect(completed.entry.state, DocumentState.reviewing);
+  });
+
+  test(
+    '[extraction-pipeline/consensus-by-majority] passes that agree about the '
+    'country are one answer, even when they found it in different evidence',
+    () async {
+      final IntakeResult document = await storedDocument(seed: 97);
+      final ({
+        ExtractionService service,
+        FakePdfTextSource text,
+        FakeOcrTextSource ocr,
+      })
+      fakes = serviceOver(
+        textPages: <TextPage>[blankPage(0)],
+        passes: <OcrPass>[
+          // ES from the issuer's CIF …
+          OcrPass(ocrRenderPasses[0].passId, <TextPage>[spanishInvoicePage(0)]),
+          // … and ES from a country name beside a postal code. A different
+          // evidence kind is not a different country.
+          OcrPass(ocrRenderPasses[1].passId, <TextPage>[
+            invoicePageWithEvidence(0, <String>['España', '28001']),
+          ]),
+          // A pass that read no word carries no evidence and is not asked
+          // (design §3: the first pass with words).
+          OcrPass(ocrRenderPasses[2].passId, <TextPage>[blankPage(0)]),
+        ],
+      );
+
+      final ExtractionOutcome outcome = await fakes.service.extract(document);
+
+      final ExtractionCompleted completed = outcome as ExtractionCompleted;
+      expect(
+        completed.detection,
+        Detected(
+          row: CountryTable.es,
+          evidence: const <CountryEvidenceKind>[CountryEvidenceKind.taxId],
+        ),
+        reason: 'the evidence kinds of the pass that answered, and one country',
+      );
+      expect(
+        completed.document.taxSlots,
+        hasLength(CountryTable.es.slotCount),
+        reason: 'the agreed row governs the reading',
+      );
+      expect(
+        completed.document.recognitionEngine,
+        'pdf-ocr/$ocrEngine',
+        reason: 'a detected country needs no reason in the engine metadata',
+      );
+    },
+  );
 
   test('a document that could not be read ends in failed with the code as its '
       'reason, and keeps its file', () async {

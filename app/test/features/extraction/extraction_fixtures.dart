@@ -110,6 +110,12 @@ PositionedWord word(String text, int x0, int x1, int top, int bottom) =>
 /// The shape is Core's own test page (`packages/paperdrop_core/test/extraction/`), so a
 /// document built from it produces a base, a tax and a total with a currency in the ES
 /// row: what these tests assert about values is what Core already asserts about them.
+///
+/// It carries no country evidence of its own: a test that needs a row pins it with
+/// [invoicePageWithEvidence], because the row is the document's own evidence and no longer
+/// the caller's argument (design §1). Its `IVA`/`BASE`/`TOTAL` labels are Spanish
+/// dictionary terms, which is weak evidence and never enough to pick a row on its own — a
+/// page of these words alone is `noEvidence`.
 TextPage invoicePage(int index) =>
     TextPage(index, 300000, 300000, <PositionedWord>[
       word('TOTAL', 100000, 120000, 100000, 120000),
@@ -129,6 +135,49 @@ TextPage datePage(int index, String date) =>
       word('FECHA', 100000, 120000, 100000, 120000),
       word(date, 130000, 220000, 100000, 120000),
     ]);
+
+/// A page holding [words] and nothing else, one word per line.
+///
+/// It is how a test gives a document the *only* thing country detection reads: a tax
+/// identifier, a country name beside a postal code, a currency (design §2). A page built
+/// this way carries no label dictionary and no amount, so what `detectCountry` answers for
+/// it is the evidence alone — and nothing on it can be read as a value.
+TextPage evidencePage(int index, List<String> words) =>
+    TextPage(index, 300000, 300000, <PositionedWord>[
+      for (var i = 0; i < words.length; i++)
+        word(words[i], 100000, 220000, 100000 + i * 40000, 120000 + i * 40000),
+    ]);
+
+/// [invoicePage] with [evidence] printed under it: a readable invoice that also carries
+/// the words country detection reads.
+///
+/// A country row is no longer handed to the service: it is the document's own evidence
+/// (`deterministic-country-detection`), so a test that asserts the ES row's reading — or
+/// the exact route label, which an undetected document appends its reason to — prints the
+/// identifier that picks the row. The evidence words sit below the labels, on their own
+/// lines, so they bind to no label and change no value.
+TextPage invoicePageWithEvidence(int index, List<String> evidence) => TextPage(
+  index,
+  300000,
+  300000,
+  <PositionedWord>[
+    ...invoicePage(index).words,
+    for (var i = 0; i < evidence.length; i++)
+      word(evidence[i], 100000, 220000, 400000 + i * 40000, 420000 + i * 40000),
+  ],
+);
+
+/// [invoicePage] with an invented Spanish issuer's CIF on it: the ES row's own evidence.
+///
+/// `B12345678` is the shape Core's own detection test uses, and it is not a real company's
+/// identifier: no test here names one.
+TextPage spanishInvoicePage(int index) =>
+    invoicePageWithEvidence(index, <String>['B12345678']);
+
+/// [invoicePage] with an invented German issuer's VAT identifier on it: the DE row's own
+/// evidence.
+TextPage germanInvoicePage(int index) =>
+    invoicePageWithEvidence(index, <String>['DE987654321']);
 
 /// A page with no word: a page without a text layer, which is the fall-through signal the
 /// route selector reads.
