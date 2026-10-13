@@ -6,16 +6,16 @@ Plan v0.2 M2, T2.1. A task is done when its check passes. Core checks run from `
 
 ## 1. Core — dispatch A (design §2)
 
-- [ ] 1.1 Report, before coding: with one pass, does `finalize` ever return green? Put the answer
+- [x] 1.1 Report, before coding: with one pass, does `finalize` ever return green? Put the answer
       (rule and test that shows it) at the top of the lane report. *Done when* it is stated.
-- [ ] 1.2 `ExtractionPass` and `extractDocument` over `bindLabel`, `solveAmounts`, `resolve`,
+- [x] 1.2 `ExtractionPass` and `extractDocument` over `bindLabel`, `solveAmounts`, `resolve`,
       `finalize`. *Done when* tests on synthetic pages pass for: one pass, four agreeing passes, three
       agreeing plus one outlier, a pass that reads nothing.
-- [ ] 1.3 Multi-page: total on page 2, date on page 1 → one model; a field with different values on
+- [x] 1.3 Multi-page: total on page 2, date on page 1 → one model; a field with different values on
       two pages of one pass → no reading from that pass. *Done when* both tests pass.
-- [ ] 1.4 Order of stages pinned by a test (consensus before derivation).
+- [x] 1.4 Order of stages pinned by a test (consensus before derivation).
       *Done when* a document whose tax fails consensus is not used by the solver.
-- [ ] 1.5 `recognitionEngine` carries the route label. *Done when* asserted per route.
+- [x] 1.5 `recognitionEngine` carries the route label. *Done when* asserted per route.
 
 ## 2. Mobile — dispatch B (after A is merged and T1.14 is on `main`)
 
