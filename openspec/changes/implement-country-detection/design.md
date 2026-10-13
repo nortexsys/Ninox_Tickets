@@ -64,7 +64,7 @@ It is deterministic and order-independent: the same words in any arrival order g
 extraction runs it on each pass and the passes must agree; the service uses the page set of the
 **first pass with words**, and a disagreement between passes is `conflictingEvidence`.
 
-## 4. What an `Undetected` document does — an open point for the PO
+## 4. What an `Undetected` document does — accepted by the PO on 2026-10-13
 
 The spec already says what is possible: `universal-core` applies "in every country, including one
 with no row": amount arithmetic, date coherence, date/decimal format inference, EAN-13, IBAN.

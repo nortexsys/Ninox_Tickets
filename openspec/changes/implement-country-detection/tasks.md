@@ -12,7 +12,7 @@ root `python .github/scripts/privacy_check.py` and `core_purity.py`.
       list per row, dictionary language, currency exclusion. *Done when* the cases of design §5 pass.
 - [ ] 1.3 Order independence and pass agreement: shuffled words give the same answer; passes that
       disagree give `conflictingEvidence`. *Done when* both tests pass.
-- [ ] 1.4 *(after the PO answers design §4)* `extractDocument` with a nullable country: the
+- [ ] 1.4 `extractDocument` with a nullable country: the
       universal core only, row-dependent values `unverified`, `needsReview`. *Done when* a
       no-row document extracts amounts and dates and never applies a rate gate.
 - [ ] 1.5 The circularity case: date and amount formats do not change the detection.
@@ -25,5 +25,5 @@ root `python .github/scripts/privacy_check.py` and `core_purity.py`.
 
 ## 3. Orchestrator and product owner
 
-- [ ] 3.1 PO answers design §4 (an undetected document: universal core + review, or fail).
+- [x] 3.1 PO answered design §4 on 2026-10-13: universal core + review.
 - [ ] 3.2 Merge with `--no-ff` after the PO's approval.
