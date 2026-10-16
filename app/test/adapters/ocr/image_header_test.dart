@@ -1,23 +1,50 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:paperdrop/adapters/ocr/image_header.dart';
+import 'package:path/path.dart' as p;
+
+import '../../tool/synthetic_jpeg.dart';
 
 /// What identifies a file before it is read (`implement-photo-route`,
 /// design §1).
 ///
 /// **What this proves.** That a PDF is recognised by its own marker, that a PNG
-/// and a JPEG are recognised by theirs with the size each declares, that the
-/// walk past a JPEG's application segments reaches its frame header, and that a
-/// file which is neither — or a truncated one, or one that declares no pixel —
-/// is not mistaken for one. On that answer depends which route the file takes:
-/// rendered page by page, or read as it is.
+/// and a JPEG are recognised by theirs with the size each declares, that a
+/// JPEG's size is found by walking the file's segments by the lengths they
+/// declare — however far past the head of the file its frame header sits — and
+/// that a file which is neither, or a truncated one, or one whose declared
+/// length runs past its end, or one that declares no pixel, is not mistaken for
+/// an image. On that answer depends which route the file takes: rendered page
+/// by page, or read as it is.
+///
+/// **Why the camera's file is built here.** The shape walked below is the one
+/// measured on a real device on 2026-10-16 — an `APP1` of 45313 bytes, an
+/// `APP4` of 36627, the frame header at byte 82084 — and it is a file this test
+/// writes from bytes in its own temporary directory: no file of the private
+/// corpus is read, copied or referenced, and no pixel is decoded or written.
 ///
 /// **Where it stops.** It reads the bytes this test writes. That the real
-/// scanner's PDF and a real camera's JPEG are identified the same way is what
-/// the device run measures; a JPEG whose frame header sits beyond the prefix
-/// the adapter reads is stated as a limit of the adapter, not proved here.
+/// scanner's PDF and the real camera's JPEG are identified the same way is what
+/// the device run measures (task 2.2).
 void main() {
+  late Directory work;
+
+  setUp(() {
+    work = Directory.systemTemp.createTempSync('paperdrop-header-test');
+  });
+
+  tearDown(() {
+    if (work.existsSync()) {
+      work.deleteSync(recursive: true);
+    }
+  });
+
+  /// A file of this test's own, named [name] and holding [bytes].
+  File write(String name, List<int> bytes) =>
+      File(p.join(work.path, name))..writeAsBytesSync(bytes);
+
   test('a PDF is recognised by its marker, and an image is not', () {
     expect(looksLikePdf(_bytes('%PDF-1.7\n')), isTrue);
     expect(looksLikePdf(_bytes('%PDF-')), isTrue);
@@ -26,55 +53,177 @@ void main() {
     expect(looksLikePdf(_bytes('PK')), isFalse);
   });
 
+  test('a PDF is not an image, and its marker is in its first bytes', () {
+    final File document = write('scan.pdf', _bytes('%PDF-1.7\n1 0 obj\n'));
+
+    expect(imagePixelSizeIn(document), isNull);
+    expect(looksLikePdf(document.readAsBytesSync()), isTrue);
+  });
+
   test('a PNG carries its size in the IHDR chunk it starts with', () {
     expect(
-      imagePixelSize(_png(width: 1240, height: 1754)),
+      imagePixelSizeIn(write('scan.png', _png(width: 1240, height: 1754))),
       const ImagePixelSize(1240, 1754),
     );
     expect(
-      imagePixelSize(_png(width: 1, height: 1)),
+      imagePixelSizeIn(write('pixel.png', _png(width: 1, height: 1))),
       const ImagePixelSize(1, 1),
     );
     // 0x0102_0304 and 0x0506_0708, which only a correct big-endian read gets.
     expect(
-      imagePixelSize(_png(width: 0x01020304, height: 0x05060708)),
+      imagePixelSizeIn(
+        write('wide.png', _png(width: 0x01020304, height: 0x05060708)),
+      ),
       const ImagePixelSize(0x01020304, 0x05060708),
     );
   });
 
   test('a JPEG carries its size in its first frame header', () {
     expect(
-      imagePixelSize(_jpeg(width: 4032, height: 3024)),
+      imagePixelSizeIn(write('small.jpg', _jpeg(width: 4032, height: 3024))),
       const ImagePixelSize(4032, 3024),
     );
     expect(
-      imagePixelSize(_jpeg(width: 1, height: 1, applicationSegments: 3)),
+      imagePixelSizeIn(
+        write('exif.jpg', _jpeg(width: 1, height: 1, applicationSegments: 3)),
+      ),
       const ImagePixelSize(1, 1),
       reason: 'the segments before the frame are walked, not read',
     );
   });
 
+  test('a camera JPEG is identified although its frame header is 82 KB in', () {
+    final Uint8List camera = cameraLikeJpeg(width: 4032, height: 3024);
+
+    // The measured shape, and the reason a prefix cannot do this job: the frame
+    // header is past the 64 KiB the adapter used to read, and the file is past
+    // it too.
+    expect(
+      camera.sublist(cameraLikeFrameOffset, cameraLikeFrameOffset + 2),
+      <int>[0xFF, 0xC0],
+      reason: 'the frame header is at byte 82084, where the camera put it',
+    );
+    expect(camera.length, greaterThan(64 * 1024));
+
+    expect(
+      imagePixelSizeIn(write('camera.jpg', camera)),
+      const ImagePixelSize(4032, 3024),
+    );
+  });
+
+  test('a camera JPEG cut before its frame header is not identified', () {
+    final Uint8List camera = cameraLikeJpeg(width: 4032, height: 3024);
+
+    expect(
+      imagePixelSizeIn(write('cut.jpg', camera.sublist(0, 64 * 1024))),
+      isNull,
+      reason: 'the app4 segment declares more bytes than the file holds',
+    );
+    expect(
+      imagePixelSizeIn(write('cut-late.jpg', camera.sublist(0, 82083))),
+      isNull,
+      reason: 'the frame header starts one byte after the file ends',
+    );
+  });
+
+  test(
+    'a segment whose declared length runs past the end is not identified',
+    () {
+      // An APP1 that declares 45313 bytes in a file that holds twenty of them.
+      expect(
+        imagePixelSizeIn(
+          write('overrun.jpg', <int>[
+            0xFF, 0xD8, //
+            0xFF, 0xE1, 0xB1, 0x01,
+            ...List<int>.filled(18, 0x00),
+          ]),
+        ),
+        isNull,
+      );
+      // A declared length below two is not a segment either.
+      expect(
+        imagePixelSizeIn(
+          write('no-length.jpg', <int>[0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x01]),
+        ),
+        isNull,
+      );
+    },
+  );
+
+  test('a JPEG that reaches its scan without a frame is not identified', () {
+    final List<int> bytes = <int>[0xFF, 0xD8];
+    bytes.addAll(<int>[0xFF, 0xE0, 0x00, 0x10]);
+    bytes.addAll(List<int>.filled(14, 0x00));
+    bytes.addAll(<int>[0xFF, 0xDA, 0x00, 0x0C]);
+    bytes.addAll(List<int>.filled(10, 0x00));
+    bytes.addAll(frameHeader(width: 64, height: 48));
+
+    // The frame-sized bytes are exactly where the start-of-scan segment leads,
+    // and are not read: no frame header comes after a scan.
+    expect(bytes.sublist(34, 36), <int>[0xFF, 0xC0]);
+    expect(imagePixelSizeIn(write('scan-start.jpg', bytes)), isNull);
+  });
+
+  test('a JPEG is walked through many segments, and abandoned past them', () {
+    List<int> withEmptySegments(int count) {
+      final List<int> bytes = <int>[0xFF, 0xD8];
+      for (var i = 0; i < count; i++) {
+        bytes.addAll(<int>[0xFF, 0xE0, 0x00, 0x02]);
+      }
+      bytes.addAll(frameHeader(width: 64, height: 48));
+      return bytes;
+    }
+
+    // A hundred empty segments are walked, not skipped.
+    expect(
+      imagePixelSizeIn(write('many.jpg', withEmptySegments(100))),
+      const ImagePixelSize(64, 48),
+    );
+    // Thousands are not: the walk is bounded, and a file that declares them —
+    // frame header or not — is answered null rather than read to no end.
+    expect(
+      imagePixelSizeIn(write('endless.jpg', withEmptySegments(50000))),
+      isNull,
+    );
+  });
+
   test('a file that is neither answers with no size', () {
-    expect(imagePixelSize(_bytes('not an image at all')), isNull);
-    expect(imagePixelSize(Uint8List(0)), isNull);
+    expect(
+      imagePixelSizeIn(write('notes.txt', _bytes('not an image at all'))),
+      isNull,
+    );
+    expect(imagePixelSizeIn(write('empty', <int>[])), isNull);
   });
 
   test('an image that declares no pixel answers with no size', () {
     // A zero in either direction is not a size: the conversion to Core's units
     // divides by the pixel count.
-    expect(imagePixelSize(_png(width: 0, height: 100)), isNull);
-    expect(imagePixelSize(_png(width: 100, height: 0)), isNull);
-    expect(imagePixelSize(_jpeg(width: 0, height: 100)), isNull);
+    expect(
+      imagePixelSizeIn(write('zero.png', _png(width: 0, height: 100))),
+      isNull,
+    );
+    expect(
+      imagePixelSizeIn(write('zero-height.png', _png(width: 100, height: 0))),
+      isNull,
+    );
+    expect(
+      imagePixelSizeIn(write('zero.jpg', _jpeg(width: 0, height: 100))),
+      isNull,
+    );
   });
 
   test('a truncated header answers with no size', () {
     expect(
-      imagePixelSize(_png(width: 800, height: 1200).sublist(0, 12)),
+      imagePixelSizeIn(
+        write('cut.png', _png(width: 800, height: 1200).sublist(0, 12)),
+      ),
       isNull,
       reason: 'a PNG signature without its IHDR is not a size',
     );
     expect(
-      imagePixelSize(_jpeg(width: 800, height: 1200).sublist(0, 12)),
+      imagePixelSizeIn(
+        write('cut.jpg', _jpeg(width: 800, height: 1200).sublist(0, 12)),
+      ),
       isNull,
       reason: 'a JPEG cut before its frame header is not a size',
     );
@@ -82,8 +231,15 @@ void main() {
 
   test('a JPEG that ends before any frame answers with no size', () {
     expect(
-      imagePixelSize(Uint8List.fromList(<int>[0xFF, 0xD8, 0xFF, 0xD9])),
+      imagePixelSizeIn(write('empty.jpg', <int>[0xFF, 0xD8, 0xFF, 0xD9])),
       isNull,
+    );
+  });
+
+  test('a file that is not there is the caller\'s to report', () {
+    expect(
+      () => imagePixelSizeIn(File(p.join(work.path, 'nothing-here.jpg'))),
+      throwsA(isA<FileSystemException>()),
     );
   });
 
@@ -120,12 +276,7 @@ Uint8List _jpeg({
     bytes.addAll(<int>[0xFF, 0xE0, 0x00, 0x10]);
     bytes.addAll(List<int>.filled(14, 0x00));
   }
-  bytes.addAll(<int>[
-    0xFF, 0xC0, 0x00, 0x11, 0x08, //
-    (height >> 8) & 0xFF, height & 0xFF,
-    (width >> 8) & 0xFF, width & 0xFF,
-    0x03, 0x01, 0x11, 0x00, 0x02, 0x11, 0x01, 0x03, 0x11, 0x01,
-  ]);
+  bytes.addAll(frameHeader(width: width, height: height));
   return Uint8List.fromList(bytes);
 }
 
