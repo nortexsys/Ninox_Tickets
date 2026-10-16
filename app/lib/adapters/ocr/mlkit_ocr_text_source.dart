@@ -50,7 +50,11 @@ import 'text_recognizer_backend.dart';
 /// to render: this application decodes no image of its own, so it can neither
 /// scale one nor stretch its levels. The page's size is then the image's own
 /// pixel size taken as points at 72 dpi (design §1) — the size the file's
-/// header declares. The pass id is [imagePassId].
+/// header declares, wherever in the file that header sits: a camera's JPEG
+/// carries tens of kilobytes of EXIF ahead of its frame header (the file
+/// measured on a real device on 2026-10-16 puts it at byte 82084), and
+/// `image_header.dart` walks the file's segments to reach it rather than
+/// reading a prefix. The pass id is [imagePassId].
 ///
 /// **Where the image path stops.** The size is what the header says. A JPEG that
 /// carries an EXIF rotation is the platform's business: if the platform hands
@@ -111,14 +115,16 @@ class MlKitOcrTextSource implements OcrTextSource {
   /// evaluation harness writes (design §4).
   static const String toolName = MlKitTextRecognizer.toolName;
 
-  /// How much of a file is read to identify it.
+  /// How many bytes of a file are read to tell whether it is a PDF.
   ///
-  /// A PDF's marker and a PNG's are in the first eight bytes; a JPEG's frame
-  /// header sits behind its application segments, and 64 KiB reaches it in the
-  /// files a phone camera produces. Nothing beyond the identification reads
-  /// this prefix, and the file itself is never read whole here: the renderer
-  /// and the engine read what they need.
-  static const int _identificationBytes = 64 * 1024;
+  /// `%PDF-`, the five bytes every PDF starts with, and all this class reads of
+  /// a file to identify it. An image is not identified from a prefix here: a
+  /// PNG's size is in its own twenty-four bytes of header, and a JPEG's frame
+  /// header sits behind application segments whose lengths only a walk reaches,
+  /// so the file is read by `image_header.dart`, four bytes of segment header at
+  /// a time, and never whole. The file itself is never read whole here either:
+  /// the renderer and the engine read what they need.
+  static const int _pdfMarkerBytes = 5;
 
   final OcrPageRasterizer _rasterizer;
   final TextRecognizerBackend Function() _openBackend;
@@ -126,17 +132,21 @@ class MlKitOcrTextSource implements OcrTextSource {
 
   @override
   Future<List<OcrPass>> recognise(String path) async {
-    final Uint8List prefix;
+    final File input = File(path);
+    final Uint8List head; // the file's first bytes
+    final bool isPdf; // and what they say it is
+    final ImagePixelSize? size; // an image's size, when it is one
     try {
-      prefix = _prefixOf(File(path));
+      head = _headOf(input);
+      isPdf = looksLikePdf(head);
+      size = isPdf ? null : imagePixelSizeIn(input);
     } on FileSystemException catch (error) {
       throw OcrFailure('the file could not be read', error);
     }
 
-    if (looksLikePdf(prefix)) {
+    if (isPdf) {
       return _recogniseDocument(path);
     }
-    final ImagePixelSize? size = imagePixelSize(prefix);
     if (size == null) {
       throw const OcrFailure(
         'the file is neither a PDF nor a PNG or JPEG image',
@@ -252,14 +262,15 @@ class MlKitOcrTextSource implements OcrTextSource {
     }
   }
 
-  /// The first [bytes] of the file, which is what identifies it.
-  Uint8List _prefixOf(File file) {
+  /// The file's first [_pdfMarkerBytes] bytes, which is where a PDF's marker
+  /// is.
+  ///
+  /// The bytes are read and not the name: the intake keeps the name a document
+  /// arrived with, and a file called `.pdf` that is not one is no PDF.
+  static Uint8List _headOf(File file) {
     final RandomAccessFile handle = file.openSync();
     try {
-      final int length = handle.lengthSync();
-      return handle.readSync(
-        length < _identificationBytes ? length : _identificationBytes,
-      );
+      return handle.readSync(_pdfMarkerBytes);
     } finally {
       handle.closeSync();
     }

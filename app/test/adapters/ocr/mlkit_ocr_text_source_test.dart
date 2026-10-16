@@ -13,6 +13,7 @@ import 'package:path/path.dart' as p;
 
 import '../../tool/ocr_fakes.dart';
 import '../../tool/synthetic_documents.dart';
+import '../../tool/synthetic_jpeg.dart';
 
 /// The port's implementation, without a device (`implement-photo-route`,
 /// design §4: "Host side (CI)").
@@ -33,8 +34,9 @@ import '../../tool/synthetic_documents.dart';
 /// `app/integration_test/ocr_eval_test.dart` with the real engine.
 ///
 /// **What never enters the repository.** The documents are written by the test
-/// itself, from invented text (`syntheticPdf`); the private corpus is not read,
-/// copied or named here.
+/// itself, from invented text (`syntheticPdf`), and the camera's JPEG is
+/// structure the test builds from bytes (`cameraLikeJpeg`), not a photograph;
+/// the private corpus is not read, copied or named here.
 void main() {
   late Directory work;
   late Directory cache;
@@ -531,6 +533,57 @@ void main() {
 
       expect(passes.single.pages.single.width, 300000);
       expect(passes.single.pages.single.height, 400000);
+    });
+
+    test('a camera JPEG, whose frame header is 82 KB in, is recognised', () async {
+      // The shape measured on a real device on 2026-10-16: an APP1 of 45313
+      // bytes and an APP4 of 36627 put the frame header at byte 82084, past the
+      // 64 KiB prefix the identification used to read. It is identified and
+      // read, not rejected.
+      final FakeTextRecognizerBackend backend = FakeTextRecognizerBackend();
+      final File image = File(p.join(work.path, 'camera.jpg'))
+        ..writeAsBytesSync(cameraLikeJpeg(width: 4032, height: 3024));
+      final String sha256Before = sha256
+          .convert(image.readAsBytesSync())
+          .toString();
+
+      final List<OcrPass> passes = await sourceWith(
+        rasterizer: FailingOcrPageRasterizer(),
+        backend: () => backend,
+      ).recognise(image.path);
+
+      expect(passes, hasLength(1));
+      expect(passes.single.passId, MlKitOcrTextSource.imagePassId);
+      expect(backend.files, <String>[image.path], reason: 'read as it is');
+      final TextPage page = passes.single.pages.single;
+      expect(page.width, 4032000, reason: 'the size the frame header declares');
+      expect(page.height, 3024000);
+      expect(
+        sha256.convert(image.readAsBytesSync()).toString(),
+        sha256Before,
+        reason: 'identifying an image must not write to it (ADR-015)',
+      );
+    });
+
+    test('a camera JPEG cut before its frame header is refused', () async {
+      final File image = File(p.join(work.path, 'cut.jpg'))
+        ..writeAsBytesSync(
+          cameraLikeJpeg(width: 4032, height: 3024).sublist(0, 64 * 1024),
+        );
+
+      await expectLater(
+        sourceWith(
+          rasterizer: FailingOcrPageRasterizer(),
+          backend: FakeTextRecognizerBackend.new,
+        ).recognise(image.path),
+        throwsA(
+          isA<OcrFailure>().having(
+            (OcrFailure failure) => failure.reason,
+            'reason',
+            contains('neither a PDF nor a PNG or JPEG'),
+          ),
+        ),
+      );
     });
 
     test(
