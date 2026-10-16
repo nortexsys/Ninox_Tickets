@@ -157,9 +157,10 @@ int? imageExifOrientationIn(File file) {
 /// Whether an EXIF [orientation] shows the picture a quarter turn round, which
 /// is the four tags that exchange an image's width and height.
 ///
-/// The eight values are the standard's: 1 is as stored, 2 and 4 and 5 and 7 are
-/// the mirrored ones, 3 is half a turn, and 5, 6, 7 and 8 are the quarter turns
-/// — of which 6 is the one a camera held on its side writes.
+/// The eight values are the standard's: 1 as stored, 2 mirrored horizontally, 3
+/// half a turn, 4 mirrored vertically, and 5, 6, 7 and 8 the four that show the
+/// picture a quarter turn round — of which 6 is the one a camera held on its
+/// side writes.
 bool orientationExchangesAxes(int orientation) =>
     orientation >= 5 && orientation <= 8;
 

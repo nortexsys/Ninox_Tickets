@@ -45,7 +45,8 @@ import 'text_recognizer_backend.dart';
 ///
 /// **What it does not do.** It merges no pass into another, averages nothing,
 /// takes no maximum, sorts no word, parses no amount and binds no label. It
-/// also adds no stage of its own beyond design §3's four renders.
+/// also adds no stage of its own beyond design §3's four renders of a page and
+/// design §2's four readings of a photograph.
 ///
 /// **An image instead of a PDF.** A file whose first bytes are a PNG or a JPEG
 /// is read in the passes of [imagePasses]: the file as the engine reads it, and
