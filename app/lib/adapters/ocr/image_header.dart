@@ -29,6 +29,17 @@
 /// corrupt file is also stopped by the length it declares for a segment that
 /// runs past its end. Every one of those answers null — not identified — rather
 /// than looping or throwing.
+///
+/// **The orientation.** A JPEG declares its size as the picture is *stored*, and
+/// says in its EXIF `Orientation` tag how it must be turned to be shown: a
+/// camera held on its side writes a picture wider than it is tall and a tag
+/// that turns it a quarter turn round. What the decoder in `image_decoder.dart`
+/// hands back is the picture as it is *shown* — measured, not assumed, and
+/// asserted by `test/adapters/ocr/image_decoder_test.dart` — so the size the
+/// photo route converts boxes with is [displayedImageSize], and
+/// [imageExifOrientationIn] reads the tag the walk passes on its way to the
+/// frame header. The tag is read and nothing else: no pixel is decoded here and
+/// nothing is written.
 library;
 
 import 'dart:io';
@@ -110,6 +121,231 @@ ImagePixelSize? imagePixelSizeIn(File file) {
     handle.closeSync();
   }
 }
+
+/// The EXIF `Orientation` tag the JPEG in [file] declares, or null when it
+/// declares none — because it is a PNG, because it carries no EXIF, because its
+/// IFD has no orientation entry, or because the file is truncated, corrupt or
+/// runs out of bytes before the entry is reached.
+///
+/// **What it reads.** The walk of [imagePixelSizeIn], stopping at the frame
+/// header: an `APP1` segment may be EXIF — the `Exif` signature, a TIFF header,
+/// and a first IFD whose entries are read two bytes at a time — or it may be
+/// something else (a camera writes XMP in an `APP1` too) and the walk goes on to
+/// the next segment. The value is the tag's own, 1 to 8; anything outside that
+/// range is not an orientation this layer will act on and answers null.
+///
+/// **What it does not do.** It decodes nothing and rotates nothing: the tag is
+/// a number a decoder or a caller acts on, and this function only reports it.
+/// The file is opened for reading and closed again on every path out of here.
+///
+/// A file the process cannot open or read throws [FileSystemException], which
+/// is the caller's to state as its own failure.
+int? imageExifOrientationIn(File file) {
+  final RandomAccessFile handle = file.openSync();
+  try {
+    final int length = handle.lengthSync();
+    final Uint8List head = _bytesAt(handle, 0, _pngHeaderBytes);
+    if (_startsWithPng(head) || !_startsWithJpeg(head)) {
+      return null;
+    }
+    return _jpegExifOrientation(handle, length);
+  } finally {
+    handle.closeSync();
+  }
+}
+
+/// Whether an EXIF [orientation] shows the picture a quarter turn round, which
+/// is the four tags that exchange an image's width and height.
+///
+/// The eight values are the standard's: 1 is as stored, 2 and 4 and 5 and 7 are
+/// the mirrored ones, 3 is half a turn, and 5, 6, 7 and 8 are the quarter turns
+/// — of which 6 is the one a camera held on its side writes.
+bool orientationExchangesAxes(int orientation) =>
+    orientation >= 5 && orientation <= 8;
+
+/// The size a picture of [stored] pixels is **displayed** at, given the EXIF
+/// [orientation] its file declares (or null when it declares none).
+///
+/// A JPEG declares the size it holds and not the size it is shown at: with a
+/// quarter-turn tag the two differ by an exchanged pair of sides, and everything
+/// downstream — the page's size in points, and therefore every box of every
+/// pass — is about the picture as it is shown and read.
+ImagePixelSize displayedImageSize(ImagePixelSize stored, int? orientation) =>
+    orientation != null && orientationExchangesAxes(orientation)
+    ? ImagePixelSize(stored.height, stored.width)
+    : stored;
+
+/// The orientation tag of an IFD entry: `0x0112`, the one number this file
+/// knows inside an EXIF directory.
+const int _orientationTag = 0x0112;
+
+/// The `Exif` signature that tells an `APP1` holding EXIF from one holding
+/// something else.
+const List<int> _exifSignature = <int>[0x45, 0x78, 0x69, 0x66, 0x00, 0x00];
+
+/// What a TIFF header declares in its magic number: `42`, in the file's own
+/// byte order.
+const int _tiffMagic = 42;
+
+/// The most entries a first IFD may declare before the file is taken as
+/// corrupt.
+///
+/// It bounds a file that claims tens of thousands of entries, not a real one: a
+/// camera writes tens of entries, and a directory of this many is twelve
+/// kilobytes of a segment body this layer would otherwise read whole.
+const int _maxExifEntries = 1024;
+
+/// The orientation an `APP1` segment of [handle] declares, or null when the
+/// segment is not EXIF or declares none.
+///
+/// [payload] is where the segment's bytes start, [payloadLength] how many the
+/// segment declares, and [length] how long the file is: every read is bounded
+/// by the smaller of the two, so a segment that declares more than the file
+/// holds is not followed past its end.
+int? _jpegExifOrientation(RandomAccessFile handle, int length) {
+  var offset = 2; // past the start-of-image marker
+  for (var segment = 0; segment < _maxSegments; segment++) {
+    final Uint8List header = _bytesAt(handle, offset, _segmentHeaderBytes);
+    if (header.isEmpty || header[0] != 0xFF) {
+      return null;
+    }
+    if (header.length >= 2 && header[1] == 0xFF) {
+      offset++;
+      continue;
+    }
+    if (header.length < 2) {
+      return null;
+    }
+    final int marker = header[1];
+    if (marker == 0xD9 || marker == 0xDA || _isFrameHeader(marker)) {
+      // The end of the image, the start of the scan, or the frame header: the
+      // application segments come before all three, so there is nothing left to
+      // find.
+      return null;
+    }
+    if (marker == 0x01 || (marker >= 0xD0 && marker <= 0xD8)) {
+      offset += 2;
+      continue;
+    }
+    if (header.length < 4) {
+      return null;
+    }
+    final int declared = (header[2] << 8) | header[3];
+    if (declared < 2) {
+      return null;
+    }
+    if (offset + 2 + declared > length) {
+      return null;
+    }
+    if (marker == 0xE1) {
+      final int? orientation = _exifOrientationIn(
+        handle,
+        payload: offset + 4,
+        payloadLength: declared - 2,
+        length: length,
+      );
+      if (orientation != null) {
+        return orientation;
+      }
+    }
+    offset += 2 + declared;
+  }
+  return null;
+}
+
+/// The orientation one `APP1` segment declares, read entry by entry.
+int? _exifOrientationIn(
+  RandomAccessFile handle, {
+  required int payload,
+  required int payloadLength,
+  required int length,
+}) {
+  final int end = payload + payloadLength > length
+      ? length
+      : payload + payloadLength;
+  final Uint8List signature = _bytesAt(handle, payload, _exifSignature.length);
+  if (signature.length < _exifSignature.length) {
+    return null;
+  }
+  for (var i = 0; i < _exifSignature.length; i++) {
+    if (signature[i] != _exifSignature[i]) {
+      return null;
+    }
+  }
+
+  // The TIFF header: the byte order, the magic number, and where the first IFD
+  // starts, both of the latter in that byte order.
+  final int tiff = payload + _exifSignature.length;
+  if (tiff + 8 > end) {
+    return null;
+  }
+  final Uint8List header = _bytesAt(handle, tiff, 8);
+  if (header.length < 8) {
+    return null;
+  }
+  final bool? littleEndian = switch ((header[0], header[1])) {
+    (0x49, 0x49) => true, // "II"
+    (0x4D, 0x4D) => false, // "MM"
+    _ => null,
+  };
+  if (littleEndian == null || _uint16(header, 2, littleEndian) != _tiffMagic) {
+    return null;
+  }
+
+  final int directory = tiff + _uint32(header, 4, littleEndian);
+  if (directory + 2 > end) {
+    return null;
+  }
+  final Uint8List countBytes = _bytesAt(handle, directory, 2);
+  if (countBytes.length < 2) {
+    return null;
+  }
+  final int entries = _uint16(countBytes, 0, littleEndian);
+  if (entries == 0 || entries > _maxExifEntries) {
+    return null;
+  }
+  final int size = entries * 12;
+  if (directory + 2 + size > end) {
+    return null;
+  }
+  final Uint8List directoryBytes = _bytesAt(handle, directory + 2, size);
+  if (directoryBytes.length < size) {
+    return null;
+  }
+
+  for (var entry = 0; entry < entries; entry++) {
+    final int at = entry * 12;
+    if (_uint16(directoryBytes, at, littleEndian) != _orientationTag) {
+      continue;
+    }
+    // The tag's type must be a SHORT and it must carry at least one value: an
+    // orientation written as anything else is not the orientation a decoder
+    // acts on, and is left alone.
+    if (_uint16(directoryBytes, at + 2, littleEndian) != 3 ||
+        _uint32(directoryBytes, at + 4, littleEndian) < 1) {
+      continue;
+    }
+    final int value = _uint16(directoryBytes, at + 8, littleEndian);
+    return value >= 1 && value <= 8 ? value : null;
+  }
+  return null;
+}
+
+/// A 16-bit integer in the byte order [littleEndian] names.
+int _uint16(Uint8List bytes, int offset, bool littleEndian) => littleEndian
+    ? bytes[offset] | (bytes[offset + 1] << 8)
+    : (bytes[offset] << 8) | bytes[offset + 1];
+
+/// A 32-bit integer in the byte order [littleEndian] names.
+int _uint32(Uint8List bytes, int offset, bool littleEndian) => littleEndian
+    ? bytes[offset] |
+          (bytes[offset + 1] << 8) |
+          (bytes[offset + 2] << 16) |
+          (bytes[offset + 3] << 24)
+    : (bytes[offset] << 24) |
+          (bytes[offset + 1] << 16) |
+          (bytes[offset + 2] << 8) |
+          bytes[offset + 3];
 
 /// PNG's signature: eight bytes that no other common format starts with.
 const List<int> _pngSignature = <int>[

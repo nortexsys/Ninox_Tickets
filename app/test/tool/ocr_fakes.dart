@@ -1,5 +1,8 @@
+import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:paperdrop/adapters/ocr/image_decoder.dart';
+import 'package:paperdrop/adapters/ocr/image_header.dart';
 import 'package:paperdrop/adapters/ocr/ocr_text_source.dart';
 import 'package:paperdrop/adapters/ocr/page_rasterizer.dart';
 import 'package:paperdrop/adapters/ocr/text_recognizer_backend.dart';
@@ -15,7 +18,8 @@ import 'package:paperdrop/adapters/ocr/text_recognizer_backend.dart';
 /// engine.
 ///
 /// **What they never do.** They write no document and touch no file of the
-/// private corpus: a fake renderer answers with the buffer the test handed it.
+/// private corpus: a fake renderer answers with the buffer the test handed it,
+/// and a fake decoder answers with a buffer of the size it was asked for.
 
 /// A renderer that hands back one small page per pass and records what it was
 /// asked for.
@@ -104,9 +108,11 @@ class FakeTextRecognizerBackend implements TextRecognizerBackend {
   FakeTextRecognizerBackend({
     this.elements = const <OcrElement>[OcrElement('Gesamtbetrag', 0, 0, 1, 1)],
     this.fileElements,
+    this.elementsFor,
     this.failing = false,
     this.failFirstCall = false,
     this.failSecondCall = false,
+    this.failForSize,
     this.onRecogniseImage,
   });
 
@@ -120,6 +126,11 @@ class FakeTextRecognizerBackend implements TextRecognizerBackend {
   /// What a recognition of a file answers, when it is not [elements].
   final List<OcrElement>? fileElements;
 
+  /// What a recognition of pixels answers when the answer depends on the size
+  /// the engine was handed — which is how a test says "the same word is at the
+  /// same place of the picture" without an engine.
+  final List<OcrElement> Function(int width, int height)? elementsFor;
+
   /// Whether every recognition throws.
   final bool failing;
 
@@ -128,6 +139,9 @@ class FakeTextRecognizerBackend implements TextRecognizerBackend {
 
   /// Whether the second recognition throws, and the rest answer.
   final bool failSecondCall;
+
+  /// A pixel size whose recognition throws, and the rest answer.
+  final ImagePixelSize? failForSize;
 
   /// The buffers handed to [recogniseImage], in order.
   final List<Uint8List> pixels = <Uint8List>[];
@@ -155,10 +169,11 @@ class FakeTextRecognizerBackend implements TextRecognizerBackend {
     sizes.add(<int>[width, height]);
     if (failing ||
         (failFirstCall && _calls == 1) ||
-        (failSecondCall && _calls == 2)) {
+        (failSecondCall && _calls == 2) ||
+        (failForSize != null && failForSize == ImagePixelSize(width, height))) {
       throw const OcrFailure('the engine could not read the image');
     }
-    return elements;
+    return elementsFor?.call(width, height) ?? elements;
   }
 
   @override
@@ -174,5 +189,67 @@ class FakeTextRecognizerBackend implements TextRecognizerBackend {
   @override
   Future<void> close() async {
     closes++;
+  }
+}
+
+/// The image decoder, replaced: it answers a buffer of the size it was asked
+/// for and records what it was asked for.
+///
+/// It is a fake and not the platform's decoder because the pass list, the drop
+/// of a failed pass and the geometry are what the adapter's own tests are
+/// about: what the platform's decoder does with a real file is
+/// `test/adapters/ocr/image_decoder_test.dart`'s, which decodes a photograph
+/// the test writes from bytes.
+class FakeOcrImageDecoder implements OcrImageDecoder {
+  /// Creates a decoder that answers [nativeSize] when it is asked for no target
+  /// and the target it was asked for otherwise, in the grey level [grey], and
+  /// that throws for [failingTarget] when it is set.
+  FakeOcrImageDecoder({
+    this.nativeSize = const ImagePixelSize(2, 1),
+    this.grey = 200,
+    this.failingTarget,
+    this.failsEveryTarget = false,
+  });
+
+  /// The size an image is decoded to when no target is asked for.
+  final ImagePixelSize nativeSize;
+
+  /// The grey level of every pixel of every buffer this decoder answers with.
+  final int grey;
+
+  /// A target whose decode throws, and the others answer.
+  final ImagePixelSize? failingTarget;
+
+  /// Whether every decode throws, which leaves a photograph no pass could read.
+  final bool failsEveryTarget;
+
+  /// The files this decoder was asked to decode, in order.
+  final List<String> files = <String>[];
+
+  /// The targets it was asked for, in order.
+  final List<ImagePixelSize> targets = <ImagePixelSize>[];
+
+  @override
+  Future<DecodedImage> decode(
+    File file, {
+    required int? targetWidth,
+    required int? targetHeight,
+  }) async {
+    files.add(file.path);
+    final ImagePixelSize size = targetWidth == null || targetHeight == null
+        ? nativeSize
+        : ImagePixelSize(targetWidth, targetHeight);
+    targets.add(size);
+    if (failsEveryTarget || size == failingTarget) {
+      throw const OcrFailure('the image could not be decoded');
+    }
+    final Uint8List pixels = Uint8List(size.width * size.height * 4);
+    for (var i = 0; i < pixels.length; i += 4) {
+      pixels[i] = grey;
+      pixels[i + 1] = grey;
+      pixels[i + 2] = grey;
+      pixels[i + 3] = 255;
+    }
+    return DecodedImage(width: size.width, height: size.height, pixels: pixels);
   }
 }

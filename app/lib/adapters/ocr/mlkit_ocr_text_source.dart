@@ -5,7 +5,9 @@ import 'package:paperdrop_core/paperdrop_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import 'image_decoder.dart';
 import 'image_header.dart';
+import 'image_passes.dart';
 import 'mlkit_text_recognizer.dart';
 import 'ocr_text_source.dart';
 import 'page_rasterizer.dart';
@@ -46,44 +48,61 @@ import 'text_recognizer_backend.dart';
 /// also adds no stage of its own beyond design §3's four renders.
 ///
 /// **An image instead of a PDF.** A file whose first bytes are a PNG or a JPEG
-/// is handed to the engine read as it is, in one pass, because there is nothing
-/// to render: this application decodes no image of its own, so it can neither
-/// scale one nor stretch its levels. The page's size is then the image's own
+/// is read in the passes of [imagePasses]: the file as the engine reads it, and
+/// the image decoded to another size or grey-stretched
+/// (`implement-photo-passes`, design §2). Its page's size is the image's own
 /// pixel size taken as points at 72 dpi (design §1) — the size the file's
 /// header declares, wherever in the file that header sits: a camera's JPEG
 /// carries tens of kilobytes of EXIF ahead of its frame header (the file
 /// measured on a real device on 2026-10-16 puts it at byte 82084), and
 /// `image_header.dart` walks the file's segments to reach it rather than
-/// reading a prefix. The pass id is [imagePassId].
+/// reading a prefix. A file that declares a quarter-turn EXIF orientation is
+/// shown — and decoded, and read, and measured here — with its sides exchanged
+/// ([displayedImageSize]); every pass of that photograph converts its boxes
+/// with that one size, which is what makes them comparable
+/// (design §4).
 ///
-/// **Where the image path stops.** The size is what the header says. A JPEG that
-/// carries an EXIF rotation is the platform's business: if the platform hands
-/// the engine a bitmap rotated by that tag, the boxes come back in the rotated
-/// image's pixels while the page's size here is the unrotated one, and the
-/// coordinates of that one pass are turned with it. No camera photo is in scope
-/// yet — the photo route's input in M1 is the PDF the platform scanner produces
-/// (T1.13) — and the T2.1 wiring is where a decision about bare photos belongs.
+/// **Where the image path stops.** The size is what the header and the
+/// orientation tag say. A photograph's passes are variations of the image
+/// itself and nothing here decides which of them is the better reading, nor
+/// crops, straightens or binarises anything: the platform's scanner already
+/// produced the document that is read (FR-CAP-002, `platform-document-scanner`),
+/// and the decision about which passes are worth keeping belongs to the
+/// screening T2.5 and the product owner, not to this layer.
 class MlKitOcrTextSource implements OcrTextSource {
   /// Creates the source.
   ///
-  /// Every collaborator has a default and can be replaced: [passes] for a test
-  /// that needs a shorter list, [rasterizer], [backend] and [cacheDirectory] for
-  /// a host test that has neither the native renderer nor the platform, and the
-  /// two callbacks for the evaluation harness, which reports the timings of
-  /// design §3 and the passes that were dropped.
+  /// Every collaborator has a default and can be replaced: [passes] and
+  /// [imagePasses] for a test that needs a shorter list, [rasterizer],
+  /// [imageDecoder], [backend] and [cacheDirectory] for a host test that has
+  /// neither the native renderer nor the platform, and the two callbacks for
+  /// the evaluation harness, which reports the timings of design §3 and the
+  /// passes that were dropped.
   MlKitOcrTextSource({
     this.passes = ocrRenderPasses,
+    this.imagePasses = ocrImagePasses,
     OcrPageRasterizer? rasterizer,
+    OcrImageDecoder? imageDecoder,
     TextRecognizerBackend Function()? backend,
     Future<Directory> Function()? cacheDirectory,
     this.onPassRecognised,
     this.onPassDropped,
   }) : _rasterizer = rasterizer ?? const PdfrxPageRasterizer(),
+       _imageDecoder = imageDecoder ?? const PlatformImageDecoder(),
        _openBackend = backend ?? MlKitTextRecognizer.new,
        _cacheDirectory = cacheDirectory ?? getApplicationCacheDirectory;
 
-  /// The passes, in the order they are read (design §3).
+  /// The passes of a PDF, in the order they are read (design §3).
   final List<OcrRenderPass> passes;
+
+  /// The passes of an image, in the order they are read
+  /// (`implement-photo-passes`, design §2).
+  ///
+  /// A list of its own and not the page list: a page is rendered at a
+  /// resolution and a photograph is decoded to a size, and the two are
+  /// different variations of different things. Both are injectable, so a test
+  /// can hand the source a list of one pass and read what it does.
+  final List<OcrImagePass> imagePasses;
 
   /// Called once per pass that was read, with how long it took.
   ///
@@ -103,13 +122,13 @@ class MlKitOcrTextSource implements OcrTextSource {
   /// The directory under the cache directory that a render lives in.
   static const String bufferDirectoryName = 'ocr-render';
 
-  /// The id one pass of an image file is reported under.
+  /// The id the first pass of a photograph is reported under.
   ///
-  /// It is `p1-native` because that is the pass that adds no scaling — an image
-  /// is read as it is — and not a claim about the image's resolution. The id
-  /// comes from design §3's table so that a reader of the passes finds a name
-  /// it knows, and it is the only pass of the four that an image can have.
-  static const String imagePassId = 'p1-native';
+  /// It is `p1-native` — the pass that adds no scaling, because it hands the
+  /// engine the file itself — and it comes from [ocrImagePasses] rather than
+  /// being written again here: a caller that needs "the pass a photograph is
+  /// read under first" reads the list, and a rename of that pass is one edit.
+  static String get imagePassId => ocrImagePasses.first.passId;
 
   /// The library and the version behind the port, in the `tool` format the
   /// evaluation harness writes (design §4).
@@ -127,6 +146,7 @@ class MlKitOcrTextSource implements OcrTextSource {
   static const int _pdfMarkerBytes = 5;
 
   final OcrPageRasterizer _rasterizer;
+  final OcrImageDecoder _imageDecoder;
   final TextRecognizerBackend Function() _openBackend;
   final Future<Directory> Function() _cacheDirectory;
 
@@ -136,10 +156,12 @@ class MlKitOcrTextSource implements OcrTextSource {
     final Uint8List head; // the file's first bytes
     final bool isPdf; // and what they say it is
     final ImagePixelSize? size; // an image's size, when it is one
+    final int? orientation; // and the orientation its EXIF declares, if any
     try {
       head = _headOf(input);
       isPdf = looksLikePdf(head);
       size = isPdf ? null : imagePixelSizeIn(input);
+      orientation = isPdf ? null : imageExifOrientationIn(input);
     } on FileSystemException catch (error) {
       throw OcrFailure('the file could not be read', error);
     }
@@ -152,7 +174,7 @@ class MlKitOcrTextSource implements OcrTextSource {
         'the file is neither a PDF nor a PNG or JPEG image',
       );
     }
-    return _recogniseImage(path, size);
+    return _recogniseImage(path, size, orientation);
   }
 
   /// A PDF: every pass, over every page, through the renderer.
@@ -232,31 +254,96 @@ class MlKitOcrTextSource implements OcrTextSource {
     }
   }
 
-  /// A PNG or a JPEG: the engine reads the file as it is, in the one pass that
-  /// adds no scaling.
+  /// A PNG or a JPEG: every pass of [imagePasses], one reading each.
+  ///
+  /// [storedSize] is the size the file's frame header declares and
+  /// [exifOrientation] the orientation its EXIF declares (null when it declares
+  /// none). The picture is *shown* at [displayedImageSize] of the two, and that
+  /// size — in points at 72 dpi, design §1 — is the page every pass of this
+  /// photograph converts its boxes with. One page size for all the passes is
+  /// what makes the same word land in the same coordinates in each of them
+  /// (design §4): a pass that is read from a smaller image has fewer pixels to
+  /// report a box in, and the same page to report it against.
+  ///
+  /// The pass that reads the file as it is ([OcrImagePass.readsTheFileAsItIs])
+  /// hands the engine the path; every other pass decodes the file with
+  /// [_imageDecoder] to the size its own scale asks for, grey-stretches it when
+  /// it says so, and hands the engine those pixels. Nothing is written to the
+  /// cache directory here: a decoded image is not a render of anything, it lives
+  /// in memory for its own pass and is dropped when the pass ends, and writing
+  /// tens of megabytes per pass to flash would be work this route does not need.
+  ///
+  /// A pass that throws is dropped and reported, exactly as for a PDF, and the
+  /// passes after it still run. A photograph no pass could read fails as an
+  /// [OcrFailure].
   Future<List<OcrPass>> _recogniseImage(
     String path,
-    ImagePixelSize size,
+    ImagePixelSize storedSize,
+    int? exifOrientation,
   ) async {
+    final ImagePixelSize displayed = displayedImageSize(
+      storedSize,
+      exifOrientation,
+    );
+    final File input = File(path);
     final TextRecognizerBackend backend = _openBackend();
     try {
-      final Stopwatch stopwatch = Stopwatch()..start();
-      final List<OcrElement> elements = await backend.recogniseFile(path);
-      stopwatch.stop();
-      onPassRecognised?.call(imagePassId, stopwatch.elapsed);
-      final TextPage page = textPageFromOcrElements(
-        index: 0,
-        elements: elements,
-        // Design §1: for a bare image, its pixel size taken as points at
-        // 72 dpi.
-        widthPoints: size.width.toDouble(),
-        heightPoints: size.height.toDouble(),
-        widthPixels: size.width,
-        heightPixels: size.height,
-      );
-      return List<OcrPass>.unmodifiable(<OcrPass>[
-        OcrPass(imagePassId, <TextPage>[page]),
-      ]);
+      final List<OcrPass> passes = <OcrPass>[];
+      for (final OcrImagePass pass in imagePasses) {
+        final Stopwatch stopwatch = Stopwatch()..start();
+        try {
+          final List<OcrElement> elements;
+          final int widthPixels;
+          final int heightPixels;
+          final ImagePixelSize? target = pass.decodeTargetFor(displayed);
+          if (target == null) {
+            elements = await backend.recogniseFile(path);
+            widthPixels = displayed.width;
+            heightPixels = displayed.height;
+          } else {
+            final DecodedImage decoded = await _imageDecoder.decode(
+              input,
+              targetWidth: target.width,
+              targetHeight: target.height,
+            );
+            elements = await backend.recogniseImage(
+              pixels: pass.greyContrast
+                  ? greyContrastStretchFromRgba(decoded.pixels)
+                  : decoded.pixels,
+              width: decoded.width,
+              height: decoded.height,
+            );
+            widthPixels = decoded.width;
+            heightPixels = decoded.height;
+          }
+          stopwatch.stop();
+          passes.add(
+            OcrPass(pass.passId, <TextPage>[
+              textPageFromOcrElements(
+                index: 0,
+                elements: elements,
+                // Design §1: for a bare image, its pixel size taken as points
+                // at 72 dpi — the size it is displayed at, for every pass.
+                widthPoints: displayed.width.toDouble(),
+                heightPoints: displayed.height.toDouble(),
+                widthPixels: widthPixels,
+                heightPixels: heightPixels,
+              ),
+            ]),
+          );
+          onPassRecognised?.call(pass.passId, stopwatch.elapsed);
+        } catch (error) {
+          // Dropped and reported (design §2). One unusable reading must not
+          // cost the photograph its others.
+          onPassDropped?.call(pass.passId, error);
+        }
+      }
+      if (passes.isEmpty) {
+        throw OcrFailure(
+          'no pass of ${imagePasses.length} could read the image',
+        );
+      }
+      return List<OcrPass>.unmodifiable(passes);
     } finally {
       await backend.close();
     }
