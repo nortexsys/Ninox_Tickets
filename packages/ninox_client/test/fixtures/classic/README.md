@@ -44,3 +44,17 @@ shape is only as good as the body it decodes. Keeping the bodies in files, one p
 made the 2026-10-08 comparison a diff of this directory against the live workspace — and it is what
 makes the next one the same, which is the review step the change's design §8 names as the mitigation
 for a wrong fixture.
+
+## How a body is re-recorded, structure only
+
+`create-response` and `error-500` are re-recorded from the real responses by
+`packages/ninox_client/test/live/fixture_recording.dart` (change `verify-live-send-pipeline`, design
+§3): `structureOnlyFixture` takes a recorded response body **as text** and returns the fixture's
+text, with every key kept, every type kept, and every value replaced by a synthetic one — an array
+is cut to one example of each distinct structure, because how many rows a listing happened to hold
+is a fact about the live database and not about the shape of its answer. It writes no file itself —
+the machine that holds the token applies it and commits the result, and the existing fixture tests
+are run afterwards. `error-500` is only re-recorded if a run meets a real 500; one is never
+provoked. What the re-recording does **not** settle is whether the create response's identifier
+arrives as a JSON string or as a number: the helper keeps whichever type the recorded body carried,
+and a fixture test that asserts on a specific value is updated in the same commit.
