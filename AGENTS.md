@@ -142,7 +142,7 @@ as they are; this is where their content lives now:
 | **FASE 1 — Discover.** Original brief → PDR v0.2 → ADR v0.2 → Funcional v1.0 | **Done.** Plus a real end-to-end test: 16 documents read, validated, written to a Ninox test base with their attachments, and read back |
 | **FASE 2 — Specify.** Specifications through OpenSpec | **Done.** 12 capabilities, all archived, `openspec validate --all --strict` green |
 | **FASE 2 — Plan.** Features, tasks, milestones, delivery dates and test design | **Done** on 2026-09-25: `docs/Plan/Paperdrop_MVP_Plan_v0.2_EN.md`, approved by the PO (DEC-009) |
-| **MVP build** — milestones M0–M3, 2026-09-28 → 2026-10-23 (buffer to 2026-10-30) | **M0 done, `setup-mvp-foundations` archived 2026-09-28.** Dart workspace, CI, lane runner, templates. Debug APK built, installed and run on the PO's phone (Galaxy S22, wireless adb). **Pushed to `main` on 2026-09-28** (`4fdfb1a`), CI runs for real from now on. **M1 opened 2026-09-28 for Core:** the shared contract (T1.1–T1.2, money, rates and the canonical model) merged in `implement-core-model-and-countries`, which stays open for T1.3–T1.4. Ninox, Mobile and QA open Wed 30 Sep. Current state: the latest `docs/Plan/status/*.md` |
+| **MVP build** — milestones M0–M3, 2026-09-28 → 2026-10-23 (buffer to 2026-10-30) | **M0 done** (archived 2026-09-28). **M1 and M2 are late and open.** Merged on `main`: money and canonical model, country table and validation core, extraction orchestration with country detection, photo route (ML Kit, four passes), PDF text route (`pdfrx`, ADR-011), classic Ninox client, setup wizard, send pipeline (live send to the test table `EF` passed 2026-10-17), local store, history/retry/duplicates (T2.3). **In flight:** T2.2 review screen and T2.4 negative release checklist (lanes). **Needs the PO or the phone:** T2.1 device harness, T2.5 ADR-010 screening (ground truth), T2.6 alpha, live-run leftovers of M1. Current state: the latest `docs/Plan/status/*.md` |
 | **FASE 3 — Deployment.** Store publication and the Nortex Systems website write-up | Not started |
 
 The specification phase is a gate, not a formality: the 16-document test left
@@ -176,7 +176,7 @@ Written down so the next session starts from the truth instead of from a guess.
 | Item | State |
 | --- | --- |
 | ADR-010 — recognition engine for the photo route | **Proposed.** Approach decided (platform engine behind a port, confirmed by the screening of plan T2.5). Blocks `FR-EXT-005`, `FR-EXT-015`, `UC-14` |
-| ADR-011 — PDF text-extraction library | **Proposed.** Evaluation in plan T1.15, decision by 2026-10-06. Blocks `FR-EXT-004`, `NFR-SIZ-001`. Must expose word positions |
+| ADR-011 — PDF text-extraction library | **Decided 2026-10-07 by the PO: `pdfrx` (PDFium) on Android** (DEC-015). Tasks 4.1–4.3 of `close-adr-011-pdf-text-route` are still unticked |
 | Ninox attachment-upload limits | Closed for the basic case. Open: maximum file size, multi-page PDF near that limit, real upload timings |
 | A choice field written with text outside its option list | Unverified in every test so far |
 | Acceptance thresholds for product metrics | Deferred until the first corpus screening |
