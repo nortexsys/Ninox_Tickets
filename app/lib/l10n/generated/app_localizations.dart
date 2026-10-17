@@ -465,6 +465,270 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Paperdrop could not save this setup on the device, so nothing has been saved yet. Try again.'**
   String get wizardSummarySaveFailed;
+
+  /// Title of the review screen, the screen the user sees on every document (FR-REV-004, T2.2).
+  ///
+  /// In en, this message translates to:
+  /// **'Review the document'**
+  String get reviewTitle;
+
+  /// Plain-language name of the canonical field doc_date on the review screen (FR-REV-004).
+  ///
+  /// In en, this message translates to:
+  /// **'Document date'**
+  String get reviewFieldDocDate;
+
+  /// Plain-language name of the canonical field supplier_name on the review screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Supplier'**
+  String get reviewFieldSupplierName;
+
+  /// Plain-language name of the canonical field supplier_tax_id on the review screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Supplier tax ID'**
+  String get reviewFieldSupplierTaxId;
+
+  /// Plain-language name of the canonical field doc_number on the review screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Document number'**
+  String get reviewFieldDocNumber;
+
+  /// Plain-language name of the canonical field gross_total on the review screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Gross total'**
+  String get reviewFieldGrossTotal;
+
+  /// Plain-language name of the canonical field currency on the review screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Currency'**
+  String get reviewFieldCurrency;
+
+  /// One core field as the review screen shows it: the plain-language name of the field and the value read, edited or missing (FR-REV-004).
+  ///
+  /// In en, this message translates to:
+  /// **'{label}: {value}'**
+  String reviewFieldValue(String label, String value);
+
+  /// What a field shows when nothing was read for it — the red state of FR-REV-004.
+  ///
+  /// In en, this message translates to:
+  /// **'not read'**
+  String get reviewValueNotRead;
+
+  /// Semantic label of a green value: confirmed by redundancy (validation-confidence/three-confidence-strengths).
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmed'**
+  String get reviewConfidenceGreen;
+
+  /// Semantic label of an amber value: read and not confirmed, including a value read with no country row (PO decision 2026-10-17, point 6).
+  ///
+  /// In en, this message translates to:
+  /// **'Read, not confirmed'**
+  String get reviewConfidenceAmber;
+
+  /// Semantic label of a red value: not read at all.
+  ///
+  /// In en, this message translates to:
+  /// **'Not read'**
+  String get reviewConfidenceRed;
+
+  /// The mark a value the user typed carries instead of a confidence colour (DEC-007, FR-REV-010).
+  ///
+  /// In en, this message translates to:
+  /// **'Edited'**
+  String get reviewEdited;
+
+  /// The lock of a green value: tapping it is the only way into the editor (validation-confidence/green-is-editable-only-after-unlocking).
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock to edit'**
+  String get reviewLockAction;
+
+  /// The one line that tells a document whose values stay amber apart, because the document's own needsReview is the only thing that says so (design §2, PO decision 2026-10-17 point 6).
+  ///
+  /// In en, this message translates to:
+  /// **'Paperdrop flagged this document for review: check the values before saving.'**
+  String get reviewNeedsReviewNotice;
+
+  /// Heading of the amounts block of FR-REV-005.
+  ///
+  /// In en, this message translates to:
+  /// **'Amounts'**
+  String get reviewAmountsHeadline;
+
+  /// The single confirming line of a collapsed amounts block: the redundancy check of base plus tax equals total passed (FR-REV-005).
+  ///
+  /// In en, this message translates to:
+  /// **'Total {total}, confirmed by the base and the tax.'**
+  String reviewAmountsConfirmed(String total);
+
+  /// The net total in the expanded amounts block.
+  ///
+  /// In en, this message translates to:
+  /// **'Base {amount}'**
+  String reviewAmountsBase(String amount);
+
+  /// The tax total in the expanded amounts block.
+  ///
+  /// In en, this message translates to:
+  /// **'Tax {amount}'**
+  String reviewAmountsTax(String amount);
+
+  /// One occupied tax slot in the expanded amounts block: the printed rate and its amount (FR-REV-005).
+  ///
+  /// In en, this message translates to:
+  /// **'{rate}% — {amount}'**
+  String reviewAmountsSlot(String rate, String amount);
+
+  /// The gross total in the expanded amounts block.
+  ///
+  /// In en, this message translates to:
+  /// **'Total {amount}'**
+  String reviewAmountsTotal(String amount);
+
+  /// The full-width destination bar of FR-REV-001: team, database and table, always visible.
+  ///
+  /// In en, this message translates to:
+  /// **'{team} / {database} / {table}'**
+  String reviewDestinationBar(String team, String database, String table);
+
+  /// The accessible name of the destination bar, which opens destination selection without leaving the document (FR-REV-001).
+  ///
+  /// In en, this message translates to:
+  /// **'Change the destination'**
+  String get reviewDestinationAction;
+
+  /// Title of the destination selection the bar opens (FR-REV-001).
+  ///
+  /// In en, this message translates to:
+  /// **'Where should the document go?'**
+  String get reviewDestinationTitle;
+
+  /// The selection when the destination store holds nothing else to choose (FR-DST-002).
+  ///
+  /// In en, this message translates to:
+  /// **'No other destination is configured on this device.'**
+  String get reviewDestinationNone;
+
+  /// What the highlighted destination bar says on the first capture of a calendar day (FR-REV-002).
+  ///
+  /// In en, this message translates to:
+  /// **'Check that this is where the document should go.'**
+  String get reviewAcknowledgePrompt;
+
+  /// The acknowledgement of FR-REV-002; until it is given the save action is disabled.
+  ///
+  /// In en, this message translates to:
+  /// **'The destination is correct'**
+  String get reviewAcknowledgeAction;
+
+  /// A write of the acknowledgement file that the file system refused (design §4); the save action stays disabled.
+  ///
+  /// In en, this message translates to:
+  /// **'The confirmation could not be recorded on this device. Try again.'**
+  String get reviewAcknowledgeFailed;
+
+  /// The duplicate notice of FR-REV-007, shown when document-history's read-side check matched an earlier send.
+  ///
+  /// In en, this message translates to:
+  /// **'This document may already be in Ninox.'**
+  String get reviewDuplicateNotice;
+
+  /// The notice's link to the record that already exists (FR-REV-007).
+  ///
+  /// In en, this message translates to:
+  /// **'Open the existing record'**
+  String get reviewDuplicateLink;
+
+  /// Proceeding anyway: a second record is created deliberately and the entry is flagged as a duplicate (FR-REV-007, FR-DUP-002).
+  ///
+  /// In en, this message translates to:
+  /// **'Save anyway'**
+  String get reviewDuplicateProceed;
+
+  /// The save action, fixed at the bottom of the screen and naming the table rather than a generic verb (FR-REV-008).
+  ///
+  /// In en, this message translates to:
+  /// **'Save to {table}'**
+  String reviewSaveAction(String table);
+
+  /// Discarding the document: no record, no history entry and no local file (FR-REV-011).
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get reviewDiscardAction;
+
+  /// A discard the file system refused; the capture is still there and the screen says so rather than claiming it is gone (FR-REV-011).
+  ///
+  /// In en, this message translates to:
+  /// **'The document could not be discarded, so nothing was deleted.'**
+  String get reviewDiscardFailed;
+
+  /// The thumbnail of FR-REV-003, tapped to see the document full screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the document'**
+  String get reviewThumbnailAction;
+
+  /// Shown where the thumbnail would be when the document has none.
+  ///
+  /// In en, this message translates to:
+  /// **'No preview'**
+  String get reviewNoThumbnail;
+
+  /// Closes the full-screen view of the document (FR-REV-003).
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get reviewCloseAction;
+
+  /// Said when the pipeline has answered a save; the confirmation screen that follows the send is ninox-send's (design §5).
+  ///
+  /// In en, this message translates to:
+  /// **'The save finished.'**
+  String get reviewSaveCompleted;
+
+  /// The store refused the write a save needs (a duplicate flag, an overtaken revision): nothing was sent and the action stays available.
+  ///
+  /// In en, this message translates to:
+  /// **'The document could not be saved. Try again.'**
+  String get reviewSaveStoreFailed;
+
+  /// The history store refused the entry the screen was asked to show.
+  ///
+  /// In en, this message translates to:
+  /// **'This document could not be opened.'**
+  String get reviewLoadFailed;
+
+  /// An edit of doc_date that is not a calendar date (design §2).
+  ///
+  /// In en, this message translates to:
+  /// **'Use a date as YYYY-MM-DD.'**
+  String get reviewErrorNotADate;
+
+  /// An edit of gross_total that is not an amount of the document's currency, including one with more fractional digits than the currency has.
+  ///
+  /// In en, this message translates to:
+  /// **'That is not an amount in the document\'s currency.'**
+  String get reviewErrorNotAnAmount;
+
+  /// An edit of currency that ISO 4217 does not list; no default exponent is ever assumed.
+  ///
+  /// In en, this message translates to:
+  /// **'That is not a currency code Paperdrop knows.'**
+  String get reviewErrorUnknownCurrency;
+
+  /// An edit of gross_total while the document has no currency: an amount is an integer in a currency's minor unit.
+  ///
+  /// In en, this message translates to:
+  /// **'Set the currency first, so that the amount can be read.'**
+  String get reviewErrorAmountNeedsCurrency;
 }
 
 class _AppLocalizationsDelegate
