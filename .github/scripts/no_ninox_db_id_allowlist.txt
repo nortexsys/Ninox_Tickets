@@ -34,3 +34,5 @@ openspec/changes/archive/2026-10-08-implement-ninox-client/proposal.md | **no** 
 openspec/changes/archive/2026-10-08-implement-ninox-client/proposal.md | **no step of this change uses `NINOX_DB_ID`** | the proposal asserts the change never uses the variable (GAP-012)
 openspec/changes/archive/2026-10-08-implement-ninox-client/proposal.md | `NINOX_DB_ID` points at a production database and the CI | the proposal records GAP-012 as a gap it acts on
 openspec/changes/implement-android-capture-and-store/proposal.md | No step uses `NINOX_DB_ID` | the proposal asserts the change never uses the variable (GAP-012)
+openspec/changes/implement-ninox-send-pipeline/design.md | no `NINOX_DB_ID`; no token in a file | design line stating the rule (it forbids the variable); found by the lane 2026-10-17, allowlisted by PO decision
+openspec/changes/verify-live-send-pipeline/design.md | `NINOX_DB_ID` is never used | design line stating the rule (it forbids the variable)
