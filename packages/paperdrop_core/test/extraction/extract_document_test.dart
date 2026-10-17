@@ -31,8 +31,8 @@ void main() {
   }
 
   group('extractDocument', () {
-    test('[extraction-pipeline/consensus-by-majority] one pass is never green '
-        'and needs review', () {
+    test('[validation-confidence/three-confidence-strengths] '
+        'a text-layer reading with a holding identity is green', () {
       final document = extractDocument(
         passes: <ExtractionPass>[
           ExtractionPass(
@@ -51,7 +51,7 @@ void main() {
         Present<Money>(
           Money(12100, eur),
           Provenance.read,
-          ConfidenceState.amber,
+          ConfidenceState.green,
         ),
       );
       expect(
@@ -59,7 +59,7 @@ void main() {
         Present<Money>(
           Money(10000, eur),
           Provenance.read,
-          ConfidenceState.amber,
+          ConfidenceState.green,
         ),
       );
       expect(
@@ -67,9 +67,11 @@ void main() {
         Present<Money>(
           Money(2100, eur),
           Provenance.read,
-          ConfidenceState.amber,
+          ConfidenceState.green,
         ),
       );
+      // The single text-layer currency is present but not green, so the
+      // document-level rule still asks for review.
       expect(document.needsReview, isTrue);
     });
 
@@ -219,7 +221,23 @@ void main() {
         Present<Money>(
           Money(12100, eur),
           Provenance.read,
-          ConfidenceState.amber,
+          ConfidenceState.green,
+        ),
+      );
+      expect(
+        document.netTotal,
+        Present<Money>(
+          Money(10000, eur),
+          Provenance.read,
+          ConfidenceState.green,
+        ),
+      );
+      expect(
+        document.taxTotal,
+        Present<Money>(
+          Money(2100, eur),
+          Provenance.read,
+          ConfidenceState.green,
         ),
       );
     });

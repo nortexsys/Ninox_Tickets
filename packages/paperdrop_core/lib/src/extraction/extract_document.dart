@@ -89,6 +89,7 @@ CanonicalDocument extractDocument({
   required String sourceHash,
 }) {
   final route = _routeLabel(passes);
+  final textLayerReading = route == 'pdf-text';
 
   final DecimalConvention? decimalConvention;
   final DateOrder? dateOrder;
@@ -215,14 +216,17 @@ CanonicalDocument extractDocument({
     grossTotal = _readAmountField(
       _consensusValue<Money>(grossConsensus),
       grossConsensus,
+      textLayerReading: textLayerReading,
     );
     netTotal = _readAmountField(
       _consensusValue<Money>(baseConsensus),
       baseConsensus,
+      textLayerReading: textLayerReading,
     );
     taxTotal = _readAmountField(
       _consensusValue<Money>(taxConsensus),
       taxConsensus,
+      textLayerReading: textLayerReading,
     );
     taxSlots = const <TaxSlot>[];
   } else {
@@ -261,11 +265,62 @@ CanonicalDocument extractDocument({
     );
 
     final rawTax = taxes.isEmpty ? breakdown.tax : _sumReadTaxes(taxes);
-    final check = _amountCheck(breakdown.gross, breakdown.base, rawTax);
 
-    grossTotal = _finalizeAmount(breakdown.gross, grossConsensus, check);
-    netTotal = _finalizeAmount(breakdown.base, baseConsensus, check);
-    taxTotal = _finalizeAmount(rawTax, taxConsensus, check);
+    // A text-layer reading keeps a lone read operand that the solver did not
+    // use (for example a total with no breakdown). It stays present so that
+    // `_finalizeConfidence` can hold it at amber; OCR routes are unchanged and
+    // keep the solver's absent value.
+    final grossField = _keepReadAmountIfAbsent(
+      breakdown.gross,
+      grossValue,
+      grossConsensus,
+      textLayerReading: textLayerReading,
+    );
+    final baseField = _keepReadAmountIfAbsent(
+      breakdown.base,
+      baseValue,
+      baseConsensus,
+      textLayerReading: textLayerReading,
+    );
+    final taxField = _keepReadAmountIfAbsent(
+      rawTax,
+      taxValue,
+      taxConsensus,
+      textLayerReading: textLayerReading,
+    );
+
+    final sumCheck = _amountCheck(grossField, baseField, taxField);
+    final taxCheck = _taxIdentityCheck(
+      base: baseField,
+      tax: taxField,
+      taxes: taxes,
+      admittedRates: gate.admitted,
+    );
+
+    grossTotal = _finalizeAmount(
+      grossField,
+      grossConsensus,
+      sumCheck,
+      textLayerReading: textLayerReading,
+      taxCheck: taxCheck,
+      isTaxOperand: false,
+    );
+    netTotal = _finalizeAmount(
+      baseField,
+      baseConsensus,
+      sumCheck,
+      textLayerReading: textLayerReading,
+      taxCheck: taxCheck,
+      isTaxOperand: true,
+    );
+    taxTotal = _finalizeAmount(
+      taxField,
+      taxConsensus,
+      sumCheck,
+      textLayerReading: textLayerReading,
+      taxCheck: taxCheck,
+      isTaxOperand: true,
+    );
     taxSlots = country == null
         ? const <TaxSlot>[]
         : buildTaxSlots(
@@ -277,16 +332,25 @@ CanonicalDocument extractDocument({
           );
   }
 
-  final docDate = _nonAmountField<CalendarDate>(dateReadings, FieldKind.other);
+  final docDate = _nonAmountField<CalendarDate>(
+    dateReadings,
+    FieldKind.other,
+    textLayerReading: textLayerReading,
+  );
   final supplierName = _nonAmountField<String>(
     supplierReadings,
     FieldKind.supplierName,
+    textLayerReading: textLayerReading,
   );
   final docNumber = _nonAmountField<String>(
     docNumberReadings,
     FieldKind.docNumber,
+    textLayerReading: textLayerReading,
   );
-  final currency = _currencyField(currencyReadings);
+  final currency = _currencyField(
+    currencyReadings,
+    textLayerReading: textLayerReading,
+  );
 
   final reviewFields = <FieldValue<Object?>>[
     docDate,
@@ -452,24 +516,42 @@ T? _consensusValue<T>(ConsensusResult<T> consensus) => switch (consensus) {
   NoConsensus<T>() => null,
 };
 
-FieldValue<T> _nonAmountField<T>(List<Reading<T>> readings, FieldKind kind) {
+FieldValue<T> _nonAmountField<T>(
+  List<Reading<T>> readings,
+  FieldKind kind, {
+  required bool textLayerReading,
+}) {
   final consensus = resolveConsensus<T>(readings);
   return switch (consensus) {
     Agreed<T>(:final value) => Present<T>(
       value,
       Provenance.read,
-      _finalizeConfidence(agreed: true, kind: kind, check: CheckOutcome.passed),
+      _finalizeConfidence(
+        agreed: true,
+        kind: kind,
+        check: CheckOutcome.passed,
+        textLayerReading: textLayerReading,
+        provenance: Provenance.read,
+      ),
     ),
     Single<T>(:final value) => Present<T>(
       value,
       Provenance.read,
-      _finalizeConfidence(agreed: false, kind: kind),
+      _finalizeConfidence(
+        agreed: false,
+        kind: kind,
+        textLayerReading: textLayerReading,
+        provenance: Provenance.read,
+      ),
     ),
     NoConsensus<T>() => Absent<T>(),
   };
 }
 
-FieldValue<CurrencyCode> _currencyField(List<Reading<CurrencyCode>> readings) {
+FieldValue<CurrencyCode> _currencyField(
+  List<Reading<CurrencyCode>> readings, {
+  required bool textLayerReading,
+}) {
   final consensus = resolveConsensus<CurrencyCode>(readings);
   return switch (consensus) {
     Agreed<CurrencyCode>(:final value) => Present<CurrencyCode>(
@@ -479,12 +561,19 @@ FieldValue<CurrencyCode> _currencyField(List<Reading<CurrencyCode>> readings) {
         agreed: true,
         kind: FieldKind.currency,
         check: CheckOutcome.passed,
+        textLayerReading: textLayerReading,
+        provenance: Provenance.read,
       ),
     ),
     Single<CurrencyCode>(:final value) => Present<CurrencyCode>(
       value,
       Provenance.read,
-      _finalizeConfidence(agreed: false, kind: FieldKind.currency),
+      _finalizeConfidence(
+        agreed: false,
+        kind: FieldKind.currency,
+        textLayerReading: textLayerReading,
+        provenance: Provenance.read,
+      ),
     ),
     NoConsensus<CurrencyCode>() => const Absent<CurrencyCode>(),
   };
@@ -494,11 +583,19 @@ ConfidenceState _finalizeConfidence({
   required bool agreed,
   required FieldKind kind,
   CheckOutcome check = CheckOutcome.none,
+  bool textLayerReading = false,
+  Provenance provenance = Provenance.read,
 }) {
   final state = assignConfidence(kind: kind, check: check);
   if (state == ConfidenceState.green && !agreed) {
-    // A single pass is a `Single`, never an `Agreed`; confidence is capped
-    // below green (consensus.dart documents this distinction).
+    // A single pass is a `Single`, never an `Agreed`. It stays capped below
+    // green unless the route is a PDF text layer, the value was read and the
+    // field takes part in a checkable identity that passed.
+    if (textLayerReading &&
+        provenance == Provenance.read &&
+        check == CheckOutcome.passed) {
+      return ConfidenceState.green;
+    }
     return ConfidenceState.amber;
   }
   return state;
@@ -542,30 +639,112 @@ CheckOutcome _amountCheck(
   );
 }
 
+/// Evaluates `tax ≈ base × rate` as a confidence identity.
+///
+/// A printed rate makes the identity checkable for the base and tax fields
+/// when exactly one tax line and one admitted rate were read. A derived base
+/// or tax is still consumed, but `checkOutcome` then refuses to confirm.
+CheckOutcome _taxIdentityCheck({
+  required FieldValue<Money> base,
+  required FieldValue<Money> tax,
+  required List<ReadOperand> taxes,
+  required List<ReadOperand> admittedRates,
+}) {
+  if (base is! Present<Money> || tax is! Present<Money>) {
+    return CheckOutcome.none;
+  }
+  if (taxes.length != 1 || admittedRates.length != 1) {
+    return CheckOutcome.none;
+  }
+  return checkOutcome(
+    arithmeticPassed: taxWithinTolerance(
+      tax.value,
+      base.value,
+      admittedRates.single.rate!,
+    ),
+    operands: <Provenance>[base.provenance, tax.provenance, Provenance.read],
+  );
+}
+
+/// Chooses the confidence check for one amount field.
+///
+/// An `Agreed` field keeps the existing sum identity exactly as before. A
+/// `Single` on a text-layer reading may instead stand on the tax identity when
+/// the sum identity is not checkable (for example a derived gross), but a
+/// failed sum identity still lowers confidence and is never overridden.
+CheckOutcome _effectiveAmountCheck({
+  required bool agreed,
+  required bool textLayerReading,
+  required bool isTaxOperand,
+  required CheckOutcome sumCheck,
+  required CheckOutcome taxCheck,
+}) {
+  if (agreed || !textLayerReading || !isTaxOperand) {
+    return sumCheck;
+  }
+  if (sumCheck == CheckOutcome.failed || taxCheck == CheckOutcome.failed) {
+    return CheckOutcome.failed;
+  }
+  if (taxCheck == CheckOutcome.passed) {
+    return CheckOutcome.passed;
+  }
+  return sumCheck;
+}
+
 FieldValue<Money> _finalizeAmount(
   FieldValue<Money> value,
   ConsensusResult<Money> consensus,
-  CheckOutcome check,
-) {
+  CheckOutcome sumCheck, {
+  required bool textLayerReading,
+  required CheckOutcome taxCheck,
+  required bool isTaxOperand,
+}) {
   if (value is! Present<Money>) {
     return value;
   }
+  final agreed = consensus is Agreed<Money>;
+  final check = _effectiveAmountCheck(
+    agreed: agreed,
+    textLayerReading: textLayerReading,
+    isTaxOperand: isTaxOperand,
+    sumCheck: sumCheck,
+    taxCheck: taxCheck,
+  );
   return Present<Money>(
     value.value,
     value.provenance,
     _finalizeConfidence(
-      agreed: consensus is Agreed<Money>,
+      agreed: agreed,
       kind: FieldKind.amount,
       check: check,
+      textLayerReading: textLayerReading,
+      provenance: value.provenance,
     ),
     source: value.source,
   );
 }
 
+FieldValue<Money> _keepReadAmountIfAbsent(
+  FieldValue<Money> solved,
+  Money? readValue,
+  ConsensusResult<Money> consensus, {
+  required bool textLayerReading,
+}) {
+  if (solved is Present<Money> || !textLayerReading) {
+    return solved;
+  }
+  return _readAmountField(
+    readValue,
+    consensus,
+    textLayerReading: textLayerReading,
+  );
+}
+
 FieldValue<Money> _readAmountField(
   Money? value,
-  ConsensusResult<Money> consensus,
-) {
+  ConsensusResult<Money> consensus, {
+  required bool textLayerReading,
+}) {
   if (value == null) {
     return const Absent<Money>();
   }
@@ -575,6 +754,8 @@ FieldValue<Money> _readAmountField(
     _finalizeConfidence(
       agreed: consensus is Agreed<Money>,
       kind: FieldKind.amount,
+      textLayerReading: textLayerReading,
+      provenance: Provenance.read,
     ),
   );
 }

@@ -37,7 +37,8 @@ void main() {
 
     // The printed 25 % rate is illegal for every launch row; the universal
     // core still admits it, so the missing gross total is derived from the
-    // printed base and tax.
+    // printed base and tax. The read base and tax still confirm each other
+    // through `base × rate ≈ tax`, so they reach green on the text layer.
     expect(
       document.grossTotal,
       Present<Money>(
@@ -51,12 +52,12 @@ void main() {
       Present<Money>(
         Money(100000, chf),
         Provenance.read,
-        ConfidenceState.amber,
+        ConfidenceState.green,
       ),
     );
     expect(
       document.taxTotal,
-      Present<Money>(Money(25000, chf), Provenance.read, ConfidenceState.amber),
+      Present<Money>(Money(25000, chf), Provenance.read, ConfidenceState.green),
     );
     expect(
       document.docDate,
