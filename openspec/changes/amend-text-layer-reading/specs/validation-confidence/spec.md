@@ -10,15 +10,17 @@ be amber, and an amount with no independent figure to cross against SHALL never 
 green however cleanly it was read.
 
 **Confirmed by redundancy** also covers a value read once from a PDF's **text
-layer**, with no second reading and no breakdown to cross against, when all three
-of the following hold: every operand the value depends on was itself read from
-that text layer, never derived; where an arithmetic identity over those operands
-is checkable (every operand needed for it was read), the identity SHALL hold; and
-where no identity is checkable because only one operand was printed, the
-text-layer reading alone SHALL stand as confirmed. The text layer is itself the
-independent evidence this requirement asks for: it is a deterministic read of the
-document's encoded content, not an estimate that a second pass could contradict.
-This exception SHALL NOT extend to a value read by optical recognition — a
+layer**, with no second reading, when both of the following hold: every operand
+the value depends on was itself read from that text layer, never derived; **and**
+at least one arithmetic identity over those operands is checkable — every operand
+it needs was read — and that identity holds. A text-layer reading with **no**
+checkable identity, because only one operand was printed and nothing else is
+printed alongside it to cross against, SHALL stay at the single-reading cap and
+remain amber: the text layer removes the need for a second *pass*, since
+re-extracting it produces no variation to arbitrate, but it does not remove the
+need for a second printed *figure* to confirm the first — a lone reading with
+nothing to check it against is still not confirmed, however deterministic its
+route. This exception SHALL NOT extend to a value read by optical recognition — a
 photograph, a rendered page of a scanned PDF, or a mixed page with no text layer —
 which SHALL remain amber with no independent figure to cross against, exactly as
 before. A derived operand SHALL still never raise a check to green (PRE-008,
@@ -46,12 +48,21 @@ being overridden by the route, on a text-layer reading exactly as on any other.
 - THEN it is amber, not green
 - AND no second OCR pass changes that, because the route is not a PDF text layer
 
-#### Scenario: a text-layer reading with nothing to cross against is green
+#### Scenario: a text-layer reading with no checkable identity stays amber
 
-- GIVEN a total read once from a PDF's text layer, with no breakdown printed to
-  cross against and no derived operand feeding it
-- WHEN its state is shown
-- THEN it is green and locked
+- GIVEN a total read once from a PDF's text layer
+- WHEN the total is the only operand read, with no base, no tax and nothing else
+  printed alongside it to form a checkable identity
+- THEN it stays amber, not green
+- AND the absence of a checkable identity, not the text-layer route, is why it
+  is not green
+
+#### Scenario: a text-layer reading with a holding identity is green
+
+- GIVEN a total read once from a PDF's text layer, with its base and its tax
+  also read from that layer and none of the three derived
+- WHEN `base + tax = total` is checked and holds
+- THEN the total is green and locked
 
 #### Scenario: a check digit is amber, not green
 

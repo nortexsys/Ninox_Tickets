@@ -35,11 +35,14 @@ exact green conditions for a text-layer reading to this change.
 
 This change fixes those conditions. A value extracted from a PDF's text layer may
 be green only when every operand it depends on was itself read from that layer —
-never derived — and, where an arithmetic identity over those operands can be
-checked, that check passes. Where no identity can be checked because only one
-operand was printed, the text-layer reading alone is sufficient, because the
-layer itself is the independent evidence `three-confidence-strengths` asks for: it
-is not an estimate that could have read something else.
+never derived — **and** at least one arithmetic identity over those operands is
+checkable and holds. The PO decided on 2026-10-17, as a follow-up to DEC-018, that
+a checkable identity is not optional: a total read once from the text layer with
+no base, no tax and no other operand printed alongside it to cross against stays
+at the single-reading cap, amber, because — determinism of the layer
+notwithstanding — there is still nothing printed to confirm it against. The text
+layer removes the need for a **second pass**; it does not remove the need for a
+**second printed figure**.
 
 ## What Changes
 
@@ -50,18 +53,21 @@ is not an estimate that could have read something else.
   continue to need a majority across passes. Two scenarios are added: a text-layer
   reading passing consensus alone, and an OCR reading still needing agreement.
 - `validation-confidence` — MODIFIED `three-confidence-strengths`. The original
-  text is kept in full. Added: a value read once from a PDF's text layer, with
-  every operand it depends on also read from that layer and none derived, counts
-  as confirmed by redundancy and may be green even with no breakdown to cross
-  against; this exception applies to the text-layer route only, never to an
-  OCR-recognition reading, never to a derived operand (PRE-008, BR-05 — unchanged),
-  and never when an arithmetic identity over the operands is checkable and fails
-  (unchanged: a failed check still lowers confidence). The existing scenario about
-  a reading with nothing to cross against is split to name the OCR case explicitly
-  as the one that stays amber, and three scenarios are added: a text-layer reading
-  with nothing to cross against reaching green, a derived operand still blocking
-  green on a text-layer reading, and a failed arithmetic check still lowering a
-  text-layer reading.
+  text is kept in full. Added: a value read once from a PDF's text layer counts
+  as confirmed by redundancy, and may be green, only when every operand it
+  depends on was also read from that layer (none derived) **and** at least one
+  arithmetic identity over those operands is checkable and holds; a text-layer
+  reading with no checkable identity — nothing printed alongside it to cross
+  against — stays at the single-reading cap, amber, exactly as an OCR reading
+  does. This exception applies to the text-layer route only, never to an
+  OCR-recognition reading, never to a derived operand (PRE-008, BR-05 —
+  unchanged), and never when a checkable identity fails (unchanged: a failed
+  check still lowers confidence). The existing scenario about a reading with
+  nothing to cross against is split to name the OCR case explicitly as one that
+  stays amber, and four scenarios are added: a text-layer reading with no
+  checkable identity staying amber, a text-layer reading with a holding identity
+  reaching green, a derived operand still blocking green on a text-layer
+  reading, and a failed arithmetic check still lowering a text-layer reading.
 - No requirement is added, removed or renamed.
 
 ## Capabilities
@@ -74,9 +80,11 @@ is not an estimate that could have read something else.
 
 - `extraction-pipeline`: a text-layer reading passes consensus by itself; OCR
   readings are unaffected.
-- `validation-confidence`: a text-layer reading with no derived operand, and
-  passing any checkable arithmetic identity, may be shown green; every other cap
-  (derived operands, a failed check, OCR needing agreement) is unchanged.
+- `validation-confidence`: a text-layer reading with no derived operand, and at
+  least one checkable arithmetic identity that holds, may be shown green; a
+  text-layer reading with nothing printed to check an identity against stays
+  amber; every other cap (derived operands, a failed check, OCR needing
+  agreement) is unchanged.
 
 ## Spec type
 
@@ -94,8 +102,9 @@ the rest of each capability's shape unchanged.
   and `read-all-printed-quantities-before-deriving` are cited because they already
   state the caps DEC-018 keeps (PRE-008, BR-05); neither's text changes.
 - **Not this change's to do:** implementing the text-layer-passes-consensus-alone
-  rule and the green-without-breakdown rule in the extraction and confidence code,
-  and the regression tests that confirm an OCR reading still requires agreement
-  across passes, are implementation work, dispatched to the Mobile lane after this
-  change is archived. DEC-018 and this change authorise that work; they do not
-  perform it.
+  rule and the text-layer-green-requires-a-holding-identity rule in the
+  extraction and confidence code, and the regression tests that confirm an OCR
+  reading still requires agreement across passes and that a text-layer reading
+  with no checkable identity still stays amber, are implementation work,
+  dispatched to the Mobile lane after this change is archived. DEC-018 and this
+  change authorise that work; they do not perform it.
