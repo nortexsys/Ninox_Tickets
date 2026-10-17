@@ -151,19 +151,19 @@ final class DuplicateChecker {
   Future<DuplicateMatch?> check(DuplicateCandidate candidate) async {
     final HistoryListing listing = await store.list();
     final String? supplier = normaliseSupplier(candidate.supplier);
-    DuplicateMatch? byHash;
     DuplicateMatch? byContent;
 
     for (final HistoryEntry entry in listing.entries) {
       if (entry.docId == candidate.docId || entry.state != DocumentState.sent) {
         continue;
       }
-      if (byHash == null && entry.documentHash == candidate.documentHash) {
-        byHash = DuplicateMatch(
+      if (entry.documentHash == candidate.documentHash) {
+        // The hash is the stronger criterion — the same bytes, not the same receipt — so it is
+        // answered at once and the rest of the listing is not read.
+        return DuplicateMatch(
           docId: entry.docId,
           criterion: DuplicateCriterion.hash,
         );
-        break; // The hash is the stronger criterion; nothing can beat it.
       }
       if (byContent == null &&
           _sameContent(entry, candidate, supplier: supplier)) {
@@ -174,7 +174,7 @@ final class DuplicateChecker {
       }
     }
 
-    return byHash ?? byContent;
+    return byContent;
   }
 
   /// Sets [HistoryEntry.duplicateFlagged] on the stored entry of [docId], and answers what is stored.

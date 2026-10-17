@@ -149,8 +149,9 @@ final class SendQueue {
     }
 
     final HistoryListing listing = await store.list();
-    // `list()` answers newest first; a queue is a queue, so the order is reversed explicitly rather
-    // than by reversing the list, which would also reverse the tie-break on the document identifier.
+    // `list()` answers newest first and a queue is oldest first, so the order is sorted again rather
+    // than reversed: reversing would reverse the tie-break on the document identifier too, and the
+    // order of two documents of one instant would then be the opposite of the history's.
     final List<HistoryEntry> queued =
         listing.entries
             .where((HistoryEntry entry) => entry.state == DocumentState.queued)
