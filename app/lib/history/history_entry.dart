@@ -260,6 +260,32 @@ final class HistoryEntry {
     'failureReason': failureReason,
   };
 
+  /// The entry with [duplicateFlagged] set, its [revision] one higher, and nothing else changed.
+  ///
+  /// **This is the setter T1.14 left for T2.3** (DEC-016, `document-history/duplicate-criteria`).
+  /// Setting the flag moves no state: a duplicate is a property a document has *alongside* the
+  /// state it is in, so [state] is copied as it is and `document_machine.dart` stays the only
+  /// place a state changes. What does change is the entry's content, and [revision] is what counts
+  /// that (design §5.1) — the store refuses a write that is not newer than what it holds, so a
+  /// flag set without a bumped revision could never be stored.
+  ///
+  /// Unconditional: an entry that is already flagged gets a second bump. The read-side check is
+  /// `DuplicateChecker.markDuplicate`, which writes nothing when there is nothing to change.
+  HistoryEntry withDuplicateFlag() => HistoryEntry(
+    docId: docId,
+    revision: revision + 1,
+    createdAt: createdAt,
+    state: state,
+    duplicateFlagged: true,
+    documentHash: documentHash,
+    destination: destination,
+    thumbnailPath: thumbnailPath,
+    values: values,
+    confidence: confidence,
+    ninoxRecordId: ninoxRecordId,
+    failureReason: failureReason,
+  );
+
   /// The entry's own invariants — the ones that must hold of every entry, from the constructor
   /// and from a file alike.
   void _checkInvariants() {
