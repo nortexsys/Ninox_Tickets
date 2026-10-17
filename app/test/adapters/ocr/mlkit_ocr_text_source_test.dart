@@ -3,6 +3,9 @@ import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:paperdrop/adapters/ocr/image_decoder.dart';
+import 'package:paperdrop/adapters/ocr/image_header.dart';
+import 'package:paperdrop/adapters/ocr/image_passes.dart';
 import 'package:paperdrop/adapters/ocr/mlkit_ocr_text_source.dart';
 import 'package:paperdrop/adapters/ocr/ocr_text_source.dart';
 import 'package:paperdrop/adapters/ocr/page_rasterizer.dart';
@@ -11,6 +14,7 @@ import 'package:paperdrop/adapters/ocr/text_recognizer_backend.dart';
 import 'package:paperdrop_core/paperdrop_core.dart';
 import 'package:path/path.dart' as p;
 
+import '../../tool/decodable_image.dart';
 import '../../tool/ocr_fakes.dart';
 import '../../tool/synthetic_documents.dart';
 import '../../tool/synthetic_jpeg.dart';
@@ -61,11 +65,15 @@ void main() {
     required OcrPageRasterizer rasterizer,
     required TextRecognizerBackend Function() backend,
     List<OcrRenderPass> passes = ocrRenderPasses,
+    List<OcrImagePass> imagePasses = ocrImagePasses,
+    OcrImageDecoder? imageDecoder,
     void Function(String passId, Duration elapsed)? onPassRecognised,
     void Function(String passId, Object error)? onPassDropped,
   }) => MlKitOcrTextSource(
     passes: passes,
+    imagePasses: imagePasses,
     rasterizer: rasterizer,
+    imageDecoder: imageDecoder,
     backend: backend,
     cacheDirectory: () async => cache,
     onPassRecognised: onPassRecognised,
@@ -491,7 +499,7 @@ void main() {
   });
 
   group('an image', () {
-    test('is read as it is, in the one pass that adds no scaling', () async {
+    test('is read as it is by the pass that adds no scaling', () async {
       final FakeTextRecognizerBackend backend = FakeTextRecognizerBackend(
         fileElements: const <OcrElement>[
           OcrElement('Gesamtbetrag', 10, 20, 110, 40),
@@ -502,12 +510,15 @@ void main() {
       final List<OcrPass> passes = await sourceWith(
         rasterizer: FailingOcrPageRasterizer(),
         backend: () => backend,
+        imagePasses: const <OcrImagePass>[
+          OcrImagePass.asTheFileIs('p1-native'),
+        ],
       ).recognise(image.path);
 
       expect(passes, hasLength(1));
       expect(passes.single.passId, MlKitOcrTextSource.imagePassId);
       expect(backend.files, <String>[image.path]);
-      expect(backend.pixels, isEmpty, reason: 'an image is not rendered');
+      expect(backend.pixels, isEmpty, reason: 'this pass decodes nothing');
       // Its pixel size is taken as points at 72 dpi (design §1): one pixel is
       // one point, so a box is its own size in milli-points.
       final TextPage page = passes.single.pages.single;
@@ -518,9 +529,354 @@ void main() {
       expect(word.x1, 110000);
       expect(word.top, 20000);
       expect(word.bottom, 40000);
-      // No render, so no render buffer: the cache directory is not even made.
+      // No render and no decode, so no buffer: the cache directory is not even
+      // made.
       expect(buffers().existsSync(), isFalse);
     });
+
+    test('design §2\'s passes are read, in its order, under its ids', () async {
+      final FakeTextRecognizerBackend backend = FakeTextRecognizerBackend(
+        fileElements: const <OcrElement>[
+          OcrElement('Gesamtbetrag', 10, 20, 110, 40),
+        ],
+      );
+      final File image = _imageIn(work, width: 800, height: 600);
+      final List<String> recognised = <String>[];
+
+      final List<OcrPass> passes = await sourceWith(
+        rasterizer: FailingOcrPageRasterizer(),
+        backend: () => backend,
+        onPassRecognised: (String passId, Duration elapsed) =>
+            recognised.add(passId),
+      ).recognise(image.path);
+
+      expect(passes.map((OcrPass pass) => pass.passId), <String>[
+        'p1-native',
+        'p2-contrast',
+        'p3-lo',
+        'p4-hi',
+      ]);
+      expect(recognised, <String>[
+        'p1-native',
+        'p2-contrast',
+        'p3-lo',
+        'p4-hi',
+      ]);
+      // One page per pass: a photograph is one image.
+      for (final OcrPass pass in passes) {
+        expect(pass.pages, hasLength(1));
+        expect(pass.pages.single.index, 0);
+      }
+      // The pass that reads the file as it is is the only one that hands the
+      // engine a path; the other three hand it decoded pixels of their own
+      // size.
+      expect(backend.files, <String>[image.path]);
+      expect(backend.sizes, <List<int>>[
+        <int>[800, 600], // p2-contrast: decoded at the image's own size
+        <int>[560, 420], // p3-lo: 0.7 of both sides
+        <int>[1120, 840], // p4-hi: 1.4 of both sides
+      ]);
+      expect(backend.closes, 1, reason: 'one engine per call, closed once');
+    });
+
+    test('every pass converts with the same page size', () async {
+      // The invariant of design §4: a pass read from a smaller image has fewer
+      // pixels to report a box in and the same page to report it against. The
+      // page size of every pass of one photograph is therefore identical.
+      final File image = _imageIn(work, width: 800, height: 600);
+
+      final List<OcrPass> passes = await sourceWith(
+        rasterizer: FailingOcrPageRasterizer(),
+        backend: FakeTextRecognizerBackend.new,
+      ).recognise(image.path);
+
+      for (final OcrPass pass in passes) {
+        final TextPage page = pass.pages.single;
+        expect(<int>[page.width, page.height], <int>[800000, 600000]);
+      }
+    });
+
+    test('the same word lands in the same coordinates at every scale', () async {
+      // The invariant that makes consensus meaningful (design §4). The engine
+      // is faked to answer a word at the same **fraction** of whatever image it
+      // is handed; the decoder is the real one, so the four passes really are
+      // read at four sizes of one synthetic photograph.
+      final File image = _imageIn(work, width: 800, height: 600);
+      final FakeTextRecognizerBackend backend = FakeTextRecognizerBackend(
+        // The pass that reads the file as it is: a box at 1/4 across and 1/2
+        // down of the picture's own 800 by 600 pixels.
+        fileElements: const <OcrElement>[
+          OcrElement('Gesamtbetrag', 200, 300, 400, 450),
+        ],
+        elementsFor: (int width, int height) => <OcrElement>[
+          OcrElement(
+            'Gesamtbetrag',
+            (width * 0.25).round(),
+            (height * 0.5).round(),
+            (width * 0.5).round(),
+            (height * 0.75).round(),
+          ),
+        ],
+      );
+
+      final List<OcrPass> passes = await sourceWith(
+        rasterizer: FailingOcrPageRasterizer(),
+        backend: () => backend,
+      ).recognise(image.path);
+
+      expect(passes, hasLength(4));
+      // The four readings really were of four sizes: the file's own, and the
+      // three the pass list asks the decoder for.
+      expect(backend.sizes, <List<int>>[
+        <int>[800, 600],
+        <int>[560, 420],
+        <int>[1120, 840],
+      ]);
+      // One pixel of the picture is one point of the page (72 dpi), so the same
+      // fraction of the picture is the same milli-point in every pass: 1/4
+      // across an 800 point page is 200 points, whatever the pixel size the box
+      // was reported in. The sizes above were chosen so that every fraction
+      // lands on a whole pixel of every pass, which is why this is an equality
+      // and not a tolerance; the general case is loose by at most one pixel of
+      // the pass, which is 1.5 thousandths of a point at 0.7x.
+      for (final OcrPass pass in passes) {
+        final PositionedWord word = pass.pages.single.words.single;
+        expect(
+          <String, int>{
+            'x0': word.x0,
+            'x1': word.x1,
+            'top': word.top,
+            'bottom': word.bottom,
+          },
+          <String, int>{
+            'x0': 200000,
+            'x1': 400000,
+            'top': 300000,
+            'bottom': 450000,
+          },
+          reason: 'pass ${pass.passId} put the word somewhere else',
+        );
+      }
+    });
+
+    test('the contrast pass hands the engine grey bytes', () async {
+      // A two-tone photograph: its left half is grey 64 and its right half grey
+      // 192. The stretch of `pixels.dart` takes the darkest level of the buffer
+      // to 0 and the lightest to 255, and leaves one grey per pixel.
+      final FakeTextRecognizerBackend backend = FakeTextRecognizerBackend();
+      final File image = File(p.join(work.path, 'two-tone.jpg'))
+        ..writeAsBytesSync(
+          decodableJpeg(width: 16, height: 8, blockGreys: <int>[64, 192]),
+        );
+
+      final List<OcrPass> passes = await sourceWith(
+        rasterizer: FailingOcrPageRasterizer(),
+        backend: () => backend,
+        imagePasses: const <OcrImagePass>[
+          OcrImagePass('p2-contrast', greyContrast: true),
+        ],
+      ).recognise(image.path);
+
+      expect(passes.single.passId, 'p2-contrast');
+      // Decoded at the image's own size, because the pass's scale is 1.
+      expect(backend.sizes, <List<int>>[
+        <int>[16, 8],
+      ]);
+      final Uint8List pixels = backend.pixels.single;
+      expect(pixels, hasLength(16 * 8 * 4));
+      expect(
+        <int>{for (var i = 0; i < pixels.length; i += 4) pixels[i]},
+        <int>{0, 255},
+        reason: 'the two levels of the photograph are stretched to the ends',
+      );
+      for (var i = 0; i < pixels.length; i += 4) {
+        expect(
+          <int>[pixels[i], pixels[i + 1], pixels[i + 2], pixels[i + 3]],
+          <int>[pixels[i], pixels[i], pixels[i], 255],
+          reason: 'a grey byte has one level in all three channels',
+        );
+      }
+    });
+
+    test(
+      'a pass whose decode fails is dropped, and the others are read',
+      () async {
+        final List<String> dropped = <String>[];
+        final File image = _imageIn(work, width: 800, height: 600);
+
+        final List<OcrPass> passes = await sourceWith(
+          rasterizer: FailingOcrPageRasterizer(),
+          backend: FakeTextRecognizerBackend.new,
+          // The 0.7x decode fails: that one pass is lost and the photograph's
+          // other three readings still happen.
+          imageDecoder: FakeOcrImageDecoder(
+            failingTarget: const ImagePixelSize(560, 420),
+          ),
+          onPassDropped: (String passId, Object error) => dropped.add(passId),
+        ).recognise(image.path);
+
+        expect(passes.map((OcrPass pass) => pass.passId), <String>[
+          'p1-native',
+          'p2-contrast',
+          'p4-hi',
+        ]);
+        expect(dropped, <String>['p3-lo']);
+      },
+    );
+
+    test(
+      'a pass whose engine call fails is dropped, and the rest answer',
+      () async {
+        final List<String> dropped = <String>[];
+        final File image = _imageIn(work, width: 800, height: 600);
+
+        final List<OcrPass> passes = await sourceWith(
+          rasterizer: FailingOcrPageRasterizer(),
+          backend: () => FakeTextRecognizerBackend(
+            failForSize: const ImagePixelSize(1120, 840),
+          ),
+          onPassDropped: (String passId, Object error) => dropped.add(passId),
+        ).recognise(image.path);
+
+        expect(dropped, <String>['p4-hi']);
+        expect(passes.map((OcrPass pass) => pass.passId), <String>[
+          'p1-native',
+          'p2-contrast',
+          'p3-lo',
+        ]);
+      },
+    );
+
+    test('one pass alone is returned as one pass', () async {
+      final File image = _imageIn(work, width: 800, height: 600);
+
+      final List<OcrPass> passes = await sourceWith(
+        rasterizer: FailingOcrPageRasterizer(),
+        backend: FakeTextRecognizerBackend.new,
+        imagePasses: const <OcrImagePass>[OcrImagePass('p2-contrast')],
+      ).recognise(image.path);
+
+      expect(passes, hasLength(1));
+      expect(passes.single.passId, 'p2-contrast');
+    });
+
+    test('a photograph no pass could read fails as an OcrFailure', () async {
+      final File image = _imageIn(work, width: 800, height: 600);
+      final List<String> dropped = <String>[];
+
+      await expectLater(
+        sourceWith(
+          rasterizer: FailingOcrPageRasterizer(),
+          backend: () => FakeTextRecognizerBackend(failing: true),
+          onPassDropped: (String passId, Object error) => dropped.add(passId),
+        ).recognise(image.path),
+        throwsA(isA<OcrFailure>()),
+      );
+      // Every pass was tried before the call was given up: four readings, four
+      // reports.
+      expect(dropped, <String>['p1-native', 'p2-contrast', 'p3-lo', 'p4-hi']);
+    });
+
+    test('a photograph whose decoder refuses is an OcrFailure too', () async {
+      final File image = _imageIn(work, width: 800, height: 600);
+
+      await expectLater(
+        sourceWith(
+          rasterizer: FailingOcrPageRasterizer(),
+          backend: FakeTextRecognizerBackend.new,
+          imageDecoder: FakeOcrImageDecoder(failsEveryTarget: true),
+          imagePasses: const <OcrImagePass>[OcrImagePass('p4-hi')],
+        ).recognise(image.path),
+        throwsA(isA<OcrFailure>()),
+      );
+    });
+
+    test('a photograph with a quarter-turn EXIF is read as it is shown', () async {
+      // Stored as 800 by 600, shown as 600 by 800: the file's frame header and
+      // its EXIF orientation tag say so between them, and the passes decode
+      // what is *shown* — which is what the engine's own file input reads too.
+      final File image = File(p.join(work.path, 'turned.jpg'))
+        ..writeAsBytesSync(
+          decodableJpeg(width: 800, height: 600, exifOrientation: 6),
+        );
+      final FakeTextRecognizerBackend backend = FakeTextRecognizerBackend();
+      final FakeOcrImageDecoder decoder = FakeOcrImageDecoder(
+        nativeSize: const ImagePixelSize(600, 800),
+      );
+
+      final List<OcrPass> passes = await sourceWith(
+        rasterizer: FailingOcrPageRasterizer(),
+        backend: () => backend,
+        imageDecoder: decoder,
+      ).recognise(image.path);
+
+      // The page every pass converts with is the size the picture is displayed
+      // at, and not the size its frame header declares.
+      for (final OcrPass pass in passes) {
+        final TextPage page = pass.pages.single;
+        expect(<int>[page.width, page.height], <int>[600000, 800000]);
+      }
+      // And the sizes asked of the decoder are that displayed size's, scaled.
+      expect(decoder.targets, <ImagePixelSize>[
+        const ImagePixelSize(600, 800), // p2-contrast
+        const ImagePixelSize(420, 560), // p3-lo: 0.7 of both sides
+        const ImagePixelSize(840, 1120), // p4-hi: 1.4 of both sides
+      ]);
+      // Without the tag the same stored picture would be 800 by 600: the tag is
+      // what turned it, and not a header read the wrong way round.
+      expect(
+        displayedImageSize(const ImagePixelSize(800, 600), 6),
+        const ImagePixelSize(600, 800),
+      );
+    });
+
+    test('reading a photograph leaves it byte-for-byte as it was', () async {
+      final File image = _imageIn(work, width: 800, height: 600);
+      final String sha256Before = sha256
+          .convert(image.readAsBytesSync())
+          .toString();
+
+      await sourceWith(
+        rasterizer: FailingOcrPageRasterizer(),
+        backend: FakeTextRecognizerBackend.new,
+      ).recognise(image.path);
+
+      expect(
+        sha256.convert(image.readAsBytesSync()).toString(),
+        sha256Before,
+        reason: 'reading a photograph must not write to it (ADR-015)',
+      );
+    });
+
+    test(
+      'no buffer outlives the call, whether it succeeded or failed',
+      () async {
+        final File image = _imageIn(work, width: 800, height: 600);
+
+        await sourceWith(
+          rasterizer: FailingOcrPageRasterizer(),
+          backend: FakeTextRecognizerBackend.new,
+        ).recognise(image.path);
+        expect(
+          buffers().existsSync() ? buffers().listSync() : <FileSystemEntity>[],
+          isEmpty,
+          reason: 'a photograph leaves nothing behind',
+        );
+
+        await expectLater(
+          sourceWith(
+            rasterizer: FailingOcrPageRasterizer(),
+            backend: () => FakeTextRecognizerBackend(failing: true),
+          ).recognise(image.path),
+          throwsA(isA<OcrFailure>()),
+        );
+        expect(
+          buffers().existsSync() ? buffers().listSync() : <FileSystemEntity>[],
+          isEmpty,
+          reason: 'a failed call must not leave anything behind either',
+        );
+      },
+    );
 
     test('a JPEG is recognised from its header too', () async {
       final FakeTextRecognizerBackend backend = FakeTextRecognizerBackend();
@@ -529,17 +885,21 @@ void main() {
       final List<OcrPass> passes = await sourceWith(
         rasterizer: FailingOcrPageRasterizer(),
         backend: () => backend,
+        imageDecoder: FakeOcrImageDecoder(
+          nativeSize: const ImagePixelSize(300, 400),
+        ),
       ).recognise(image.path);
 
-      expect(passes.single.pages.single.width, 300000);
-      expect(passes.single.pages.single.height, 400000);
+      expect(passes.first.pages.single.width, 300000);
+      expect(passes.first.pages.single.height, 400000);
     });
 
     test('a camera JPEG, whose frame header is 82 KB in, is recognised', () async {
       // The shape measured on a real device on 2026-10-16: an APP1 of 45313
       // bytes and an APP4 of 36627 put the frame header at byte 82084, past the
       // 64 KiB prefix the identification used to read. It is identified and
-      // read, not rejected.
+      // read, not rejected. Its bytes are structure and not a picture, so the
+      // decoder here is the fake: this test is about the header walk.
       final FakeTextRecognizerBackend backend = FakeTextRecognizerBackend();
       final File image = File(p.join(work.path, 'camera.jpg'))
         ..writeAsBytesSync(cameraLikeJpeg(width: 4032, height: 3024));
@@ -550,12 +910,15 @@ void main() {
       final List<OcrPass> passes = await sourceWith(
         rasterizer: FailingOcrPageRasterizer(),
         backend: () => backend,
+        imageDecoder: FakeOcrImageDecoder(
+          nativeSize: const ImagePixelSize(4032, 3024),
+        ),
       ).recognise(image.path);
 
-      expect(passes, hasLength(1));
-      expect(passes.single.passId, MlKitOcrTextSource.imagePassId);
+      expect(passes, hasLength(4));
+      expect(passes.first.passId, MlKitOcrTextSource.imagePassId);
       expect(backend.files, <String>[image.path], reason: 'read as it is');
-      final TextPage page = passes.single.pages.single;
+      final TextPage page = passes.first.pages.single;
       expect(page.width, 4032000, reason: 'the size the frame header declares');
       expect(page.height, 3024000);
       expect(
@@ -621,6 +984,16 @@ void main() {
 File _pdfIn(Directory work) =>
     File(p.join(work.path, 'scan.pdf'))
       ..writeAsBytesSync(syntheticPdf(text: 'Gesamtbetrag 1.234,50'));
+
+/// A PNG of [width] by [height] pixels that a decoder can really open, in one
+/// flat grey level (`decodable_image.dart`).
+///
+/// It is what the pass tests read: the passes of design §2 decode the file, and
+/// a signature with no image data would drop three of the four. The picture is
+/// invented here and no file of the private corpus is touched.
+File _imageIn(Directory work, {required int width, required int height}) =>
+    File(p.join(work.path, 'photograph.png'))
+      ..writeAsBytesSync(decodablePng(width: width, height: height));
 
 /// A PNG of [width] by [height] pixels: a real signature and a real `IHDR`,
 /// and no image data at all, because nothing here decodes one.

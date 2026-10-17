@@ -15,6 +15,28 @@ import 'source_scan.dart';
 /// document scanner, whose PDF is used as it is (FR-CAP-002, FR-CAP-004) — there
 /// is no stage left that could re-enhance, crop or binarise anything.
 ///
+/// **The one decode, and why it is not pre-processing.** The photo route's
+/// passes read a photograph more than once — decoded grey-stretched, decoded
+/// smaller, decoded larger (`implement-photo-passes`, design §2) — and a decoder
+/// is the only way to get those pixels, with no new dependency (design §3:
+/// "Dart's image codec"). That decode is allowed **in one file and nowhere
+/// else**: `app/lib/adapters/ocr/image_decoder.dart`, which reads an image into
+/// memory for recognition. It is not a pre-processing stage of the scenario this
+/// scan guards: it writes nothing back to the document, it is applied to the
+/// bytes in memory for the length of one recognition, it is never the image the
+/// application attaches or shows, and it corrects no perspective, binarises
+/// nothing and re-encodes nothing. `binarize`, `perspectiveTransform`,
+/// `copyResize`, `encodePng` and `encodeJpg` stay forbidden everywhere,
+/// including there, and every other file of `app/lib/` stays forbidden for the
+/// decode routines too.
+///
+/// **Flagged for review.** This narrows a check that used to hold for the whole
+/// of `app/lib/`. It was the lane's smallest way to satisfy design §2 and §3
+/// without adding a package; the orchestrator and the product owner decide
+/// whether the allowance is acceptable, and the alternative — the paths of
+/// `adapters/ocr/` excluded in some other way, or a new dependency — is theirs
+/// and not this test's.
+///
 /// **Where it stops** (design §2 and §3: keep it simple and say where it stops).
 /// It is lexical: it reads imports and names. It cannot see an image processed
 /// through a package it does not know, and it deliberately does not forbid
@@ -35,6 +57,11 @@ void main() {
 
   /// Routines that decode, re-encode or touch pixels. `Image.file` and
   /// `Image.memory` are not here: showing a document is not processing it.
+  ///
+  /// `instantiateImageCodec` and `toByteData` are the two of them that the one
+  /// decoder named in [decodeAllowedIn] calls: the first decodes, the second
+  /// hands the pixels back. Every other routine below re-encodes, resizes or
+  /// rewrites an image, and no part of this application may call one.
   const List<String> forbiddenRoutines = <String>[
     'instantiateImageCodec',
     'decodeImageFromList',
@@ -46,6 +73,16 @@ void main() {
     'binarize',
     'perspectiveTransform',
   ];
+
+  /// The routines [decodeAllowedIn] may call, and only there.
+  const List<String> decodingRoutines = <String>[
+    'instantiateImageCodec',
+    'toByteData',
+  ];
+
+  /// The one file of `app/lib/` that may decode a photograph, relative to
+  /// `app/lib` with forward slashes.
+  const String decodeAllowedIn = 'adapters/ocr/image_decoder.dart';
 
   const List<String> forbidden = <String>[
     ...forbiddenPackages,
@@ -60,11 +97,22 @@ void main() {
     final List<TokenOccurrence> findings = <TokenOccurrence>[];
     final List<File> sources = dartSources(lib);
     for (final File file in sources) {
+      final String relative = p
+          .relative(file.path, from: lib.path)
+          .replaceAll(r'\', '/');
+      final bool decodesHere = relative == decodeAllowedIn;
       findings.addAll(
         findOccurrences(
           file.readAsStringSync(),
-          forbidden,
-          path: p.relative(file.path, from: lib.path),
+          decodesHere
+              ? <String>[
+                  ...forbiddenPackages,
+                  ...forbiddenRoutines.where(
+                    (String routine) => !decodingRoutines.contains(routine),
+                  ),
+                ]
+              : forbidden,
+          path: relative,
         ),
       );
     }
@@ -77,6 +125,34 @@ void main() {
           '${findings.join('\n')}',
     );
     expect(sources.length, greaterThan(3), reason: 'the scan read nothing');
+  });
+
+  test('the one decode is in the file this scan allows, and nowhere else', () {
+    // The allowance is narrow, and this says so: the decoder itself calls the
+    // two routines, and a copy of that call in any other file of `app/lib/` is
+    // a finding.
+    const String decoder = '''
+Future<void> decode(Uint8List bytes) async {
+  final ui.Codec codec = await ui.instantiateImageCodec(bytes);
+  await codec.getNextFrame();
+}
+''';
+    expect(findOccurrences(decoder, decodingRoutines), hasLength(1));
+
+    final Directory lib = appLibDirectory();
+    final List<File> sources = dartSources(lib);
+    final List<String> callers = <String>[];
+    for (final File file in sources) {
+      if (findOccurrences(
+        file.readAsStringSync(),
+        decodingRoutines,
+      ).isNotEmpty) {
+        callers.add(
+          p.relative(file.path, from: lib.path).replaceAll(r'\', '/'),
+        );
+      }
+    }
+    expect(callers, <String>[decodeAllowedIn]);
   });
 
   test('the scan fails on a planted import', () {

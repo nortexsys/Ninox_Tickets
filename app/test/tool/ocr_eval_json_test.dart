@@ -132,4 +132,184 @@ void main() {
       'photo-synthetic-01.mlkit-ocr.json',
     );
   });
+
+  group('the summary of a document', () {
+    /// A pass of one page of [words], at [width] by [height] thousandths.
+    OcrPass passOf(
+      String passId,
+      List<String> words, {
+      int width = 595280,
+      int height = 841890,
+    }) => OcrPass(passId, <TextPage>[
+      TextPage(0, width, height, <PositionedWord>[
+        for (var index = 0; index < words.length; index++)
+          PositionedWord(words[index], index, index, index + 10, index + 20),
+      ]),
+    ]);
+
+    String summaryOf({
+      required List<OcrPass> passes,
+      Map<String, int> msPerPass = const <String, int>{},
+      List<OcrDroppedPass> droppedPasses = const <OcrDroppedPass>[],
+      String? sha256Before,
+      String? sha256After,
+    }) => ocrEvalSummaryJson(
+      docId: 'photo-synthetic-01',
+      tool: 'google_mlkit_text_recognition 0.17.1',
+      // A hash-shaped value, built and not written out: a literal of sixty
+      // four hex-looking characters is what the privacy check looks for.
+      sha256Before: sha256Before ?? 'a' * 64,
+      sha256After: sha256After ?? sha256Before ?? 'a' * 64,
+      passes: passes,
+      msPerPass: msPerPass,
+      droppedPasses: droppedPasses,
+    );
+
+    test('it holds numbers and pass ids, and not one word of the document', () {
+      final String written = summaryOf(
+        passes: <OcrPass>[
+          passOf('p1-native', <String>['Gesamtbetrag', '1.234,50']),
+          passOf('p3-lo', <String>['Gesamtbetrag', 'Beispiel']),
+        ],
+        msPerPass: <String, int>{'p1-native': 812, 'p3-lo': 430},
+        droppedPasses: const <OcrDroppedPass>[
+          OcrDroppedPass('p4-hi', 'OcrFailure: the image could not be decoded'),
+        ],
+      );
+
+      // The document's own words, in any case, are not in the file — nor is
+      // whatever threw, which can carry a path or a file name of its own.
+      for (final String word in <String>[
+        'Gesamtbetrag',
+        'gesamtbetrag',
+        '1.234,50',
+        'Beispiel',
+      ]) {
+        expect(written, isNot(contains(word)));
+      }
+      expect(written, isNot(contains('could not be decoded')));
+
+      final Map<String, Object?> json =
+          jsonDecode(written) as Map<String, Object?>;
+      expect(json.keys.toList(), <String>[
+        'doc_id',
+        'tool',
+        'sha256_changed',
+        'passes',
+        'agreement',
+        'distinct_page_sizes',
+        'dropped_pass_ids',
+      ]);
+      expect(json['doc_id'], 'photo-synthetic-01');
+      expect(json['tool'], 'google_mlkit_text_recognition 0.17.1');
+      expect(json['sha256_changed'], 0);
+      expect(json['distinct_page_sizes'], 1);
+      expect(json['dropped_pass_ids'], <Object?>['p4-hi']);
+    });
+
+    test('it counts the words of each pass and what two passes share', () {
+      final String written = summaryOf(
+        // Four readings of one page: the two words, one of them, both, and the
+        // same two in another case with punctuation around one of them.
+        passes: <OcrPass>[
+          passOf('p1-native', <String>['Gesamtbetrag', '1.234,50']),
+          passOf('p2-contrast', <String>['1.234,50']),
+          passOf('p3-lo', <String>['GESAMTBETRAG', '(1.234,50)']),
+          passOf('p4-hi', <String>[]),
+        ],
+        msPerPass: <String, int>{'p1-native': 812},
+      );
+
+      final Map<String, Object?> json =
+          jsonDecode(written) as Map<String, Object?>;
+      final List<Object?> passes = json['passes']! as List<Object?>;
+      expect(passes, hasLength(4));
+      expect(
+        passes
+            .map((Object? pass) => (pass! as Map<String, Object?>)['words'])
+            .toList(),
+        <Object?>[2, 1, 2, 0],
+      );
+      expect((passes.first! as Map<String, Object?>)['ms'], 812);
+      // A pass that was not timed is untimed and not a pass that took no time.
+      expect((passes[1]! as Map<String, Object?>)['ms'], -1);
+      // The words of the pass that read nothing are counted as none, and its
+      // page is still reported: a pass that found nothing is a reading.
+      expect(
+        ((passes.last! as Map<String, Object?>)['pages']! as List<Object?>)
+            .single,
+        <String, Object?>{
+          'index': 0,
+          'width': 595.28,
+          'height': 841.89,
+          'words': 0,
+        },
+      );
+
+      // Six pairs of four passes, and every one of them a share and its counts.
+      final List<Object?> agreements = json['agreement']! as List<Object?>;
+      expect(agreements, hasLength(6));
+      final Map<String, Object?> firstPair =
+          agreements.first! as Map<String, Object?>;
+      expect(firstPair.keys.toList(), <String>[
+        'first_pass_id',
+        'second_pass_id',
+        'first_words',
+        'second_words',
+        'shared_words',
+        'share',
+      ]);
+      expect(firstPair['first_pass_id'], 'p1-native');
+      expect(firstPair['second_pass_id'], 'p2-contrast');
+      expect(firstPair['shared_words'], 1);
+      expect(firstPair['share'], 0.5);
+      // The case-folded, punctuation-stripped pair agrees on both words.
+      final Map<String, Object?> between = agreements
+          .map((Object? pair) => pair! as Map<String, Object?>)
+          .firstWhere(
+            (Map<String, Object?> pair) =>
+                pair['first_pass_id'] == 'p1-native' &&
+                pair['second_pass_id'] == 'p3-lo',
+          );
+      expect(between['shared_words'], 2);
+      expect(between['share'], 1.0);
+    });
+
+    test('a document whose passes measured different pages says so', () {
+      final Map<String, Object?> json = jsonDecode(
+        summaryOf(
+          passes: <OcrPass>[
+            passOf('p1-native', <String>['a']),
+            // The same page, converted with another size: the defect
+            // design §4 makes the harness look for, as a number.
+            passOf('p3-lo', <String>['a'], width: 600000, height: 800000),
+          ],
+        ),
+      ) as Map<String, Object?>;
+
+      expect(json['distinct_page_sizes'], 2);
+    });
+
+    test('a file that was changed while it was read says so', () {
+      final Map<String, Object?> json = jsonDecode(
+        summaryOf(
+          passes: <OcrPass>[
+            passOf('p1-native', <String>['a']),
+          ],
+          sha256After: 'b' * 64,
+        ),
+      ) as Map<String, Object?>;
+
+      expect(json['sha256_changed'], 1);
+      // One pass has no pair to compare with, and its own counts are there.
+      expect(json['agreement'], isEmpty);
+    });
+
+    test('the summary file name says what it holds and names the document', () {
+      expect(
+        ocrEvalSummaryFileName(docId: 'photo-synthetic-01'),
+        'photo-synthetic-01.mlkit-ocr-summary.json',
+      );
+    });
+  });
 }

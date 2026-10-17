@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:paperdrop/adapters/ocr/image_header.dart';
 import 'package:path/path.dart' as p;
 
+import '../../tool/decodable_image.dart';
 import '../../tool/synthetic_jpeg.dart';
 
 /// What identifies a file before it is read (`implement-photo-route`,
@@ -248,6 +249,132 @@ void main() {
     expect(const ImagePixelSize(10, 20), isNot(const ImagePixelSize(20, 10)));
     expect(const ImagePixelSize(10, 20).toString(), 'ImagePixelSize(10x20)');
   });
+
+  group('the EXIF orientation', () {
+    test('a JPEG that declares a quarter turn is read as such', () {
+      // A real file with a real EXIF segment, written from bytes by the test
+      // (`decodable_image.dart`): an `APP1` holding `Exif`, a little-endian
+      // TIFF header and the `Orientation` tag.
+      for (final int orientation in <int>[1, 3, 6, 8]) {
+        final File image = write(
+          'turned-$orientation.jpg',
+          decodableJpeg(width: 16, height: 8, exifOrientation: orientation),
+        );
+
+        expect(imageExifOrientationIn(image), orientation);
+      }
+    });
+
+    test('a file that declares none answers with none', () {
+      // A JPEG with no EXIF, a PNG, a PDF and a file that is not an image: none
+      // of them carries an orientation, and none is mistaken for one that does.
+      expect(
+        imageExifOrientationIn(write('plain.jpg', _jpeg(width: 4, height: 2))),
+        isNull,
+      );
+      expect(
+        imageExifOrientationIn(
+          write('photo.jpg', decodableJpeg(width: 8, height: 8)),
+        ),
+        isNull,
+      );
+      expect(
+        imageExifOrientationIn(write('scan.png', _png(width: 4, height: 2))),
+        isNull,
+      );
+      expect(
+        imageExifOrientationIn(write('scan.pdf', _bytes('%PDF-1.7\n'))),
+        isNull,
+      );
+      expect(
+        imageExifOrientationIn(write('notes.txt', _bytes('nothing'))),
+        isNull,
+      );
+    });
+
+    test('an APP1 that is not EXIF is walked past', () {
+      // A camera writes XMP in an `APP1` as well as EXIF, and the walk has to
+      // read the segment's own signature instead of taking the first `APP1` for
+      // an orientation.
+      final List<int> bytes = <int>[0xFF, 0xD8];
+      bytes.addAll(
+        _applicationSegment(0xE1, _bytes('http://ns.adobe.com/xap/')),
+      );
+      bytes.addAll(_exifApp1(8));
+      bytes.addAll(frameHeader(width: 64, height: 48));
+
+      expect(imageExifOrientationIn(write('xmp-first.jpg', bytes)), 8);
+    });
+
+    test('a big-endian TIFF header is read too', () {
+      final List<int> bytes = <int>[0xFF, 0xD8];
+      bytes.addAll(_exifApp1(6, bigEndian: true));
+      bytes.addAll(frameHeader(width: 64, height: 48));
+
+      expect(imageExifOrientationIn(write('big-endian.jpg', bytes)), 6);
+    });
+
+    test('a tag outside the eight values is not an orientation', () {
+      final List<int> bytes = <int>[0xFF, 0xD8];
+      bytes.addAll(_exifApp1(9));
+      bytes.addAll(frameHeader(width: 64, height: 48));
+
+      expect(imageExifOrientationIn(write('ninth.jpg', bytes)), isNull);
+    });
+
+    test('a truncated or corrupt EXIF answers with no orientation', () {
+      // Cut inside the segment: the signature is there and the IFD is not.
+      final List<int> exif = _exifApp1(6);
+      final List<int> cut = <int>[0xFF, 0xD8, ...exif.sublist(0, 10)];
+      expect(imageExifOrientationIn(write('cut.jpg', cut)), isNull);
+
+      // A segment whose declared length runs past the end of the file.
+      expect(
+        imageExifOrientationIn(
+          write('overrun.jpg', <int>[
+            0xFF, 0xD8, //
+            0xFF, 0xE1, 0xB1, 0x01,
+            ...List<int>.filled(18, 0x00),
+          ]),
+        ),
+        isNull,
+      );
+
+      // An `Exif` signature and then a TIFF header whose byte order is neither.
+      final List<int> neither = <int>[0xFF, 0xD8];
+      neither.addAll(
+        _applicationSegment(0xE1, <int>[
+          ...'Exif'.codeUnits, 0x00, 0x00, //
+          0x58, 0x58, 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00,
+        ]),
+      );
+      neither.addAll(frameHeader(width: 64, height: 48));
+      expect(imageExifOrientationIn(write('neither.jpg', neither)), isNull);
+    });
+
+    test('the displayed size exchanges the sides for a quarter turn', () {
+      const ImagePixelSize stored = ImagePixelSize(4032, 3024);
+
+      // The four tags that turn the picture a quarter turn round.
+      for (final int orientation in <int>[5, 6, 7, 8]) {
+        expect(orientationExchangesAxes(orientation), isTrue);
+        expect(
+          displayedImageSize(stored, orientation),
+          const ImagePixelSize(3024, 4032),
+        );
+      }
+      // And the four that do not: as stored, or mirrored, or half a turn.
+      for (final int? orientation in <int?>[null, 1, 2, 3, 4]) {
+        expect(
+          displayedImageSize(stored, orientation),
+          stored,
+          reason: 'orientation $orientation does not exchange the sides',
+        );
+      }
+      expect(orientationExchangesAxes(1), isFalse);
+      expect(orientationExchangesAxes(9), isFalse);
+    });
+  });
 }
 
 Uint8List _bytes(String text) =>
@@ -285,4 +412,42 @@ void _writeInt(Uint8List bytes, int offset, int value) {
   bytes[offset + 1] = (value >> 16) & 0xFF;
   bytes[offset + 2] = (value >> 8) & 0xFF;
   bytes[offset + 3] = value & 0xFF;
+}
+
+/// An application segment of [marker] carrying [payload].
+List<int> _applicationSegment(int marker, List<int> payload) {
+  final int length = payload.length + 2;
+  return <int>[
+    0xFF, marker, (length >> 8) & 0xFF, length & 0xFF, //
+    ...payload,
+  ];
+}
+
+/// An `APP1` segment holding an EXIF `Orientation` tag: the `Exif` signature, a
+/// TIFF header in the byte order asked for, one IFD entry, and no second IFD.
+///
+/// It is the same structure `decodable_image.dart` writes into the pictures a
+/// decoder opens; here it is built on its own so that a file which is not a
+/// picture can carry a tag the walk has to read — or refuse.
+List<int> _exifApp1(int orientation, {bool bigEndian = false}) {
+  List<int> order(int value, int size) => <int>[
+    for (
+      var shift = bigEndian ? size - 1 : 0;
+      bigEndian ? shift >= 0 : shift < size;
+      bigEndian ? shift-- : shift++
+    )
+      (value >> (shift * 8)) & 0xFF,
+  ];
+  return _applicationSegment(0xE1, <int>[
+    ...'Exif'.codeUnits, 0x00, 0x00, //
+    ...(bigEndian ? <int>[0x4D, 0x4D] : <int>[0x49, 0x49]),
+    ...order(42, 2), // the TIFF magic
+    ...order(8, 4), // the first IFD starts right after the header
+    ...order(1, 2), // one entry
+    ...order(0x0112, 2), // Orientation
+    ...order(3, 2), // SHORT
+    ...order(1, 4), // one value
+    ...order(orientation, 2), 0x00, 0x00, // and the value itself
+    ...order(0, 4), // no second IFD
+  ]);
 }
