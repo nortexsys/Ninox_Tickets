@@ -81,7 +81,7 @@ void main() {
         passes: <ExtractionPass>[
           pass(
             'text',
-            'pdf-text',
+            'pdf-text/pdfrx 2.6.5',
             invoicePage(
               0,
               includeBase: false,
@@ -112,7 +112,11 @@ void main() {
         'a derived operand still blocks green on a text-layer reading', () {
       final document = extractDocument(
         passes: <ExtractionPass>[
-          pass('text', 'pdf-text', invoicePage(0, includeBase: false)),
+          pass(
+            'text',
+            'pdf-text/pdfrx 2.6.5',
+            invoicePage(0, includeBase: false),
+          ),
         ],
         country: es,
         table: table,
@@ -152,7 +156,7 @@ void main() {
         'a failed arithmetic check still lowers a text-layer reading', () {
       final document = extractDocument(
         passes: <ExtractionPass>[
-          pass('text', 'pdf-text', invoicePage(0, total: '121,01')),
+          pass('text', 'pdf-text/pdfrx 2.6.5', invoicePage(0, total: '121,01')),
         ],
         country: es,
         table: table,
@@ -177,7 +181,9 @@ void main() {
     test('[extraction-pipeline/consensus-by-majority] '
         'a text-layer reading passes consensus alone', () {
       final document = extractDocument(
-        passes: <ExtractionPass>[pass('text', 'pdf-text', invoicePage(0))],
+        passes: <ExtractionPass>[
+          pass('text', 'pdf-text/pdfrx 2.6.5', invoicePage(0)),
+        ],
         country: es,
         table: table,
         sourceHash: 'h',

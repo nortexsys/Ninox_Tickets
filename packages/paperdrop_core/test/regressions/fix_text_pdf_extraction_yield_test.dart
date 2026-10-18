@@ -38,8 +38,8 @@ void main() {
     return extractDocument(
       passes: <ExtractionPass>[
         ExtractionPass(
-          passId: 'pdf-text/pdfrx 2.6.5',
-          routeLabel: 'pdf-text',
+          passId: 'text',
+          routeLabel: 'pdf-text/pdfrx 2.6.5',
           pages: <TextPage>[pageFor(name)],
         ),
       ],
@@ -151,5 +151,32 @@ void main() {
       invoice02.docNumber,
       Present<String>('ND-2026-0047', Provenance.read, ConfidenceState.amber),
     );
+  });
+
+  test('[extraction-pipeline/invoice-route-priority] the engine suffix does '
+      'not change the text-layer route result', () {
+    final page = pageFor('synthetic_invoice_01.words.json');
+
+    CanonicalDocument run(String routeLabel) => extractDocument(
+      passes: <ExtractionPass>[
+        ExtractionPass(
+          passId: 'text',
+          routeLabel: routeLabel,
+          pages: <TextPage>[page],
+        ),
+      ],
+      country: es,
+      table: table,
+      sourceHash: 'h',
+    );
+
+    final pdfrx = run('pdf-text/pdfrx 2.6.5');
+    final otherEngine = run('pdf-text/other-engine 9.9.9');
+
+    expect(otherEngine.recognitionEngine, 'pdf-text');
+    expect(otherEngine.grossTotal, pdfrx.grossTotal);
+    expect(otherEngine.netTotal, pdfrx.netTotal);
+    expect(otherEngine.taxTotal, pdfrx.taxTotal);
+    expect(otherEngine.docNumber, pdfrx.docNumber);
   });
 }

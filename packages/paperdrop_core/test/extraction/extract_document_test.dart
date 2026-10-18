@@ -37,7 +37,7 @@ void main() {
         passes: <ExtractionPass>[
           ExtractionPass(
             passId: 'text',
-            routeLabel: 'pdf-text',
+            routeLabel: 'pdf-text/pdfrx 2.6.5',
             pages: <TextPage>[invoicePage(0)],
           ),
         ],
@@ -155,7 +155,7 @@ void main() {
         passes: <ExtractionPass>[
           ExtractionPass(
             passId: 'text',
-            routeLabel: 'pdf-text',
+            routeLabel: 'pdf-text/pdfrx 2.6.5',
             pages: <TextPage>[
               TextPage(0, 300000, 300000, <PositionedWord>[
                 word('ACME', 100000, 120000, 100000, 120000),
@@ -199,7 +199,7 @@ void main() {
         passes: <ExtractionPass>[
           ExtractionPass(
             passId: 'text',
-            routeLabel: 'pdf-text',
+            routeLabel: 'pdf-text/pdfrx 2.6.5',
             pages: <TextPage>[page1, page0],
           ),
         ],
@@ -257,7 +257,7 @@ void main() {
         passes: <ExtractionPass>[
           ExtractionPass(
             passId: 'text',
-            routeLabel: 'pdf-text',
+            routeLabel: 'pdf-text/pdfrx 2.6.5',
             pages: <TextPage>[page0, page1],
           ),
         ],
@@ -311,20 +311,21 @@ void main() {
     });
 
     test('[extraction-pipeline/invoice-route-priority] recognition engine '
-        'carries the route label', () {
-      for (final route in <String>[
-        'pdf-text',
-        'pdf-ocr',
-        'pdf-mixed',
-        'photo-ocr',
-      ]) {
+        'carries the route part of the label', () {
+      final cases = <(String, String)>[
+        ('pdf-text/pdfrx 2.6.5', 'pdf-text'),
+        ('pdf-ocr/mlkit 1.2.3', 'pdf-ocr'),
+        ('pdf-mixed/mlkit 1.2.3', 'pdf-mixed'),
+        ('photo-ocr/mlkit 1.2.3', 'photo-ocr'),
+      ];
+      for (final (routeLabel, route) in cases) {
         final passCount = route == 'pdf-text' ? 1 : 4;
         final document = extractDocument(
           passes: <ExtractionPass>[
             for (var i = 0; i < passCount; i++)
               ExtractionPass(
-                passId: 'pass-$i',
-                routeLabel: route,
+                passId: route == 'pdf-text' ? 'text' : 'pass-$i',
+                routeLabel: routeLabel,
                 pages: const <TextPage>[],
               ),
           ],

@@ -37,8 +37,9 @@ import '../solver/solve.dart';
 /// One recognition pass: a route label, a pass identifier and its pages.
 ///
 /// The route label is the route the app selected (`pdf-text`, `pdf-ocr`,
-/// `pdf-mixed` or `photo-ocr`). All passes of one extraction share the same
-/// label, and [extractDocument] rejects a mixed list rather than guessing a
+/// `pdf-mixed` or `photo-ocr`), optionally followed by `/engine+version`
+/// (`pdf-text/pdfrx 2.6.5`). All passes of one extraction share the same
+/// route, and [extractDocument] rejects a mixed list rather than guessing a
 /// metadata value.
 class ExtractionPass {
   /// The identifier of this pass, used by consensus as the reader identity.
@@ -502,9 +503,9 @@ String _routeLabel(List<ExtractionPass> passes) {
     return '';
   }
 
-  final route = passes.first.routeLabel;
+  final route = _routeBase(passes.first.routeLabel);
   for (final pass in passes.skip(1)) {
-    if (pass.routeLabel != route) {
+    if (_routeBase(pass.routeLabel) != route) {
       throw ArgumentError.value(
         passes,
         'passes',
@@ -513,6 +514,17 @@ String _routeLabel(List<ExtractionPass> passes) {
     }
   }
   return route;
+}
+
+/// The route part of a route label.
+///
+/// The app ships labels such as `pdf-text/pdfrx 2.6.5`, `photo-ocr/mlkit` or
+/// `pdf-mixed/...`: everything before the first `/` is the route, and the
+/// engine/version suffix is metadata. Bare labels (`pdf-text`) keep their
+/// existing behaviour.
+String _routeBase(String label) {
+  final slash = label.indexOf('/');
+  return slash < 0 ? label : label.substring(0, slash);
 }
 
 CurrencyCode? _resolveUniversalCurrency(
