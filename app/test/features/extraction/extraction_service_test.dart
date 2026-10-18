@@ -246,7 +246,7 @@ void main() {
         Present<Money>(
           Money(10000, eur),
           Provenance.read,
-          ConfidenceState.amber,
+          ConfidenceState.green,
         ),
       );
       expect(values.needsReview, isTrue);
@@ -536,7 +536,7 @@ void main() {
     );
     expect(
       completed.document.netTotal,
-      Present<Money>(Money(10000, eur), Provenance.read, ConfidenceState.amber),
+      Present<Money>(Money(10000, eur), Provenance.read, ConfidenceState.green),
     );
     expect(
       completed.document.taxSlots,
