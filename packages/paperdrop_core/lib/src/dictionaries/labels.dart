@@ -153,6 +153,18 @@ const List<LabelTerm> labelTermsExtension = <LabelTerm>[
   LabelTerm(LabelKind.date, 'Belegdatum', {'de'}),
 ];
 
+/// Additional extraction-only document-number labels.
+///
+/// Real Spanish invoices print the document number under a bare masculine
+/// ordinal (`Nº`) or a dotted one (`N.º`), without the full `Nº FACTURA` or
+/// `FACTURA N.º` phrase the Annex C seeds cover. These are extraction labels,
+/// not wizard column synonyms, so they are deliberately not part of
+/// [columnNameTerms].
+const List<LabelTerm> labelTermsDocumentNumberExtension = <LabelTerm>[
+  LabelTerm(LabelKind.docNumber, 'Nº', {'es'}),
+  LabelTerm(LabelKind.docNumber, 'N.º', {'es'}),
+];
+
 /// Column names for the setup wizard's matcher, never read by extraction.
 ///
 /// DEC-014's second list, the synonym source the wizard's German-table

@@ -26,7 +26,7 @@ void main() {
       passes: <ExtractionPass>[
         ExtractionPass(
           passId: 'text',
-          routeLabel: 'pdf-text',
+          routeLabel: 'pdf-text/pdfrx 2.6.5',
           pages: <TextPage>[noRowInvoicePage()],
         ),
       ],
