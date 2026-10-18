@@ -2,9 +2,9 @@
 
 ## 1. Core lane
 
-- [ ] 1.1 Fixtures from the evidence and one failing test per absent field (`gross_total`, `supplier_name`, `doc_number`), each naming the stage that drops it.
-- [ ] 1.2 Fix each cause inside the existing requirements; the tip case and the arithmetic gate keep their rules.
-- [ ] 1.3 Report: per cause, the stage, the fix, and anything the specs do not decide.
+- [x] 1.1 Fixtures from the evidence and one failing test per absent field (`gross_total`, `supplier_name`, `doc_number`), each naming the stage that drops it.
+- [x] 1.2 Fix each cause inside the existing requirements; the tip case and the arithmetic gate keep their rules.
+- [x] 1.3 Report: per cause, the stage, the fix, and anything the specs do not decide.
 
 ## 2. Orchestrator and product owner
 
