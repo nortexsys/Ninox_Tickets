@@ -281,5 +281,246 @@
   "wizardSummarySaveFailed": "Paperdrop could not save this setup on the device, so nothing has been saved yet. Try again.",
   "@wizardSummarySaveFailed": {
     "description": "A failure to write the destination (design §10.1). It claims nothing as saved, and the same screen offers the retry."
+  },
+
+  "reviewTitle": "Review the document",
+  "@reviewTitle": {
+    "description": "Title of the review screen, the screen the user sees on every document (FR-REV-004, T2.2)."
+  },
+  "reviewFieldDocDate": "Document date",
+  "@reviewFieldDocDate": {
+    "description": "Plain-language name of the canonical field doc_date on the review screen (FR-REV-004)."
+  },
+  "reviewFieldSupplierName": "Supplier",
+  "@reviewFieldSupplierName": {
+    "description": "Plain-language name of the canonical field supplier_name on the review screen."
+  },
+  "reviewFieldSupplierTaxId": "Supplier tax ID",
+  "@reviewFieldSupplierTaxId": {
+    "description": "Plain-language name of the canonical field supplier_tax_id on the review screen."
+  },
+  "reviewFieldDocNumber": "Document number",
+  "@reviewFieldDocNumber": {
+    "description": "Plain-language name of the canonical field doc_number on the review screen."
+  },
+  "reviewFieldGrossTotal": "Gross total",
+  "@reviewFieldGrossTotal": {
+    "description": "Plain-language name of the canonical field gross_total on the review screen."
+  },
+  "reviewFieldCurrency": "Currency",
+  "@reviewFieldCurrency": {
+    "description": "Plain-language name of the canonical field currency on the review screen."
+  },
+  "reviewFieldValue": "{label}: {value}",
+  "@reviewFieldValue": {
+    "description": "One core field as the review screen shows it: the plain-language name of the field and the value read, edited or missing (FR-REV-004).",
+    "placeholders": {
+      "label": {
+        "type": "String",
+        "example": "Supplier"
+      },
+      "value": {
+        "type": "String",
+        "example": "Acme Ibérica"
+      }
+    }
+  },
+  "reviewValueNotRead": "not read",
+  "@reviewValueNotRead": {
+    "description": "What a field shows when nothing was read for it — the red state of FR-REV-004."
+  },
+  "reviewConfidenceGreen": "Confirmed",
+  "@reviewConfidenceGreen": {
+    "description": "Semantic label of a green value: confirmed by redundancy (validation-confidence/three-confidence-strengths)."
+  },
+  "reviewConfidenceAmber": "Read, not confirmed",
+  "@reviewConfidenceAmber": {
+    "description": "Semantic label of an amber value: read and not confirmed, including a value read with no country row (PO decision 2026-10-17, point 6)."
+  },
+  "reviewConfidenceRed": "Not read",
+  "@reviewConfidenceRed": {
+    "description": "Semantic label of a red value: not read at all."
+  },
+  "reviewEdited": "Edited",
+  "@reviewEdited": {
+    "description": "The mark a value the user typed carries instead of a confidence colour (DEC-007, FR-REV-010)."
+  },
+  "reviewLockAction": "Unlock to edit",
+  "@reviewLockAction": {
+    "description": "The lock of a green value: tapping it is the only way into the editor (validation-confidence/green-is-editable-only-after-unlocking)."
+  },
+  "reviewNeedsReviewNotice": "Paperdrop flagged this document for review: check the values before saving.",
+  "@reviewNeedsReviewNotice": {
+    "description": "The one line that tells a document whose values stay amber apart, because the document's own needsReview is the only thing that says so (design §2, PO decision 2026-10-17 point 6)."
+  },
+  "reviewAmountsHeadline": "Amounts",
+  "@reviewAmountsHeadline": {
+    "description": "Heading of the amounts block of FR-REV-005."
+  },
+  "reviewAmountsConfirmed": "Total {total}, confirmed by the base and the tax.",
+  "@reviewAmountsConfirmed": {
+    "description": "The single confirming line of a collapsed amounts block: the redundancy check of base plus tax equals total passed (FR-REV-005).",
+    "placeholders": {
+      "total": {
+        "type": "String",
+        "example": "12.34"
+      }
+    }
+  },
+  "reviewAmountsBase": "Base {amount}",
+  "@reviewAmountsBase": {
+    "description": "The net total in the expanded amounts block.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "10.00"
+      }
+    }
+  },
+  "reviewAmountsTax": "Tax {amount}",
+  "@reviewAmountsTax": {
+    "description": "The tax total in the expanded amounts block.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "2.34"
+      }
+    }
+  },
+  "reviewAmountsSlot": "{rate}% — {amount}",
+  "@reviewAmountsSlot": {
+    "description": "One occupied tax slot in the expanded amounts block: the printed rate and its amount (FR-REV-005).",
+    "placeholders": {
+      "rate": {
+        "type": "String",
+        "example": "21"
+      },
+      "amount": {
+        "type": "String",
+        "example": "2.34"
+      }
+    }
+  },
+  "reviewAmountsTotal": "Total {amount}",
+  "@reviewAmountsTotal": {
+    "description": "The gross total in the expanded amounts block.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "12.34"
+      }
+    }
+  },
+  "reviewDestinationBar": "{team} / {database} / {table}",
+  "@reviewDestinationBar": {
+    "description": "The full-width destination bar of FR-REV-001: team, database and table, always visible.",
+    "placeholders": {
+      "team": {
+        "type": "String",
+        "example": "team-1"
+      },
+      "database": {
+        "type": "String",
+        "example": "db-1"
+      },
+      "table": {
+        "type": "String",
+        "example": "Expenses 2026"
+      }
+    }
+  },
+  "reviewDestinationAction": "Change the destination",
+  "@reviewDestinationAction": {
+    "description": "The accessible name of the destination bar, which opens destination selection without leaving the document (FR-REV-001)."
+  },
+  "reviewDestinationTitle": "Where should the document go?",
+  "@reviewDestinationTitle": {
+    "description": "Title of the destination selection the bar opens (FR-REV-001)."
+  },
+  "reviewDestinationNone": "No other destination is configured on this device.",
+  "@reviewDestinationNone": {
+    "description": "The selection when the destination store holds nothing else to choose (FR-DST-002)."
+  },
+  "reviewAcknowledgePrompt": "Check that this is where the document should go.",
+  "@reviewAcknowledgePrompt": {
+    "description": "What the highlighted destination bar says on the first capture of a calendar day (FR-REV-002)."
+  },
+  "reviewAcknowledgeAction": "The destination is correct",
+  "@reviewAcknowledgeAction": {
+    "description": "The acknowledgement of FR-REV-002; until it is given the save action is disabled."
+  },
+  "reviewAcknowledgeFailed": "The confirmation could not be recorded on this device. Try again.",
+  "@reviewAcknowledgeFailed": {
+    "description": "A write of the acknowledgement file that the file system refused (design §4); the save action stays disabled."
+  },
+  "reviewDuplicateNotice": "This document may already be in Ninox.",
+  "@reviewDuplicateNotice": {
+    "description": "The duplicate notice of FR-REV-007, shown when document-history's read-side check matched an earlier send."
+  },
+  "reviewDuplicateLink": "Open the existing record",
+  "@reviewDuplicateLink": {
+    "description": "The notice's link to the record that already exists (FR-REV-007)."
+  },
+  "reviewDuplicateProceed": "Save anyway",
+  "@reviewDuplicateProceed": {
+    "description": "Proceeding anyway: a second record is created deliberately and the entry is flagged as a duplicate (FR-REV-007, FR-DUP-002)."
+  },
+  "reviewSaveAction": "Save to {table}",
+  "@reviewSaveAction": {
+    "description": "The save action, fixed at the bottom of the screen and naming the table rather than a generic verb (FR-REV-008).",
+    "placeholders": {
+      "table": {
+        "type": "String",
+        "example": "Expenses 2026"
+      }
+    }
+  },
+  "reviewDiscardAction": "Discard",
+  "@reviewDiscardAction": {
+    "description": "Discarding the document: no record, no history entry and no local file (FR-REV-011)."
+  },
+  "reviewDiscardFailed": "The document could not be discarded, so nothing was deleted.",
+  "@reviewDiscardFailed": {
+    "description": "A discard the file system refused; the capture is still there and the screen says so rather than claiming it is gone (FR-REV-011)."
+  },
+  "reviewThumbnailAction": "Show the document",
+  "@reviewThumbnailAction": {
+    "description": "The thumbnail of FR-REV-003, tapped to see the document full screen."
+  },
+  "reviewNoThumbnail": "No preview",
+  "@reviewNoThumbnail": {
+    "description": "Shown where the thumbnail would be when the document has none."
+  },
+  "reviewCloseAction": "Close",
+  "@reviewCloseAction": {
+    "description": "Closes the full-screen view of the document (FR-REV-003)."
+  },
+  "reviewSaveCompleted": "The save finished.",
+  "@reviewSaveCompleted": {
+    "description": "Said when the pipeline has answered a save; the confirmation screen that follows the send is ninox-send's (design §5)."
+  },
+  "reviewSaveStoreFailed": "The document could not be saved. Try again.",
+  "@reviewSaveStoreFailed": {
+    "description": "The store refused the write a save needs (a duplicate flag, an overtaken revision): nothing was sent and the action stays available."
+  },
+  "reviewLoadFailed": "This document could not be opened.",
+  "@reviewLoadFailed": {
+    "description": "The history store refused the entry the screen was asked to show."
+  },
+  "reviewErrorNotADate": "Use a date as YYYY-MM-DD.",
+  "@reviewErrorNotADate": {
+    "description": "An edit of doc_date that is not a calendar date (design §2)."
+  },
+  "reviewErrorNotAnAmount": "That is not an amount in the document's currency.",
+  "@reviewErrorNotAnAmount": {
+    "description": "An edit of gross_total that is not an amount of the document's currency, including one with more fractional digits than the currency has."
+  },
+  "reviewErrorUnknownCurrency": "That is not a currency code Paperdrop knows.",
+  "@reviewErrorUnknownCurrency": {
+    "description": "An edit of currency that ISO 4217 does not list; no default exponent is ever assumed."
+  },
+  "reviewErrorAmountNeedsCurrency": "Set the currency first, so that the amount can be read.",
+  "@reviewErrorAmountNeedsCurrency": {
+    "description": "An edit of gross_total while the document has no currency: an amount is an integer in a currency's minor unit."
   }
 }

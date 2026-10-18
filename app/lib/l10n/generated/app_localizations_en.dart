@@ -222,4 +222,161 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get wizardSummarySaveFailed =>
       'Paperdrop could not save this setup on the device, so nothing has been saved yet. Try again.';
+
+  @override
+  String get reviewTitle => 'Review the document';
+
+  @override
+  String get reviewFieldDocDate => 'Document date';
+
+  @override
+  String get reviewFieldSupplierName => 'Supplier';
+
+  @override
+  String get reviewFieldSupplierTaxId => 'Supplier tax ID';
+
+  @override
+  String get reviewFieldDocNumber => 'Document number';
+
+  @override
+  String get reviewFieldGrossTotal => 'Gross total';
+
+  @override
+  String get reviewFieldCurrency => 'Currency';
+
+  @override
+  String reviewFieldValue(String label, String value) {
+    return '$label: $value';
+  }
+
+  @override
+  String get reviewValueNotRead => 'not read';
+
+  @override
+  String get reviewConfidenceGreen => 'Confirmed';
+
+  @override
+  String get reviewConfidenceAmber => 'Read, not confirmed';
+
+  @override
+  String get reviewConfidenceRed => 'Not read';
+
+  @override
+  String get reviewEdited => 'Edited';
+
+  @override
+  String get reviewLockAction => 'Unlock to edit';
+
+  @override
+  String get reviewNeedsReviewNotice =>
+      'Paperdrop flagged this document for review: check the values before saving.';
+
+  @override
+  String get reviewAmountsHeadline => 'Amounts';
+
+  @override
+  String reviewAmountsConfirmed(String total) {
+    return 'Total $total, confirmed by the base and the tax.';
+  }
+
+  @override
+  String reviewAmountsBase(String amount) {
+    return 'Base $amount';
+  }
+
+  @override
+  String reviewAmountsTax(String amount) {
+    return 'Tax $amount';
+  }
+
+  @override
+  String reviewAmountsSlot(String rate, String amount) {
+    return '$rate% — $amount';
+  }
+
+  @override
+  String reviewAmountsTotal(String amount) {
+    return 'Total $amount';
+  }
+
+  @override
+  String reviewDestinationBar(String team, String database, String table) {
+    return '$team / $database / $table';
+  }
+
+  @override
+  String get reviewDestinationAction => 'Change the destination';
+
+  @override
+  String get reviewDestinationTitle => 'Where should the document go?';
+
+  @override
+  String get reviewDestinationNone =>
+      'No other destination is configured on this device.';
+
+  @override
+  String get reviewAcknowledgePrompt =>
+      'Check that this is where the document should go.';
+
+  @override
+  String get reviewAcknowledgeAction => 'The destination is correct';
+
+  @override
+  String get reviewAcknowledgeFailed =>
+      'The confirmation could not be recorded on this device. Try again.';
+
+  @override
+  String get reviewDuplicateNotice => 'This document may already be in Ninox.';
+
+  @override
+  String get reviewDuplicateLink => 'Open the existing record';
+
+  @override
+  String get reviewDuplicateProceed => 'Save anyway';
+
+  @override
+  String reviewSaveAction(String table) {
+    return 'Save to $table';
+  }
+
+  @override
+  String get reviewDiscardAction => 'Discard';
+
+  @override
+  String get reviewDiscardFailed =>
+      'The document could not be discarded, so nothing was deleted.';
+
+  @override
+  String get reviewThumbnailAction => 'Show the document';
+
+  @override
+  String get reviewNoThumbnail => 'No preview';
+
+  @override
+  String get reviewCloseAction => 'Close';
+
+  @override
+  String get reviewSaveCompleted => 'The save finished.';
+
+  @override
+  String get reviewSaveStoreFailed =>
+      'The document could not be saved. Try again.';
+
+  @override
+  String get reviewLoadFailed => 'This document could not be opened.';
+
+  @override
+  String get reviewErrorNotADate => 'Use a date as YYYY-MM-DD.';
+
+  @override
+  String get reviewErrorNotAnAmount =>
+      'That is not an amount in the document\'s currency.';
+
+  @override
+  String get reviewErrorUnknownCurrency =>
+      'That is not a currency code Paperdrop knows.';
+
+  @override
+  String get reviewErrorAmountNeedsCurrency =>
+      'Set the currency first, so that the amount can be read.';
 }
