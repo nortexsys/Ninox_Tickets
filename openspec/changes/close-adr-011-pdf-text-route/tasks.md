@@ -41,12 +41,14 @@ committed by a lane.
 
 ## 4. Mobile — second dispatch: the adapter (design §3, §5)
 
-- [ ] 4.1 `PdfTextSource` over `paperdrop_core`'s `TextPage` / `PositionedWord`; the winner implements
+- [x] 4.1 `PdfTextSource` over `paperdrop_core`'s `TextPage` / `PositionedWord`; the winner implements
       it; the loser and its dependency removed. *Done when* tests green and read-only verified against
       the intake hash.
-- [ ] 4.2 Root README dependency row (orchestrator) and the runner-up recorded as evaluated and
+- [x] 4.2 Root README dependency row (orchestrator) and the runner-up recorded as evaluated and
       excluded.
-- [ ] 4.3 Merge with `--no-ff` after the product owner's approval; GAP-002 closed by Spec afterwards.
+- [x] 4.3 Merge with `--no-ff` after the product owner's approval; GAP-002 closed by Spec afterwards.
+
+*Section 4 was fulfilled by section 5 (2026-10-07 to 2026-10-09): `PdfTextSource` and the pdfrx adapter merged, PdfBox removed, README dependency row added 2026-10-18; GAP-002 closed.*
 
 ## 5. Mobile — after the decision (added 2026-10-07)
 

@@ -60,14 +60,12 @@ ships in the app: PyMuPDF is used only by the 16-document test harness and iText
 | `url_launcher` 6.3.3 | `app` — the Ninox settings page in the system browser (FR-WIZ-003) | BSD-3-Clause | No |
 | `share_handler` 0.0.25 (with `share_handler_platform_interface` 0.0.6, `share_handler_android` 0.0.11) | `app` — Android share-in | MIT | No |
 | `google_mlkit_document_scanner` 0.6.0 — wrapper only; the scanner is Google Play services | `app` — the platform document scanner (FR-CAP-002, ADR-006) | MIT (wrapper); ML Kit Terms of Service (Google component) | **Yes** (the Google component) |
+| `google_mlkit_text_recognition` 0.17.1 — wrapper over the bundled ML Kit Latin model | `app` — the photo route's text recognition (FR-EXT-006, FR-EXT-015, ADR-010; bundled model, PO 2026-10-17) | MIT (wrapper); ML Kit Terms of Service (Google component) | **Yes** (the Google component) |
+| `pdfrx` ^2.6.5 (PDFium binary through `pdfium_dart`; notices shipped in `assets/licenses/pdfium/`) | `app` — PDF text with word positions and page rendering (FR-EXT-004, ADR-011, decided 2026-10-07) | MIT (plugin); PDFium and its bundled libraries under their own permissive licences, listed in the shipped notices | No |
 
 Development only, not shipped: `lints`, `flutter_lints`, `test`, `flutter_test` (all BSD-3-Clause).
 
-**Planned, not yet in the build** — listed so this table is never behind the code:
+**Planned, not yet in the build** — nothing is pending as of 2026-10-18; add a row here before adding a dependency to the build.
 
-| Dependency | For | Licence | Proprietary |
-| --- | --- | --- | --- |
-| Google ML Kit text recognition | Photo route (ADR-010, proposed) | ML Kit Terms of Service | **Yes** |
-| PDF text extraction with word positions | Invoice route (ADR-011, open) | To be decided — must not be AGPL | — |
 
 Third-party material vendored for the agent team, not shipped, is listed in `THIRD-PARTY-NOTICES.md`.
