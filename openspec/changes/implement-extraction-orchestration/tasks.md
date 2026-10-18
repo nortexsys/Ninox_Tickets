@@ -26,5 +26,5 @@ Plan v0.2 M2, T2.1. A task is done when its check passes. Core checks run from `
 ## 3. Orchestrator and product owner
 
 - [ ] 3.1 Bring open points 1–3 of design §3 to the PO.
-- [ ] 3.2 Device run (dispatch C).
+- [x] 3.2 Device run (dispatch C): 27 of 27 documents extracted on the S22, hash unchanged; see status 2026-10-17.
 - [ ] 3.3 Merge with `--no-ff` after the PO's approval.
