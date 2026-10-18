@@ -173,7 +173,8 @@ void main() {
     final pdfrx = run('pdf-text/pdfrx 2.6.5');
     final otherEngine = run('pdf-text/other-engine 9.9.9');
 
-    expect(otherEngine.recognitionEngine, 'pdf-text');
+    expect(pdfrx.recognitionEngine, 'pdf-text/pdfrx 2.6.5');
+    expect(otherEngine.recognitionEngine, 'pdf-text/other-engine 9.9.9');
     expect(otherEngine.grossTotal, pdfrx.grossTotal);
     expect(otherEngine.netTotal, pdfrx.netTotal);
     expect(otherEngine.taxTotal, pdfrx.taxTotal);

@@ -310,32 +310,36 @@ void main() {
       );
     });
 
-    test('[extraction-pipeline/invoice-route-priority] recognition engine '
-        'carries the route part of the label', () {
-      final cases = <(String, String)>[
-        ('pdf-text/pdfrx 2.6.5', 'pdf-text'),
-        ('pdf-ocr/mlkit 1.2.3', 'pdf-ocr'),
-        ('pdf-mixed/mlkit 1.2.3', 'pdf-mixed'),
-        ('photo-ocr/mlkit 1.2.3', 'photo-ocr'),
-      ];
-      for (final (routeLabel, route) in cases) {
-        final passCount = route == 'pdf-text' ? 1 : 4;
-        final document = extractDocument(
-          passes: <ExtractionPass>[
-            for (var i = 0; i < passCount; i++)
-              ExtractionPass(
-                passId: route == 'pdf-text' ? 'text' : 'pass-$i',
-                routeLabel: routeLabel,
-                pages: const <TextPage>[],
-              ),
-          ],
-          country: es,
-          table: table,
-          sourceHash: 'h',
-        );
+    test(
+      '[extraction-pipeline/invoice-route-priority] recognition engine '
+      'keeps the full route label and only the route test uses its prefix',
+      () {
+        final routeLabels = <String>[
+          'pdf-text/pdfrx 2.6.5',
+          'pdf-ocr/google_mlkit_text_recognition 0.17.1',
+          'pdf-mixed/google_mlkit_text_recognition 0.17.1',
+          'photo-ocr/google_mlkit_text_recognition 0.17.1',
+        ];
+        for (final routeLabel in routeLabels) {
+          final route = routeLabel.split('/').first;
+          final passCount = route == 'pdf-text' ? 1 : 4;
+          final document = extractDocument(
+            passes: <ExtractionPass>[
+              for (var i = 0; i < passCount; i++)
+                ExtractionPass(
+                  passId: route == 'pdf-text' ? 'text' : 'pass-$i',
+                  routeLabel: routeLabel,
+                  pages: const <TextPage>[],
+                ),
+            ],
+            country: es,
+            table: table,
+            sourceHash: 'h',
+          );
 
-        expect(document.recognitionEngine, route);
-      }
-    });
+          expect(document.recognitionEngine, routeLabel);
+        }
+      },
+    );
   });
 }

@@ -89,7 +89,8 @@ CanonicalDocument extractDocument({
   required CountryTable table,
   required String sourceHash,
 }) {
-  final route = _routeLabel(passes);
+  final routeLabel = _routeLabel(passes);
+  final route = _routeBase(routeLabel);
   final textLayerReading = route == 'pdf-text';
 
   final DecimalConvention? decimalConvention;
@@ -493,7 +494,7 @@ CanonicalDocument extractDocument({
     taxSlots: taxSlots,
     surcharges: _uniqueSurcharges(surcharges),
     needsReview: country == null || _needsReview(reviewFields),
-    recognitionEngine: route,
+    recognitionEngine: routeLabel,
     sourceHash: sourceHash,
   );
 }
@@ -503,9 +504,9 @@ String _routeLabel(List<ExtractionPass> passes) {
     return '';
   }
 
-  final route = _routeBase(passes.first.routeLabel);
+  final route = passes.first.routeLabel;
   for (final pass in passes.skip(1)) {
-    if (_routeBase(pass.routeLabel) != route) {
+    if (pass.routeLabel != route) {
       throw ArgumentError.value(
         passes,
         'passes',
