@@ -71,6 +71,11 @@ class NegativeContextResult {
 /// excluded from the tax, base, total and rate roles. When that term carries a
 /// surcharge hint, the nearest non-rate amount near the term is captured as a
 /// [Surcharge] instead of being left as a tax candidate.
+///
+/// The influence radius is measured between word boxes. A figure on the same
+/// visual line as a negative term is also within its influence: the line, not
+/// the horizontal distance across it, is what carries the negative context
+/// (for example `Propina ... 15,00` on one invoice line).
 NegativeContextResult applyNegativeContext({
   required ReadOperands operands,
   required Iterable<TextPage> pages,
@@ -82,11 +87,17 @@ NegativeContextResult applyNegativeContext({
   final convention = decimalConvention ?? country?.decimalConvention;
   final currencyCode = currency ?? country?.currency;
   final terms = _negativeTerms(pages);
+  final lines = <LayoutLine>[for (final page in pages) ...groupIntoLines(page)];
 
   final kept = <ReadOperand>[];
   final suppressed = <ReadOperand>[];
   for (final operand in operands.operands) {
-    if (_withinRadiusOfAnyTerm(operand.words, terms, radiusMilliPoints)) {
+    if (_withinRadiusOfAnyTerm(
+      operand.words,
+      terms,
+      lines,
+      radiusMilliPoints,
+    )) {
       suppressed.add(operand);
     } else {
       kept.add(operand);
@@ -95,7 +106,7 @@ NegativeContextResult applyNegativeContext({
 
   final surcharges = _captureSurcharges(
     terms,
-    pages,
+    lines,
     convention,
     currencyCode,
     radiusMilliPoints,
@@ -145,10 +156,12 @@ List<_NegativeTerm> _negativeTerms(Iterable<TextPage> pages) {
 bool _withinRadiusOfAnyTerm(
   List<PositionedWord> operandWords,
   List<_NegativeTerm> terms,
+  List<LayoutLine> lines,
   int radius,
 ) {
   for (final term in terms) {
-    if (_withinRadius(operandWords, term.words, radius)) {
+    if (_sharesLine(operandWords, term.words, lines) ||
+        _withinRadius(operandWords, term.words, radius)) {
       return true;
     }
   }
@@ -157,7 +170,7 @@ bool _withinRadiusOfAnyTerm(
 
 List<Surcharge> _captureSurcharges(
   List<_NegativeTerm> terms,
-  Iterable<TextPage> pages,
+  List<LayoutLine> lines,
   DecimalConvention? convention,
   CurrencyCode? currencyCode,
   int radius,
@@ -173,7 +186,7 @@ List<Surcharge> _captureSurcharges(
 
     final captured = _nearestAmount(
       term.words,
-      pages,
+      lines,
       convention,
       currencyCode,
       radius,
@@ -203,7 +216,7 @@ List<Surcharge> _captureSurcharges(
 
 _CapturedAmount? _nearestAmount(
   List<PositionedWord> termWords,
-  Iterable<TextPage> pages,
+  List<LayoutLine> lines,
   DecimalConvention? convention,
   CurrencyCode? currencyCode,
   int radius,
@@ -216,34 +229,51 @@ _CapturedAmount? _nearestAmount(
   _CapturedAmount? best;
   var bestDistance = 0;
 
-  for (final page in pages) {
-    final lines = groupIntoLines(page);
-    for (final line in lines) {
-      final words = line.words;
-      for (var i = 0; i < words.length; i++) {
-        if (_isRateToken(words, i)) {
-          continue;
-        }
+  for (final line in lines) {
+    final words = line.words;
+    for (var i = 0; i < words.length; i++) {
+      if (_isRateToken(words, i)) {
+        continue;
+      }
 
-        final word = words[i];
-        final money = parsePrintedAmount(word.text, convention, currencyCode);
-        if (money == null) {
-          continue;
-        }
+      final word = words[i];
+      final money = parsePrintedAmount(word.text, convention, currencyCode);
+      if (money == null) {
+        continue;
+      }
 
-        final distance = _minBoxDistanceSquared(termWords, word);
-        if (distance > radiusSquared) {
-          continue;
-        }
-        if (best == null || distance < bestDistance) {
-          best = _CapturedAmount(money, [word]);
-          bestDistance = distance;
-        }
+      final distance = _minBoxDistanceSquared(termWords, word);
+      final onSameLine = _sharesLine(<PositionedWord>[word], termWords, lines);
+      if (!onSameLine && distance > radiusSquared) {
+        continue;
+      }
+      if (best == null || distance < bestDistance) {
+        best = _CapturedAmount(money, [word]);
+        bestDistance = distance;
       }
     }
   }
 
   return best;
+}
+
+bool _sharesLine(
+  List<PositionedWord> left,
+  List<PositionedWord> right,
+  List<LayoutLine> lines,
+) {
+  for (final line in lines) {
+    final hasLeft = left.any(
+      (PositionedWord word) => line.words.contains(word),
+    );
+    final hasRight = right.any(
+      (PositionedWord word) => line.words.contains(word),
+    );
+    if (hasLeft && hasRight) {
+      return true;
+    }
+  }
+  return false;
 }
 
 bool _isRateToken(List<PositionedWord> words, int index) {

@@ -93,6 +93,15 @@ List<TermMatch> findTerms(String line) {
           null,
           language,
         ),
+    for (final label in labelTermsDocumentNumberExtension)
+      for (final language in label.languages)
+        _Entry(
+          _normalizeTerm(label.term),
+          label.term,
+          label.kind,
+          null,
+          language,
+        ),
     for (final negative in negativeTerms)
       for (final language in negative.languages)
         _Entry(

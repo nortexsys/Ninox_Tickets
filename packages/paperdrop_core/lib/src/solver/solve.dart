@@ -335,16 +335,12 @@ List<_Triple> _acceptedTriples(
 }
 
 bool _tripleAccepted(_Triple triple, List<ReadOperand> admittedRates) {
-  if ((triple.base + triple.tax) != triple.gross) {
-    return false;
-  }
-  if (admittedRates.isEmpty) {
-    return true;
-  }
-  return admittedRates.any(
-    (ReadOperand operand) =>
-        taxWithinTolerance(triple.tax, triple.base, operand.rate!),
-  );
+  // Matching read operands is the sum identity: base + tax == gross exactly.
+  // Rate agreement is a per-tax-line confidence check, not a condition for
+  // reading the printed quantities. Requiring one rate to explain an
+  // aggregate multi-rate total would drop a correctly read breakdown, which
+  // is exactly the failure the text-layer invoices exposed.
+  return (triple.base + triple.tax) == triple.gross;
 }
 
 BreakdownSolution _deriveByIdentity(

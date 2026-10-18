@@ -119,6 +119,16 @@ CanonicalDocument extractDocument({
   final docNumberReadings = <Reading<String>>[];
   final surcharges = <Surcharge>[];
 
+  // A text-layer pass is deterministic, so it can print several candidates for
+  // one role (`Total líneas`, `TOTAL FACTURA` and `TOTAL A PAGAR`). They are
+  // all read and handed to the amount solver, which matches the arithmetic
+  // identity; collapsing them to one unanimous value first is what made the
+  // solver see no gross total at all.
+  final textGrossOperands = <ReadOperand>[];
+  final textBaseOperands = <ReadOperand>[];
+  final textTaxOperands = <ReadOperand>[];
+  final textRateOperands = <ReadOperand>[];
+
   for (final pass in passes) {
     final pages = [...pass.pages]..sort(_byPageIndex);
 
@@ -136,18 +146,25 @@ CanonicalDocument extractDocument({
       currency: documentCurrency,
     );
 
-    _addReadingIfUnanimous<Money>(grossReadings, <Money>[
-      for (final operand in negative.kept.gross) operand.amount!,
-    ], pass.passId);
-    _addReadingIfUnanimous<Money>(baseReadings, <Money>[
-      for (final operand in negative.kept.bases) operand.amount!,
-    ], pass.passId);
-    _addReadingIfUnanimous<Money>(taxReadings, <Money>[
-      for (final operand in negative.kept.taxes) operand.amount!,
-    ], pass.passId);
-    _addReadingIfUnanimous<RateBp>(rateReadings, <RateBp>[
-      for (final operand in negative.kept.rates) operand.rate!,
-    ], pass.passId);
+    if (textLayerReading) {
+      textGrossOperands.addAll(negative.kept.gross);
+      textBaseOperands.addAll(negative.kept.bases);
+      textTaxOperands.addAll(negative.kept.taxes);
+      textRateOperands.addAll(negative.kept.rates);
+    } else {
+      _addReadingIfUnanimous<Money>(grossReadings, <Money>[
+        for (final operand in negative.kept.gross) operand.amount!,
+      ], pass.passId);
+      _addReadingIfUnanimous<Money>(baseReadings, <Money>[
+        for (final operand in negative.kept.bases) operand.amount!,
+      ], pass.passId);
+      _addReadingIfUnanimous<Money>(taxReadings, <Money>[
+        for (final operand in negative.kept.taxes) operand.amount!,
+      ], pass.passId);
+      _addReadingIfUnanimous<RateBp>(rateReadings, <RateBp>[
+        for (final operand in negative.kept.rates) operand.rate!,
+      ], pass.passId);
+    }
 
     final currency = resolveCurrency(
       readCurrencyEvidence(pages, issuerCountry: country?.countryCode),
@@ -193,60 +210,16 @@ CanonicalDocument extractDocument({
     surcharges.addAll(negative.surcharges);
   }
 
-  final grossConsensus = resolveConsensus<Money>(grossReadings);
-  final baseConsensus = resolveConsensus<Money>(baseReadings);
-  final taxConsensus = resolveConsensus<Money>(taxReadings);
-  final rateConsensus = resolveConsensus<RateBp>(rateReadings);
-
-  final grossDisputed =
-      grossReadings.isNotEmpty && grossConsensus is NoConsensus<Money>;
-  final baseDisputed =
-      baseReadings.isNotEmpty && baseConsensus is NoConsensus<Money>;
-  final taxDisputed =
-      taxReadings.isNotEmpty && taxConsensus is NoConsensus<Money>;
-
   final FieldValue<Money> grossTotal;
   final FieldValue<Money> netTotal;
   final FieldValue<Money> taxTotal;
   final List<TaxSlot> taxSlots;
 
-  if (grossDisputed || baseDisputed || taxDisputed) {
-    // A disputed operand is never handed to the solver: the disputed field
-    // stays empty and the surviving operands are kept as read values only.
-    grossTotal = _readAmountField(
-      _consensusValue<Money>(grossConsensus),
-      grossConsensus,
-      textLayerReading: textLayerReading,
-    );
-    netTotal = _readAmountField(
-      _consensusValue<Money>(baseConsensus),
-      baseConsensus,
-      textLayerReading: textLayerReading,
-    );
-    taxTotal = _readAmountField(
-      _consensusValue<Money>(taxConsensus),
-      taxConsensus,
-      textLayerReading: textLayerReading,
-    );
-    taxSlots = const <TaxSlot>[];
-  } else {
-    final grossValue = _consensusValue<Money>(grossConsensus);
-    final baseValue = _consensusValue<Money>(baseConsensus);
-    final taxValue = _consensusValue<Money>(taxConsensus);
-    final rateValue = _consensusValue<RateBp>(rateConsensus);
-
-    final grosses = grossValue == null
-        ? const <ReadOperand>[]
-        : <ReadOperand>[_amountOperand(OperandRole.gross, grossValue)];
-    final bases = baseValue == null
-        ? const <ReadOperand>[]
-        : <ReadOperand>[_amountOperand(OperandRole.base, baseValue)];
-    final taxes = taxValue == null
-        ? const <ReadOperand>[]
-        : <ReadOperand>[_amountOperand(OperandRole.tax, taxValue)];
-    final rates = rateValue == null
-        ? const <ReadOperand>[]
-        : <ReadOperand>[_rateOperand(rateValue)];
+  if (textLayerReading) {
+    final grosses = _uniqueAmountOperands(textGrossOperands);
+    final bases = _uniqueAmountOperands(textBaseOperands);
+    final taxes = _uniqueAmountOperands(textTaxOperands);
+    final rates = _uniqueRateOperands(textRateOperands);
 
     final RateGateResult gate;
     if (country == null) {
@@ -264,29 +237,42 @@ CanonicalDocument extractDocument({
       admittedRates: gate.admitted,
     );
 
-    final rawTax = taxes.isEmpty ? breakdown.tax : _sumReadTaxes(taxes);
+    // Prefer the tax value the solver matched (read or derived) over a blind
+    // sum of every printed `IVA` candidate. A tax-total label and several tax
+    // line amounts are all labelled `IVA`; summing them would count the
+    // total. When the solver cannot match a breakdown, a single read tax is
+    // kept and several read taxes stay empty rather than being summed into a
+    // plausible but unverified number.
+    final FieldValue<Money> rawTax;
+    if (breakdown.tax is Present<Money>) {
+      rawTax = breakdown.tax;
+    } else if (taxes.length == 1) {
+      rawTax = _sumReadTaxes(taxes);
+    } else {
+      rawTax = const Absent<Money>();
+    }
 
-    // A text-layer reading keeps a lone read operand that the solver did not
-    // use (for example a total with no breakdown). It stays present so that
-    // `_finalizeConfidence` can hold it at amber; OCR routes are unchanged and
-    // keep the solver's absent value.
+    // The consensus object here is deliberately `NoConsensus`: a text-layer
+    // pass is `Single` by route, but [solveBreakdown] can now receive several
+    // printed candidates, so there is no single value to wrap. The amount
+    // solver's output is the value; confidence is finalised from the checks.
     final grossField = _keepReadAmountIfAbsent(
       breakdown.gross,
-      grossValue,
-      grossConsensus,
-      textLayerReading: textLayerReading,
+      _uniqueAmountOrNull(grosses),
+      const NoConsensus<Money>(),
+      textLayerReading: true,
     );
     final baseField = _keepReadAmountIfAbsent(
       breakdown.base,
-      baseValue,
-      baseConsensus,
-      textLayerReading: textLayerReading,
+      _uniqueAmountOrNull(bases),
+      const NoConsensus<Money>(),
+      textLayerReading: true,
     );
     final taxField = _keepReadAmountIfAbsent(
       rawTax,
-      taxValue,
-      taxConsensus,
-      textLayerReading: textLayerReading,
+      _uniqueAmountOrNull(taxes),
+      const NoConsensus<Money>(),
+      textLayerReading: true,
     );
 
     final sumCheck = _amountCheck(grossField, baseField, taxField);
@@ -299,25 +285,25 @@ CanonicalDocument extractDocument({
 
     grossTotal = _finalizeAmount(
       grossField,
-      grossConsensus,
+      const NoConsensus<Money>(),
       sumCheck,
-      textLayerReading: textLayerReading,
+      textLayerReading: true,
       taxCheck: taxCheck,
       isTaxOperand: false,
     );
     netTotal = _finalizeAmount(
       baseField,
-      baseConsensus,
+      const NoConsensus<Money>(),
       sumCheck,
-      textLayerReading: textLayerReading,
+      textLayerReading: true,
       taxCheck: taxCheck,
       isTaxOperand: true,
     );
     taxTotal = _finalizeAmount(
       taxField,
-      taxConsensus,
+      const NoConsensus<Money>(),
       sumCheck,
-      textLayerReading: textLayerReading,
+      textLayerReading: true,
       taxCheck: taxCheck,
       isTaxOperand: true,
     );
@@ -330,6 +316,139 @@ CanonicalDocument extractDocument({
             admittedRates: gate.admitted,
             country: country,
           );
+  } else {
+    final grossConsensus = resolveConsensus<Money>(grossReadings);
+    final baseConsensus = resolveConsensus<Money>(baseReadings);
+    final taxConsensus = resolveConsensus<Money>(taxReadings);
+    final rateConsensus = resolveConsensus<RateBp>(rateReadings);
+
+    final grossDisputed =
+        grossReadings.isNotEmpty && grossConsensus is NoConsensus<Money>;
+    final baseDisputed =
+        baseReadings.isNotEmpty && baseConsensus is NoConsensus<Money>;
+    final taxDisputed =
+        taxReadings.isNotEmpty && taxConsensus is NoConsensus<Money>;
+
+    if (grossDisputed || baseDisputed || taxDisputed) {
+      // A disputed operand is never handed to the solver: the disputed field
+      // stays empty and the surviving operands are kept as read values only.
+      grossTotal = _readAmountField(
+        _consensusValue<Money>(grossConsensus),
+        grossConsensus,
+        textLayerReading: false,
+      );
+      netTotal = _readAmountField(
+        _consensusValue<Money>(baseConsensus),
+        baseConsensus,
+        textLayerReading: false,
+      );
+      taxTotal = _readAmountField(
+        _consensusValue<Money>(taxConsensus),
+        taxConsensus,
+        textLayerReading: false,
+      );
+      taxSlots = const <TaxSlot>[];
+    } else {
+      final grossValue = _consensusValue<Money>(grossConsensus);
+      final baseValue = _consensusValue<Money>(baseConsensus);
+      final taxValue = _consensusValue<Money>(taxConsensus);
+      final rateValue = _consensusValue<RateBp>(rateConsensus);
+
+      final grosses = grossValue == null
+          ? const <ReadOperand>[]
+          : <ReadOperand>[_amountOperand(OperandRole.gross, grossValue)];
+      final bases = baseValue == null
+          ? const <ReadOperand>[]
+          : <ReadOperand>[_amountOperand(OperandRole.base, baseValue)];
+      final taxes = taxValue == null
+          ? const <ReadOperand>[]
+          : <ReadOperand>[_amountOperand(OperandRole.tax, taxValue)];
+      final rates = rateValue == null
+          ? const <ReadOperand>[]
+          : <ReadOperand>[_rateOperand(rateValue)];
+
+      final RateGateResult gate;
+      if (country == null) {
+        // The universal core has no legal-rate set: every printed rate is
+        // admitted and none is discarded.
+        gate = RateGateResult(
+          admitted: rates,
+          discarded: const <ReadOperand>[],
+        );
+      } else {
+        gate = gatePrintedRates(rates, country);
+      }
+
+      final breakdown = solveBreakdown(
+        bases: bases,
+        taxes: taxes,
+        grosses: grosses,
+        admittedRates: gate.admitted,
+      );
+
+      final rawTax = taxes.isEmpty ? breakdown.tax : _sumReadTaxes(taxes);
+
+      final grossField = _keepReadAmountIfAbsent(
+        breakdown.gross,
+        grossValue,
+        grossConsensus,
+        textLayerReading: false,
+      );
+      final baseField = _keepReadAmountIfAbsent(
+        breakdown.base,
+        baseValue,
+        baseConsensus,
+        textLayerReading: false,
+      );
+      final taxField = _keepReadAmountIfAbsent(
+        rawTax,
+        taxValue,
+        taxConsensus,
+        textLayerReading: false,
+      );
+
+      final sumCheck = _amountCheck(grossField, baseField, taxField);
+      final taxCheck = _taxIdentityCheck(
+        base: baseField,
+        tax: taxField,
+        taxes: taxes,
+        admittedRates: gate.admitted,
+      );
+
+      grossTotal = _finalizeAmount(
+        grossField,
+        grossConsensus,
+        sumCheck,
+        textLayerReading: false,
+        taxCheck: taxCheck,
+        isTaxOperand: false,
+      );
+      netTotal = _finalizeAmount(
+        baseField,
+        baseConsensus,
+        sumCheck,
+        textLayerReading: false,
+        taxCheck: taxCheck,
+        isTaxOperand: true,
+      );
+      taxTotal = _finalizeAmount(
+        taxField,
+        taxConsensus,
+        sumCheck,
+        textLayerReading: false,
+        taxCheck: taxCheck,
+        isTaxOperand: true,
+      );
+      taxSlots = country == null
+          ? const <TaxSlot>[]
+          : buildTaxSlots(
+              bases: bases,
+              taxes: taxes,
+              grosses: grosses,
+              admittedRates: gate.admitted,
+              country: country,
+            );
+    }
   }
 
   final docDate = _nonAmountField<CalendarDate>(
@@ -450,11 +569,38 @@ void _addNonAmountReadings<T>(
     return;
   }
 
-  final first = value(bindings.first);
+  // One label kind can occur several times on one page (`Factura` in a title,
+  // in a total row and in a note). The value that belongs to the field is the
+  // one bound on the label's own line, nearest first; a below-line binding is
+  // only used when no same-line label produced a value. Pages still have to
+  // agree with each other, so a genuine multi-page disagreement remains empty.
+  final bindingsByPage = <int, List<LabelBinding>>{};
+  for (final binding in bindings) {
+    bindingsByPage
+        .putIfAbsent(binding.pageIndex, () => <LabelBinding>[])
+        .add(binding);
+  }
+
+  final pageBindings = <LabelBinding>[];
+  for (final pageList in bindingsByPage.values) {
+    final sameLine = pageList
+        .where((LabelBinding binding) => binding.sameLine)
+        .toList();
+    final best = (sameLine.isNotEmpty ? sameLine : pageList).first;
+    if (value(best) != null) {
+      pageBindings.add(best);
+    }
+  }
+
+  if (pageBindings.isEmpty) {
+    return;
+  }
+
+  final first = value(pageBindings.first);
   if (first == null) {
     return;
   }
-  for (final binding in bindings.skip(1)) {
+  for (final binding in pageBindings.skip(1)) {
     if (value(binding) != first) {
       return;
     }
@@ -515,6 +661,48 @@ T? _consensusValue<T>(ConsensusResult<T> consensus) => switch (consensus) {
   Single<T>(:final value) => value,
   NoConsensus<T>() => null,
 };
+
+List<ReadOperand> _uniqueAmountOperands(List<ReadOperand> operands) {
+  final seen = <Money>{};
+  final unique = <ReadOperand>[];
+  for (final operand in operands) {
+    final amount = operand.amount;
+    if (amount == null || !seen.add(amount)) {
+      continue;
+    }
+    unique.add(operand);
+  }
+  return unique;
+}
+
+List<ReadOperand> _uniqueRateOperands(List<ReadOperand> operands) {
+  final seen = <RateBp>{};
+  final unique = <ReadOperand>[];
+  for (final operand in operands) {
+    final rate = operand.rate;
+    if (rate == null || !seen.add(rate)) {
+      continue;
+    }
+    unique.add(operand);
+  }
+  return unique;
+}
+
+Money? _uniqueAmountOrNull(List<ReadOperand> operands) {
+  Money? value;
+  for (final operand in operands) {
+    final amount = operand.amount;
+    if (amount == null) {
+      continue;
+    }
+    if (value == null) {
+      value = amount;
+    } else if (value != amount) {
+      return null;
+    }
+  }
+  return value;
+}
 
 FieldValue<T> _nonAmountField<T>(
   List<Reading<T>> readings,
