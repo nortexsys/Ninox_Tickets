@@ -238,7 +238,7 @@ void main() {
         Present<Money>(
           Money(12100, eur),
           Provenance.read,
-          ConfidenceState.amber,
+          ConfidenceState.green,
         ),
       );
       expect(
@@ -246,7 +246,7 @@ void main() {
         Present<Money>(
           Money(10000, eur),
           Provenance.read,
-          ConfidenceState.amber,
+          ConfidenceState.green,
         ),
       );
       expect(values.needsReview, isTrue);
@@ -405,7 +405,7 @@ void main() {
     final CanonicalDocument values = (outcome as ExtractionCompleted).document;
     expect(
       values.grossTotal,
-      Present<Money>(Money(12100, eur), Provenance.read, ConfidenceState.amber),
+      Present<Money>(Money(12100, eur), Provenance.read, ConfidenceState.green),
       reason: 'the value of the first page',
     );
     expect(
@@ -532,11 +532,11 @@ void main() {
     // printed in, no legal-rate gate and no slot.
     expect(
       completed.document.grossTotal,
-      Present<Money>(Money(12100, eur), Provenance.read, ConfidenceState.amber),
+      Present<Money>(Money(12100, eur), Provenance.read, ConfidenceState.green),
     );
     expect(
       completed.document.netTotal,
-      Present<Money>(Money(10000, eur), Provenance.read, ConfidenceState.amber),
+      Present<Money>(Money(10000, eur), Provenance.read, ConfidenceState.green),
     );
     expect(
       completed.document.taxSlots,
