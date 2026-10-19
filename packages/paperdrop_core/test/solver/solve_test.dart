@@ -97,7 +97,8 @@ void main() {
       expect(solution.gross, const Absent<Money>());
     });
 
-    test('no accepted triple derives nothing', () {
+    test('[validation-confidence/three-confidence-strengths] '
+        'a lone printed total is read and stays amber', () {
       final solution = solveBreakdown(
         bases: const <ReadOperand>[],
         taxes: const <ReadOperand>[],
@@ -107,7 +108,14 @@ void main() {
 
       expect(solution.base, const Absent<Money>());
       expect(solution.tax, const Absent<Money>());
-      expect(solution.gross, const Absent<Money>());
+      expect(
+        solution.gross,
+        Present<Money>(
+          Money(12100, eur),
+          Provenance.read,
+          ConfidenceState.amber,
+        ),
+      );
     });
 
     test('[extraction-pipeline/read-all-printed-quantities-before-deriving] '
@@ -146,7 +154,7 @@ void main() {
     });
 
     test('[extraction-pipeline/derive-by-identity-never-invent-a-rate] '
-        'a total with no printed rate yields no breakdown', () {
+        'a total with no printed rate yields no derived breakdown', () {
       final solution = solveBreakdown(
         bases: [amount(OperandRole.base, 10000)],
         taxes: const <ReadOperand>[],
@@ -154,9 +162,23 @@ void main() {
         admittedRates: const <ReadOperand>[],
       );
 
-      expect(solution.base, const Absent<Money>());
+      expect(
+        solution.base,
+        Present<Money>(
+          Money(10000, eur),
+          Provenance.read,
+          ConfidenceState.amber,
+        ),
+      );
       expect(solution.tax, const Absent<Money>());
-      expect(solution.gross, const Absent<Money>());
+      expect(
+        solution.gross,
+        Present<Money>(
+          Money(12100, eur),
+          Provenance.read,
+          ConfidenceState.amber,
+        ),
+      );
     });
   });
 
@@ -261,7 +283,14 @@ void main() {
         table: CountryTable.launch,
       );
 
-      expect(result.grossTotal, const Absent<Money>());
+      expect(
+        result.grossTotal,
+        Present<Money>(
+          Money(12100, eur),
+          Provenance.read,
+          ConfidenceState.amber,
+        ),
+      );
       expect(result.netTotal, const Absent<Money>());
       expect(
         result.taxTotal,

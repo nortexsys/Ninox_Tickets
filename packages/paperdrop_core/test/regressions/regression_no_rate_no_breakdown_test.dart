@@ -5,6 +5,7 @@ import 'package:test/test.dart';
 // derived and no rate is assumed. This file names no document.
 void main() {
   final es = CountryTable.es;
+  final eur = CurrencyCode.parse('EUR')!;
 
   PositionedWord word(String text, int x0, int x1, int top, int bottom) =>
       PositionedWord(text, x0, x1, top, bottom);
@@ -24,7 +25,21 @@ void main() {
     );
 
     expect(result.netTotal, const Absent<Money>());
-    expect(result.grossTotal, const Absent<Money>());
+    expect(
+      result.grossTotal,
+      Present<Money>(Money(12100, eur), Provenance.read, ConfidenceState.amber),
+    );
+    expect(
+      result.taxTotal,
+      Present<Money>(Money(2100, eur), Provenance.read, ConfidenceState.amber),
+    );
+    expect(
+      [result.grossTotal, result.netTotal, result.taxTotal].every(
+        (FieldValue<Money> value) =>
+            value is! Present<Money> || value.provenance != Provenance.derived,
+      ),
+      isTrue,
+    );
     expect(result.discardedRates, isEmpty);
   });
 }

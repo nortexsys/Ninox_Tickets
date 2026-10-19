@@ -168,31 +168,59 @@ void main() {
       );
     });
 
-    test('noArithmeticIdentity fires when kept candidates do not add up', () {
-      final result = run(
-        passes: <ExtractionPass>[
-          pass('pdf-text/pdfrx 2.6.5', <TextPage>[
-            page(<PositionedWord>[
-              word('TOTAL', 100000, 120000, 100000, 120000),
-              word('100,00', 130000, 160000, 100000, 120000),
-              word('BASE', 100000, 120000, 140000, 160000),
-              word('40,00', 130000, 160000, 140000, 160000),
-              word('IVA', 100000, 120000, 180000, 200000),
-              word('10,00', 130000, 160000, 180000, 200000),
+    test(
+      'kept candidates that do not add up are read and lowered, not dropped',
+      () {
+        final result = run(
+          passes: <ExtractionPass>[
+            pass('pdf-text/pdfrx 2.6.5', <TextPage>[
+              page(<PositionedWord>[
+                word('TOTAL', 100000, 120000, 100000, 120000),
+                word('100,00', 130000, 160000, 100000, 120000),
+                word('BASE', 100000, 120000, 140000, 160000),
+                word('40,00', 130000, 160000, 140000, 160000),
+                word('IVA', 100000, 120000, 180000, 200000),
+                word('10,00', 130000, 160000, 180000, 200000),
+              ]),
             ]),
-          ]),
-        ],
-        country: es,
-      );
-
-      for (final field in <String>['gross_total', 'net_total', 'tax_total']) {
-        expect(
-          result.trace.stages[field],
-          contains(ExtractionStage.noArithmeticIdentity),
-          reason: '$field should record noArithmeticIdentity',
+          ],
+          country: es,
         );
-      }
-    });
+
+        expect(
+          result.document.grossTotal,
+          Present<Money>(
+            Money(10000, CurrencyCode.parse('EUR')!),
+            Provenance.read,
+            ConfidenceState.red,
+          ),
+        );
+        expect(
+          result.document.netTotal,
+          Present<Money>(
+            Money(4000, CurrencyCode.parse('EUR')!),
+            Provenance.read,
+            ConfidenceState.red,
+          ),
+        );
+        expect(
+          result.document.taxTotal,
+          Present<Money>(
+            Money(1000, CurrencyCode.parse('EUR')!),
+            Provenance.read,
+            ConfidenceState.red,
+          ),
+        );
+
+        for (final field in <String>['gross_total', 'net_total', 'tax_total']) {
+          expect(
+            result.trace.stages[field],
+            contains(ExtractionStage.confidenceCapped),
+            reason: '$field should be kept but lowered',
+          );
+        }
+      },
+    );
 
     test('multipleArithmeticIdentities fires when several triples match', () {
       final result = run(
@@ -245,11 +273,34 @@ void main() {
           country: es,
         );
 
-        for (final field in <String>['gross_total', 'net_total', 'tax_total']) {
+        expect(
+          result.trace.stages['gross_total'],
+          contains(ExtractionStage.legalRateGateFailed),
+          reason: 'the discarded rate still blocks deriving the missing gross',
+        );
+        expect(result.document.grossTotal, const Absent<Money>());
+        expect(
+          result.document.netTotal,
+          Present<Money>(
+            Money(10000, CurrencyCode.parse('EUR')!),
+            Provenance.read,
+            ConfidenceState.amber,
+          ),
+        );
+        expect(
+          result.document.taxTotal,
+          Present<Money>(
+            Money(2500, CurrencyCode.parse('EUR')!),
+            Provenance.read,
+            ConfidenceState.amber,
+          ),
+        );
+
+        for (final field in <String>['net_total', 'tax_total']) {
           expect(
             result.trace.stages[field],
-            contains(ExtractionStage.legalRateGateFailed),
-            reason: '$field should record legalRateGateFailed',
+            contains(ExtractionStage.confidenceCapped),
+            reason: '$field is read but has no identity to confirm it',
           );
         }
       },
