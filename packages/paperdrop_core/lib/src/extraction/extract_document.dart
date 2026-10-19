@@ -14,6 +14,7 @@ import '../consensus/consensus.dart';
 import '../countries/country_table.dart';
 import '../dictionaries/labels.dart';
 import '../dictionaries/lookup.dart';
+import '../extraction/extraction_trace.dart';
 import '../format/date.dart';
 import '../format/decimal.dart';
 import '../layout/binding.dart';
@@ -88,10 +89,21 @@ CanonicalDocument extractDocument({
   required CountryRow? country,
   required CountryTable table,
   required String sourceHash,
+  ExtractionTrace? trace,
 }) {
   final routeLabel = _routeLabel(passes);
   final route = _routeBase(routeLabel);
   final textLayerReading = route == 'pdf-text';
+
+  if (trace != null) {
+    trace.record(
+      'country',
+      country == null
+          ? ExtractionStage.countryUndetected
+          : ExtractionStage.countryDetected,
+    );
+    trace.record('pass_count', _passCountStage(passes.length));
+  }
 
   final DecimalConvention? decimalConvention;
   final DateOrder? dateOrder;
@@ -139,6 +151,8 @@ CanonicalDocument extractDocument({
       country,
       decimalConvention: decimalConvention,
       currency: documentCurrency,
+      trace: trace,
+      traceFields: trace == null ? null : _amountTraceFields,
     );
     final negative = applyNegativeContext(
       operands: operands,
@@ -148,33 +162,63 @@ CanonicalDocument extractDocument({
       currency: documentCurrency,
     );
 
+    if (trace != null) {
+      for (final operand in negative.suppressed) {
+        final field = _amountTraceFields[operand.role];
+        if (field != null) {
+          trace.record(field, ExtractionStage.negativeContextRejected);
+        }
+      }
+    }
+
     if (textLayerReading) {
       textGrossOperands.addAll(negative.kept.gross);
       textBaseOperands.addAll(negative.kept.bases);
       textTaxOperands.addAll(negative.kept.taxes);
       textRateOperands.addAll(negative.kept.rates);
     } else {
-      _addReadingIfUnanimous<Money>(grossReadings, <Money>[
-        for (final operand in negative.kept.gross) operand.amount!,
-      ], pass.passId);
-      _addReadingIfUnanimous<Money>(baseReadings, <Money>[
-        for (final operand in negative.kept.bases) operand.amount!,
-      ], pass.passId);
-      _addReadingIfUnanimous<Money>(taxReadings, <Money>[
-        for (final operand in negative.kept.taxes) operand.amount!,
-      ], pass.passId);
+      _addReadingIfUnanimous<Money>(
+        grossReadings,
+        <Money>[for (final operand in negative.kept.gross) operand.amount!],
+        pass.passId,
+        trace: trace,
+        field: 'gross_total',
+      );
+      _addReadingIfUnanimous<Money>(
+        baseReadings,
+        <Money>[for (final operand in negative.kept.bases) operand.amount!],
+        pass.passId,
+        trace: trace,
+        field: 'net_total',
+      );
+      _addReadingIfUnanimous<Money>(
+        taxReadings,
+        <Money>[for (final operand in negative.kept.taxes) operand.amount!],
+        pass.passId,
+        trace: trace,
+        field: 'tax_total',
+      );
       _addReadingIfUnanimous<RateBp>(rateReadings, <RateBp>[
         for (final operand in negative.kept.rates) operand.rate!,
       ], pass.passId);
     }
 
-    final currency = resolveCurrency(
-      readCurrencyEvidence(pages, issuerCountry: country?.countryCode),
-      table,
+    final currencyEvidence = readCurrencyEvidence(
+      pages,
+      issuerCountry: country?.countryCode,
     );
+    final currency = resolveCurrency(currencyEvidence, table);
     if (currency is Present<CurrencyCode>) {
       currencyReadings.add(
         Reading<CurrencyCode>(currency.value, pass.passId, Provenance.read),
+      );
+    } else if (trace != null) {
+      trace.record(
+        'currency',
+        currencyEvidence.isoCodes.isNotEmpty ||
+                currencyEvidence.symbols.isNotEmpty
+            ? ExtractionStage.conflictingCurrencyEvidence
+            : ExtractionStage.noCurrencyEvidence,
       );
     }
 
@@ -187,6 +231,8 @@ CanonicalDocument extractDocument({
       dateOrder,
       pass.passId,
       (LabelBinding binding) => binding.date,
+      trace: trace,
+      field: 'doc_date',
     );
     _addNonAmountReadings<String>(
       supplierReadings,
@@ -197,6 +243,8 @@ CanonicalDocument extractDocument({
       dateOrder,
       pass.passId,
       (LabelBinding binding) => binding.documentNumber,
+      trace: trace,
+      field: 'supplier_name',
     );
     _addNonAmountReadings<String>(
       docNumberReadings,
@@ -207,6 +255,8 @@ CanonicalDocument extractDocument({
       dateOrder,
       pass.passId,
       (LabelBinding binding) => binding.documentNumber,
+      trace: trace,
+      field: 'doc_number',
     );
 
     surcharges.addAll(negative.surcharges);
@@ -238,6 +288,16 @@ CanonicalDocument extractDocument({
       grosses: grosses,
       admittedRates: gate.admitted,
     );
+    if (trace != null) {
+      _recordAmountSolverStages(
+        trace: trace,
+        breakdown: breakdown,
+        grosses: grosses,
+        bases: bases,
+        taxes: taxes,
+        gate: gate,
+      );
+    }
 
     // Prefer the tax value the solver matched (read or derived) over a blind
     // sum of every printed `IVA` candidate. A tax-total label and several tax
@@ -332,6 +392,17 @@ CanonicalDocument extractDocument({
         taxReadings.isNotEmpty && taxConsensus is NoConsensus<Money>;
 
     if (grossDisputed || baseDisputed || taxDisputed) {
+      if (trace != null) {
+        if (grossDisputed) {
+          trace.record('gross_total', ExtractionStage.noMajority);
+        }
+        if (baseDisputed) {
+          trace.record('net_total', ExtractionStage.noMajority);
+        }
+        if (taxDisputed) {
+          trace.record('tax_total', ExtractionStage.noMajority);
+        }
+      }
       // A disputed operand is never handed to the solver: the disputed field
       // stays empty and the surviving operands are kept as read values only.
       grossTotal = _readAmountField(
@@ -387,6 +458,16 @@ CanonicalDocument extractDocument({
         grosses: grosses,
         admittedRates: gate.admitted,
       );
+      if (trace != null) {
+        _recordAmountSolverStages(
+          trace: trace,
+          breakdown: breakdown,
+          grosses: grosses,
+          bases: bases,
+          taxes: taxes,
+          gate: gate,
+        );
+      }
 
       final rawTax = taxes.isEmpty ? breakdown.tax : _sumReadTaxes(taxes);
 
@@ -457,20 +538,28 @@ CanonicalDocument extractDocument({
     dateReadings,
     FieldKind.other,
     textLayerReading: textLayerReading,
+    trace: trace,
+    field: 'doc_date',
   );
   final supplierName = _nonAmountField<String>(
     supplierReadings,
     FieldKind.supplierName,
     textLayerReading: textLayerReading,
+    trace: trace,
+    field: 'supplier_name',
   );
   final docNumber = _nonAmountField<String>(
     docNumberReadings,
     FieldKind.docNumber,
     textLayerReading: textLayerReading,
+    trace: trace,
+    field: 'doc_number',
   );
   final currency = _currencyField(
     currencyReadings,
     textLayerReading: textLayerReading,
+    trace: trace,
+    field: 'currency',
   );
 
   final reviewFields = <FieldValue<Object?>>[
@@ -482,6 +571,14 @@ CanonicalDocument extractDocument({
     netTotal,
     taxTotal,
   ];
+
+  if (trace != null) {
+    _recordConfidenceCapped(trace, 'gross_total', grossTotal);
+    _recordConfidenceCapped(trace, 'net_total', netTotal);
+    _recordConfidenceCapped(trace, 'tax_total', taxTotal);
+    _recordConfidenceCapped(trace, 'doc_date', docDate);
+    _recordConfidenceCapped(trace, 'currency', currency);
+  }
 
   return CanonicalDocument(
     docDate: docDate,
@@ -539,10 +636,15 @@ CurrencyCode? _resolveUniversalCurrency(
 void _addReadingIfUnanimous<T>(
   List<Reading<T>> readings,
   List<T> values,
-  String passId,
-) {
+  String passId, {
+  ExtractionTrace? trace,
+  String? field,
+}) {
   final value = _unanimousValue<T>(values);
   if (value == null) {
+    if (trace != null && field != null && values.isNotEmpty) {
+      trace.record(field, ExtractionStage.pagesDisagreed);
+    }
     return;
   }
   readings.add(Reading<T>(value, passId, Provenance.read));
@@ -569,16 +671,23 @@ void _addNonAmountReadings<T>(
   CountryRow? country,
   DateOrder? dateOrder,
   String passId,
-  T? Function(LabelBinding binding) value,
-) {
+  T? Function(LabelBinding binding) value, {
+  ExtractionTrace? trace,
+  String? field,
+}) {
   final bindings = _bindingsFor(
     pages,
     labelKind,
     valueKind,
     country,
     dateOrder,
+    trace: trace,
+    traceField: field,
   );
   if (bindings.isEmpty) {
+    if (trace != null && field != null && !_hasLabelKind(pages, labelKind)) {
+      trace.record(field, ExtractionStage.noLabelOfKind);
+    }
     return;
   }
 
@@ -615,6 +724,7 @@ void _addNonAmountReadings<T>(
   }
   for (final binding in pageBindings.skip(1)) {
     if (value(binding) != first) {
+      _recordTrace(trace, field, ExtractionStage.pagesDisagreed);
       return;
     }
   }
@@ -626,8 +736,10 @@ List<LabelBinding> _bindingsFor(
   LabelKind labelKind,
   ValueKind valueKind,
   CountryRow? country,
-  DateOrder? dateOrder,
-) {
+  DateOrder? dateOrder, {
+  ExtractionTrace? trace,
+  String? traceField,
+}) {
   final bindings = <LabelBinding>[];
   for (final page in pages) {
     for (final line in groupIntoLines(page)) {
@@ -637,6 +749,7 @@ List<LabelBinding> _bindingsFor(
         }
         final words = _wordsCoveredBy(line, match);
         if (words.isEmpty) {
+          _recordTrace(trace, traceField, ExtractionStage.labelFoundNoValue);
           continue;
         }
         final binding = bindLabel(
@@ -645,6 +758,8 @@ List<LabelBinding> _bindingsFor(
           valueKind,
           country,
           dateOrder: dateOrder,
+          trace: trace,
+          traceField: traceField,
         );
         if (binding != null) {
           bindings.add(binding);
@@ -653,6 +768,29 @@ List<LabelBinding> _bindingsFor(
     }
   }
   return bindings;
+}
+
+bool _hasLabelKind(Iterable<TextPage> pages, LabelKind labelKind) {
+  for (final page in pages) {
+    for (final line in groupIntoLines(page)) {
+      for (final match in findTerms(line.text)) {
+        if (match.kind == labelKind) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+void _recordTrace(
+  ExtractionTrace? trace,
+  String? traceField,
+  ExtractionStage stage,
+) {
+  if (trace != null && traceField != null) {
+    trace.record(traceField, stage);
+  }
 }
 
 List<PositionedWord> _wordsCoveredBy(LayoutLine line, TermMatch match) {
@@ -721,8 +859,13 @@ FieldValue<T> _nonAmountField<T>(
   List<Reading<T>> readings,
   FieldKind kind, {
   required bool textLayerReading,
+  ExtractionTrace? trace,
+  String? field,
 }) {
   final consensus = resolveConsensus<T>(readings);
+  if (consensus is NoConsensus<T> && readings.isNotEmpty) {
+    _recordTrace(trace, field, ExtractionStage.noMajority);
+  }
   return switch (consensus) {
     Agreed<T>(:final value) => Present<T>(
       value,
@@ -752,8 +895,13 @@ FieldValue<T> _nonAmountField<T>(
 FieldValue<CurrencyCode> _currencyField(
   List<Reading<CurrencyCode>> readings, {
   required bool textLayerReading,
+  ExtractionTrace? trace,
+  String? field,
 }) {
   final consensus = resolveConsensus<CurrencyCode>(readings);
+  if (consensus is NoConsensus<CurrencyCode> && readings.isNotEmpty) {
+    _recordTrace(trace, field, ExtractionStage.noMajority);
+  }
   return switch (consensus) {
     Agreed<CurrencyCode>(:final value) => Present<CurrencyCode>(
       value,
@@ -977,6 +1125,120 @@ List<Surcharge> _uniqueSurcharges(List<Surcharge> surcharges) {
     }
   }
   return List<Surcharge>.unmodifiable(unique);
+}
+
+const Map<OperandRole, String> _amountTraceFields = <OperandRole, String>{
+  OperandRole.gross: 'gross_total',
+  OperandRole.base: 'net_total',
+  OperandRole.tax: 'tax_total',
+};
+
+ExtractionStage _passCountStage(int count) => switch (count) {
+  1 => ExtractionStage.onePass,
+  2 => ExtractionStage.twoPasses,
+  3 => ExtractionStage.threePasses,
+  4 => ExtractionStage.fourPasses,
+  _ => ExtractionStage.moreThanFourPasses,
+};
+
+void _recordConfidenceCapped<T>(
+  ExtractionTrace trace,
+  String field,
+  FieldValue<T> value,
+) {
+  if (value is Present<T> && value.confidence != ConfidenceState.green) {
+    trace.record(field, ExtractionStage.confidenceCapped);
+  }
+}
+
+void _recordAmountSolverStages({
+  required ExtractionTrace trace,
+  required BreakdownSolution breakdown,
+  required List<ReadOperand> grosses,
+  required List<ReadOperand> bases,
+  required List<ReadOperand> taxes,
+  required RateGateResult gate,
+}) {
+  final stage = _amountSolverStage(grosses, bases, taxes, gate);
+  if (stage == null) {
+    return;
+  }
+  final derivationTarget = _derivationTargetField(grosses, bases, taxes);
+  if (breakdown.gross is! Present<Money> &&
+      (grosses.isNotEmpty || derivationTarget == 'gross_total')) {
+    trace.record('gross_total', stage);
+  }
+  if (breakdown.base is! Present<Money> &&
+      (bases.isNotEmpty || derivationTarget == 'net_total')) {
+    trace.record('net_total', stage);
+  }
+  if (breakdown.tax is! Present<Money> &&
+      (taxes.isNotEmpty || derivationTarget == 'tax_total')) {
+    trace.record('tax_total', stage);
+  }
+}
+
+String? _derivationTargetField(
+  List<ReadOperand> grosses,
+  List<ReadOperand> bases,
+  List<ReadOperand> taxes,
+) {
+  if (bases.length == 1 && taxes.length == 1 && grosses.isEmpty) {
+    return 'gross_total';
+  }
+  if (bases.length == 1 && grosses.length == 1 && taxes.isEmpty) {
+    return 'tax_total';
+  }
+  if (taxes.length == 1 && grosses.length == 1 && bases.isEmpty) {
+    return 'net_total';
+  }
+  return null;
+}
+
+ExtractionStage? _amountSolverStage(
+  List<ReadOperand> grosses,
+  List<ReadOperand> bases,
+  List<ReadOperand> taxes,
+  RateGateResult gate,
+) {
+  final acceptedCount = _acceptedTripleCount(bases, taxes, grosses);
+  if (acceptedCount > 1) {
+    return ExtractionStage.multipleArithmeticIdentities;
+  }
+  if (acceptedCount == 1) {
+    return null;
+  }
+  if (gate.discarded.isNotEmpty && gate.admitted.isEmpty) {
+    return ExtractionStage.legalRateGateFailed;
+  }
+  return ExtractionStage.noArithmeticIdentity;
+}
+
+int _acceptedTripleCount(
+  List<ReadOperand> bases,
+  List<ReadOperand> taxes,
+  List<ReadOperand> grosses,
+) {
+  final seen = <({Money base, Money tax, Money gross})>{};
+  var count = 0;
+  for (final base in bases) {
+    for (final tax in taxes) {
+      for (final gross in grosses) {
+        final triple = (
+          base: base.amount!,
+          tax: tax.amount!,
+          gross: gross.amount!,
+        );
+        if (!seen.add(triple)) {
+          continue;
+        }
+        if ((triple.base + triple.tax) == triple.gross) {
+          count++;
+        }
+      }
+    }
+  }
+  return count;
 }
 
 bool _needsReview(List<FieldValue<Object?>> fields) {

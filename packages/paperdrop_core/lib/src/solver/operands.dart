@@ -9,6 +9,7 @@ library;
 import '../countries/country_table.dart';
 import '../dictionaries/labels.dart';
 import '../dictionaries/lookup.dart';
+import '../extraction/extraction_trace.dart';
 import '../format/decimal.dart';
 import '../layout/binding.dart';
 import '../layout/lines.dart';
@@ -185,6 +186,8 @@ ReadOperands readOperands(
   CountryRow? country, {
   DecimalConvention? decimalConvention,
   CurrencyCode? currency,
+  ExtractionTrace? trace,
+  Map<OperandRole, String>? traceFields,
 }) {
   final convention = decimalConvention ?? country?.decimalConvention;
   final currencyCode = currency ?? country?.currency;
@@ -193,6 +196,8 @@ ReadOperands readOperands(
   }
 
   final operands = <ReadOperand>[];
+  final traceActive = trace != null && traceFields != null;
+  final seenRoles = traceActive ? <OperandRole>{} : null;
 
   for (final page in pages) {
     final lines = groupIntoLines(page);
@@ -203,9 +208,14 @@ ReadOperands readOperands(
         if (role == null) {
           continue;
         }
+        if (traceActive) {
+          seenRoles!.add(role);
+        }
 
+        final traceField = traceFields?[role];
         final labelWords = _wordsCoveredBy(line, match);
         if (labelWords.isEmpty) {
+          _recordTrace(trace, traceField, ExtractionStage.labelFoundNoValue);
           continue;
         }
 
@@ -216,6 +226,8 @@ ReadOperands readOperands(
           country,
           decimalConvention: convention,
           currency: currencyCode,
+          trace: trace,
+          traceField: traceField,
         );
         final money = binding?.amount;
         if (binding == null || money == null) {
@@ -237,7 +249,33 @@ ReadOperands readOperands(
     }
   }
 
+  if (traceActive) {
+    for (final role in const <OperandRole>[
+      OperandRole.gross,
+      OperandRole.base,
+      OperandRole.tax,
+    ]) {
+      if (seenRoles!.contains(role)) {
+        continue;
+      }
+      final traceField = traceFields[role];
+      if (traceField != null) {
+        trace.record(traceField, ExtractionStage.noLabelOfKind);
+      }
+    }
+  }
+
   return ReadOperands(operands);
+}
+
+void _recordTrace(
+  ExtractionTrace? trace,
+  String? traceField,
+  ExtractionStage stage,
+) {
+  if (trace != null && traceField != null) {
+    trace.record(traceField, stage);
+  }
 }
 
 OperandRole? _roleFor(LabelKind? kind) => switch (kind) {

@@ -7,6 +7,7 @@ library;
 
 import '../countries/country_table.dart';
 import '../dictionaries/lookup.dart';
+import '../extraction/extraction_trace.dart';
 import '../format/date.dart';
 import '../format/decimal.dart';
 import '../model/calendar_date.dart';
@@ -158,6 +159,8 @@ LabelBinding? bindLabel(
   DecimalConvention? decimalConvention,
   DateOrder? dateOrder,
   CurrencyCode? currency,
+  ExtractionTrace? trace,
+  String? traceField,
 }) {
   final convention = decimalConvention ?? country?.decimalConvention;
   final dateOrderValue = dateOrder ?? country?.dateOrder;
@@ -166,14 +169,17 @@ LabelBinding? bindLabel(
   final lines = groupIntoLines(page);
   final labelLine = _lineContaining(lines, label.words);
   if (labelLine == null) {
+    _recordBindingFailure(trace, traceField, kind, sawCandidate: false);
     return null;
   }
 
   final labelLeft = _minX(label.words);
   final labelRight = _maxX1(label.words);
+  final traceActive = trace != null && traceField != null;
 
+  final sameLineCandidates = _wordsToTheRight(labelLine.words, labelRight);
   final sameLine = _bindOnLine(
-    _wordsToTheRight(labelLine.words, labelRight),
+    sameLineCandidates,
     kind,
     convention,
     dateOrderValue,
@@ -184,6 +190,8 @@ LabelBinding? bindLabel(
   if (sameLine != null) {
     return sameLine;
   }
+
+  var sawCandidate = traceActive && sameLineCandidates.isNotEmpty;
 
   final maxGap = maxLabelValueLineDistanceInHeights * labelLine.height;
   for (final line in lines) {
@@ -205,6 +213,9 @@ LabelBinding? bindLabel(
     final belowCandidates = kind == ValueKind.documentNumber
         ? line.words
         : _wordsNotLeftOf(line.words, labelLeft);
+    if (traceActive && belowCandidates.isNotEmpty) {
+      sawCandidate = true;
+    }
     final below = _bindOnLine(
       belowCandidates,
       kind,
@@ -219,7 +230,27 @@ LabelBinding? bindLabel(
     }
   }
 
+  _recordBindingFailure(trace, traceField, kind, sawCandidate: sawCandidate);
   return null;
+}
+
+void _recordBindingFailure(
+  ExtractionTrace? trace,
+  String? traceField,
+  ValueKind kind, {
+  required bool sawCandidate,
+}) {
+  if (trace == null || traceField == null) {
+    return;
+  }
+  final stage = switch (kind) {
+    ValueKind.amount || ValueKind.date =>
+      sawCandidate
+          ? ExtractionStage.valueNotParsed
+          : ExtractionStage.labelFoundNoValue,
+    ValueKind.documentNumber => ExtractionStage.labelFoundNoValue,
+  };
+  trace.record(traceField, stage);
 }
 
 LayoutLine? _lineContaining(
