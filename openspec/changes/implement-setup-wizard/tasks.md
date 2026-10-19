@@ -93,7 +93,7 @@ design §8; stop a dispatch on a green commit.
 - [ ] 4.1 `openspec validate implement-setup-wizard --strict` and `openspec validate --all --strict`
       green; the bounds verdict of every dispatch lists no write outside design §7 and the wizard's
       folders; no read of the production-database variable of `AGENTS.md` §1.4 and no test-base identifier anywhere (`no_ninox_db_id.py`).
-- [ ] 4.2 **The live run** — T1.9's, not this change's: the wizard reading the user's real teams,
+- [x] 4.2 **The live run** (2026-10-19, PO approved: data layer on the host, read-only; the wizard screens on the phone are still to be seen) — T1.9's, not this change's: the wizard reading the user's real teams,
       databases, tables and fields, with `--allow-ninox-token`, by the product owner's approval and
       against the test base only. Not scheduled until the product owner approves it.
 - [ ] 4.3 On archive: **revert the widening of design §7** in `agents/roles.yaml` and record it in the
