@@ -1,3 +1,11 @@
 {
-  "id": 1416
+  "id": 1416,
+  "createdAt": "synthetic",
+  "createdBy": "synthetic",
+  "modifiedAt": "synthetic",
+  "modifiedBy": "synthetic",
+  "fields": {
+    "Field A": "synthetic",
+    "Field B": 1.5
+  }
 }
