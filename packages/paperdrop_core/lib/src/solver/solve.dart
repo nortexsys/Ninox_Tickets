@@ -211,7 +211,14 @@ BreakdownSolution solveBreakdown({
     );
   }
 
-  return _deriveByIdentity(bases, taxes, grosses, admittedRates);
+  final derived = _deriveByIdentity(bases, taxes, grosses, admittedRates);
+  if (derived.base is Present<Money> ||
+      derived.tax is Present<Money> ||
+      derived.gross is Present<Money>) {
+    return derived;
+  }
+
+  return _readOnlyBreakdown(bases, taxes, grosses);
 }
 
 /// Builds one tax slot per printed, admitted rate up to [country]'s count.
@@ -404,6 +411,34 @@ BreakdownSolution _emptyBreakdown() => const BreakdownSolution(
   tax: Absent<Money>(),
   gross: Absent<Money>(),
 );
+
+/// Keeps the printed operands the solver could neither match nor derive.
+///
+/// A single printed operand is still a reading: it stays read and amber, never
+/// green, because it has no independent figure to cross against. Two or more
+/// candidates for one role remain absent rather than choosing between them.
+BreakdownSolution _readOnlyBreakdown(
+  List<ReadOperand> bases,
+  List<ReadOperand> taxes,
+  List<ReadOperand> grosses,
+) {
+  return BreakdownSolution(
+    base: _singleReadAmount(bases),
+    tax: _singleReadAmount(taxes),
+    gross: _singleReadAmount(grosses),
+  );
+}
+
+FieldValue<Money> _singleReadAmount(List<ReadOperand> operands) {
+  if (operands.length != 1) {
+    return const Absent<Money>();
+  }
+  final amount = operands.single.amount;
+  if (amount == null) {
+    return const Absent<Money>();
+  }
+  return Present<Money>(amount, Provenance.read, ConfidenceState.amber);
+}
 
 FieldValue<Money> _presentRead(Money value) =>
     Present<Money>(value, Provenance.read, ConfidenceState.amber);
