@@ -2,10 +2,10 @@
 
 ## 1. Core lane
 
-- [ ] 1.1 `ExtractionStage`, `ExtractionTrace`, `CollectingTrace`; optional parameter on `extractDocument`, default unchanged.
-- [ ] 1.2 Record the stage at every place a field or candidate is lost or lowered (design §2).
-- [ ] 1.3 Tests: each stage fires on a synthetic case; no value can reach a trace; existing tests unchanged.
-- [ ] 1.4 Report: the list of stages and where each is recorded.
+- [x] 1.1 `ExtractionStage`, `ExtractionTrace`, `CollectingTrace`; optional parameter on `extractDocument`, default unchanged.
+- [x] 1.2 Record the stage at every place a field or candidate is lost or lowered (design §2).
+- [x] 1.3 Tests: each stage fires on a synthetic case; no value can reach a trace; existing tests unchanged.
+- [x] 1.4 Report: the list of stages and where each is recorded.
 
 ## 2. Orchestrator
 
