@@ -76,6 +76,10 @@ jobs:
         run: python .github/scripts/no_ninox_db_id.py
       - name: Encoding guard
         run: python .github/scripts/encoding_guard.py
+      - name: Handover file (150 lines, board in sync)
+        run: |
+          pip install pyyaml
+          python docs/Plan/scripts/plan_board.py --check
       - name: Script tests
         run: |
           pip install pytest

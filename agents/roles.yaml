@@ -24,7 +24,7 @@ roles:
       - ninox                      # reviews the Ninox lane; carries the safety rules
       - dart-run-static-analysis   # checks a lane's output before QA
       - dart-collect-coverage
-    writes: ["/openspec/changes/**/design.md", "/openspec/changes/**/tasks.md", "/docs/Plan/status/**"]
+    writes: ["/openspec/changes/**/design.md", "/openspec/changes/**/tasks.md", "/docs/Plan/ESTADO.md", "/docs/Plan/plan-tasks.yaml", "/docs/Plan/diario/**"]
 
   spec:
     runtime: langgraph

@@ -455,7 +455,7 @@ QA          CI · privacy · tags ────────┼─ contracts · ne
 | **Thu 1 Oct** | **PDF half of the acceptance corpus** in `Paperdrop_corpus` — needed before the ADR-011 decision of Tue 6 Oct (added 2026-09-25; the first version of this table missed it) |
 | **Fri 9 Oct** | **~15 photographed documents** (thermal hospitality and fuel) **and ≥1 scanned PDF** in `Paperdrop_corpus`, as original camera files, never re-sent through a messaging app; confirm their ground truth by Mon 12. **Keep the paper originals until 23 Oct**: the ADR-010 screening re-captures them with the app's own scanner |
 | Fri 9 Oct | 2–3 users booked for 20–22 Oct, each with a Ninox table they use |
-| Every day | Clear the approvals queue in `docs/Plan/status/` |
+| Every day | Clear the approvals queue in `docs/Plan/ESTADO.md` §4 |
 
 A day lost on an approval or an input moves the milestone behind it by a day. The buffer week absorbs up to five.
 
