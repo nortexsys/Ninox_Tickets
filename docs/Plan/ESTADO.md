@@ -64,7 +64,7 @@ report, and the supervised sessions. M3 started on Mon 19 Oct with no alpha to p
 1. **Replan decision (PO).** Draft `docs/Plan/Paperdrop_MVP_Plan_v0.3_EN.md` written 2026-10-20, **not approved**:
    alpha 23 Oct as a signed APK, sessions 28–29 Oct, MVP report 2 Nov; decisions D1–D6 in its §2. Dates in
    `plan-tasks.yaml` change only after approval.
-2. **Photo route, T2.5.** Score every change with `Paperdrop_corpus\tools\score.py` against the PO's verdicts of
+2. **Photo route, T2.5.** Score every change with the scorer kept in the private corpus against the PO's verdicts of
    2026-10-20 (gate in memory `photo-route-ground-truth-and-gate`). Write the screening report for GAP-001.
 3. **Release build and alpha (T2.6).** Needs the phone and the PO; blocked on item 4 of §4.
 4. **Device harness (T2.1 C) and phone runs of T1.12, T1.13, T2.2.** Need the S22 on wireless adb.
@@ -105,8 +105,10 @@ report, and the supervised sessions. M3 started on Mon 19 Oct with no alpha to p
   `-text-layer-confidence`); S22 tasks of `fix-photo-total-without-identity`, `fix-text-pdf-extraction-yield`,
   `implement-photo-route`, `adopt-app-cust-readers` were ticked from the runs in `diario/2026-10-17.md`, not from a
   run of each change alone. Mixed PDFs (point 5, GAP-033) was never answered.
-* **Atria quota:** Spec and QA lanes run on DeepSeek by the PO's order of 2026-10-17 (memory
-  `lanes-use-deepseek-until-told`). Do not recharge or switch without being told.
+* **Lane models (DEC-025, 2026-10-20):** Spec runs on `claude-sonnet-5-5` and QA on `claude-sonnet-5`, both through
+  Abacus RouteLLM (`ABACUS_API_KEY`, user registry). Core, Ninox and Mobile stay on DeepSeek. Abacus does not report
+  tokens to the lane report (`usage` is 0): spend is read in Abacus's own panel. The key was exposed in a chat
+  filename on 2026-10-20: regenerate it in Abacus and store it again.
 * **Accuracy of the photo route** is measured only against the PO's verdicts of 2026-10-20; the contrast pass and
   the rescaled passes still have to earn their place (DEC-017).
 * **Live-run leftovers:** the `error-500` fixture re-recording; maximum attachment size (PO accepted "good

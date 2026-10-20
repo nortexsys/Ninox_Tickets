@@ -24,11 +24,11 @@ longer used (DEC-011).
 | Role | Runtime | Model | Skills are loaded by |
 | --- | --- | --- | --- |
 | Orchestrator | **Claude Code** (the session the product owner talks to) | Opus 5.5 | Claude Code itself, from `.claude/skills/` |
-| Spec | LangGraph (deepagents) | Atria Dawn Preview (`Atria-Dawn-Preview`) | `SkillsMiddleware`, source `agents/.build/skills/spec/` |
+| Spec | LangGraph (deepagents) | Sonnet 5.5 through Abacus RouteLLM (`claude-sonnet-5-5`, DEC-025; was Atria Dawn Preview) | `SkillsMiddleware`, source `agents/.build/skills/spec/` |
 | Core | LangGraph (deepagents) | DeepSeek-V4-Pro-0813 (`deepseek-v4-pro`) | same, `…/core/` |
 | Ninox | LangGraph (deepagents) | DeepSeek-V4.1-Flash (`deepseek-flash`) | same, `…/ninox/` |
 | Mobile | LangGraph (deepagents) | DeepSeek-V4.1-Flash (`deepseek-flash`) | same, `…/mobile/` |
-| QA | LangGraph (deepagents) | Sonnet 5 (`claude-sonnet-5`) | same, `…/qa/` |
+| QA | LangGraph (deepagents) | Sonnet 5 through Abacus RouteLLM (`claude-sonnet-5`, DEC-025) | same, `…/qa/` |
 
 ## How a skill reaches an agent
 

@@ -207,6 +207,17 @@ def test_atria_gets_the_system_prompt_as_text():
     assert wire[1]["content"] == "hi"
 
 
+def test_abacus_model_is_built_from_the_role_entry():
+    spec = {"name": "Sonnet 5 (Abacus)", "provider": "abacus", "id": "claude-sonnet-5",
+            "base_url": "https://routellm.abacus.ai/v1", "api_key_env": "ABACUS_API_KEY"}
+    model = make_model(spec, api_key="not-a-key")
+    assert model.model_name == "claude-sonnet-5"
+    assert str(model.openai_api_base).startswith("https://routellm.abacus.ai")
+    wire = model._get_request_payload([SystemMessage(content=[{"type": "text", "text": "a"}, {"type": "text", "text": "b"}]),
+                                       HumanMessage("hi")])["messages"]
+    assert wire[0]["content"] == "a\n\nb"
+
+
 def test_unconfirmed_model_is_refused():
     with pytest.raises(ValueError):
         make_model({"name": "x", "provider": "TO-CONFIRM", "id": "TO-CONFIRM", "api_key_env": "X"})

@@ -123,3 +123,4 @@ openspec/changes/archive/2026-10-07-implement-core-model-and-countries/design.md
 openspec/changes/archive/2026-10-07-implement-core-model-and-countries/design.md | Y1234567X | public documentation example of the NIE format (design §4); not a person's identifier
 openspec/changes/archive/2026-10-07-implement-core-model-and-countries/design.md | Z1234567R | public documentation example of the NIE format (design §4); not a person's identifier
 openspec/changes/archive/2026-09-23-add-extraction-pipeline/proposal.md | corpus_test/out/ninox_log.json | names the prototype log file that used to live in corpus_test/out; not a corpus document
+openspec/changes/archive/2026-10-20-add-amount-coherence-rules/proposal.md | Paperdrop_corpus\tools\score.py | path of the PO-approved scorer script in the private corpus, cited by an archived proposal; a script path, no personal data (CI was red on main since 2026-10-20)

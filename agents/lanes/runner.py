@@ -8,7 +8,7 @@
 What a run guarantees (plan v0.2, T0.9):
   * one worktree per lane, at agents/.build/worktrees/<role>, on branch change/<name>, cut from main;
   * a shell whose environment carries no secret: every *KEY*/*TOKEN*/*SECRET* variable and every
-    NINOX_*/ANTHROPIC_*/DEEPSEEK_*/ATRIA_* variable is removed. Only the Ninox lane may receive
+    NINOX_*/ANTHROPIC_*/DEEPSEEK_*/ATRIA_*/ABACUS_* variable is removed. Only the Ninox lane may receive
     NINOX_API_KEY, and only when asked for explicitly. NINOX_DB_ID never reaches a lane (AGENTS.md §1.4);
   * a SQLite checkpoint per (role, change), so a stopped lane resumes where it was;
   * a JSON report in agents/.build/reports/: files touched since main, and every one of them that
@@ -41,7 +41,7 @@ REPORTS = DOT_BUILD / "reports"
 CHECKPOINTS = DOT_BUILD / "checkpoints.sqlite"
 BASE = "main"
 CHANGE_NAME = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
-SECRET_VAR = re.compile(r"KEY|TOKEN|SECRET|PASSW|CREDENTIAL|^NINOX_|^ANTHROPIC|^DEEPSEEK|^ATRIA|^OPENAI|^LANGSMITH",
+SECRET_VAR = re.compile(r"KEY|TOKEN|SECRET|PASSW|CREDENTIAL|^NINOX_|^ANTHROPIC|^DEEPSEEK|^ATRIA|^ABACUS|^OPENAI|^LANGSMITH",
                         re.IGNORECASE)
 REPORT_BLOCK = re.compile(r"```json\s*(\{.*?\})\s*```", re.DOTALL)
 

@@ -31,7 +31,7 @@ tasks:
     ms: M0
     due: 2026-09-29
     owner: "QA"
-    title: "CI with privacy and NINOX_DB_ID jobs"
+    title: "CI with privacy and forbidden-database-id jobs"
     status: "DONE"
     evidence: ".github/workflows/ci.yml has analyze, format, test, privacy, no_ninox_db_id"
   - id: "T0.4"

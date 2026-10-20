@@ -2,6 +2,8 @@
 # Rejects a commit that touches the handover or the plan board when ESTADO.md is over its limit
 # or its board no longer matches docs/Plan/plan-tasks.yaml. Enable once per clone:
 #   git config core.hooksPath .githooks
+# On Windows `python` may be the Store stub or lack PyYAML: prefer the launcher.
 if git diff --cached --name-only | grep -qE '^docs/Plan/(ESTADO\.md|plan-tasks\.yaml)$'; then
-  python -X utf8 docs/Plan/scripts/plan_board.py --check || exit 1
+  if command -v py >/dev/null 2>&1; then PY="py -3"; else PY="python3"; fi
+  $PY -X utf8 docs/Plan/scripts/plan_board.py --check || exit 1
 fi

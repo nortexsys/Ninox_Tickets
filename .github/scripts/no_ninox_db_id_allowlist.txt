@@ -36,5 +36,5 @@ openspec/changes/archive/2026-10-08-implement-ninox-client/proposal.md | `NINOX_
 openspec/changes/implement-android-capture-and-store/proposal.md | No step uses `NINOX_DB_ID` | the proposal asserts the change never uses the variable (GAP-012)
 openspec/changes/implement-ninox-send-pipeline/design.md | no `NINOX_DB_ID`; no token in a file | design line stating the rule (it forbids the variable); found by the lane 2026-10-17, allowlisted by PO decision
 openspec/changes/verify-live-send-pipeline/design.md | `NINOX_DB_ID` is never used | design line stating the rule (it forbids the variable)
-openspec/changes/implement-negative-release-checklist/design.md | `NINOX_DB_ID` is never referenced | design line stating the rule (it forbids the variable); found by the QA lane 2026-10-17
+openspec/changes/archive/2026-10-20-implement-negative-release-checklist/design.md | `NINOX_DB_ID` is never referenced | design line stating the rule (it forbids the variable); found by the QA lane 2026-10-17
 validation/release_checklist/no_credential_test.dart | const String forbiddenEnvironmentVariable | the checklist's group 3 scans the shipped product for the variable AGENTS.md §1.4 forbids

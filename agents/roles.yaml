@@ -28,9 +28,10 @@ roles:
 
   spec:
     runtime: langgraph
-    # OpenAI-compatible API; the id is case-sensitive. Listed by GET /v1/models on 2026-09-26.
-    model: {name: "Atria Dawn Preview", provider: atria, id: "Atria-Dawn-Preview",
-            base_url: "https://api.atria-asi.ai/v1", api_key_env: ATRIA_API_KEY}
+    # DEC-025 (2026-10-20): moved from Atria Dawn Preview (no quota) to Sonnet 5.5 through Abacus RouteLLM,
+    # OpenAI-compatible; ids listed by GET /v1/models on 2026-10-20.
+    model: {name: "Sonnet 5.5 (Abacus)", provider: abacus, id: "claude-sonnet-5-5",
+            base_url: "https://routellm.abacus.ai/v1", api_key_env: ABACUS_API_KEY}
     skills:
       - ninox                      # API facts decide spec wording (GAP-022 was one)
     writes: ["/openspec/**"]
@@ -98,7 +99,9 @@ roles:
     # Confirmed by a live call on 2026-09-26 (smoke test), with a key scoped to the `Default`
     # workspace. An organisation-scoped key answers 400: langchain-anthropic does not send the
     # anthropic-workspace-id header that such a key requires.
-    model: {name: "Sonnet 5", provider: anthropic, id: "claude-sonnet-5", api_key_env: ANTHROPIC_API_KEY}
+    # DEC-025 (2026-10-20): the same model, through Abacus RouteLLM instead of the Anthropic account (no credit).
+    model: {name: "Sonnet 5 (Abacus)", provider: abacus, id: "claude-sonnet-5",
+            base_url: "https://routellm.abacus.ai/v1", api_key_env: ABACUS_API_KEY}
     skills:
       - ninox                      # verifies the Ninox lane against the verified contract
       - dart-add-unit-test
