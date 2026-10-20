@@ -184,6 +184,17 @@ TextPage germanInvoicePage(int index) =>
 TextPage blankPage(int index, {int width = 300000, int height = 300000}) =>
     TextPage(index, width, height, const <PositionedWord>[]);
 
+/// A photographed ticket printing one labelled total, which is the shape the ported readers bind.
+///
+/// It is synthetic and carries no issuer, no identifier and no name: `TOTAL 12,50` on one line is
+/// the smallest document the labelled reader produces a value from, and it is what a photo test
+/// needs to assert the row in force without a device.
+TextPage photoTotalPage(int index, {String total = '12,50'}) =>
+    TextPage(index, 300000, 300000, <PositionedWord>[
+      word('TOTAL', 100000, 120000, 100000, 120000),
+      word(total, 130000, 170000, 100000, 120000),
+    ]);
+
 /// One page read by recognition, with a word no text layer carries.
 TextPage recognisedPage(int index) => TextPage(
   index,

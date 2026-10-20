@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -6,11 +7,13 @@ import 'package:paperdrop/features/review/capture_discard.dart';
 import 'package:paperdrop/features/review/destination_acknowledgement.dart';
 import 'package:paperdrop/features/review/review_controller.dart';
 import 'package:paperdrop/features/review/review_field.dart';
+import 'package:paperdrop/features/review/review_second_read.dart';
 import 'package:paperdrop/features/review/review_sender.dart';
 import 'package:paperdrop/features/wizard/data/destination_store.dart';
 import 'package:paperdrop/history/duplicate_checker.dart';
 import 'package:paperdrop/history/history_entry.dart';
 import 'package:paperdrop/history/history_store.dart';
+import 'package:paperdrop/settings/country_setting.dart';
 import 'package:paperdrop_core/paperdrop_core.dart';
 import 'package:path/path.dart' as p;
 
@@ -45,6 +48,9 @@ void main() {
     ReviewSender? sender,
     CaptureDiscard? discard,
     Clock? clock,
+    CountrySettingStore? country,
+    ReviewSecondRead? secondRead,
+    CountryTable? table,
   }) => ReviewController(
     store: store,
     duplicates: DuplicateChecker(store),
@@ -52,6 +58,9 @@ void main() {
     acknowledgement: acknowledgement ?? MemoryAcknowledgement(fixedDay()),
     sender: sender ?? FakeReviewSender(),
     discard: discard ?? FakeCaptureDiscard(),
+    country: country ?? FakeCountrySetting(),
+    secondRead: secondRead ?? FakeReviewSecondRead(),
+    table: table,
     clock: clock ?? fixedClock,
     entry: entry,
   );
@@ -464,5 +473,322 @@ void main() {
         expect(controller.state.discarded, isFalse);
       },
     );
+  });
+
+  group('[countries-languages/country-is-an-input]', () {
+    test('the ticket opens with the settings\' default country', () async {
+      final ReviewController controller = aController(
+        entry: aReviewingEntry(),
+        country: FakeCountrySetting(const CountrySetting('DE')),
+      );
+
+      await controller.load();
+
+      final ReviewState state = controller.state;
+      expect(state.countryCode, 'DE');
+      expect(state.countryRow, CountryTable.de);
+      expect(state.countryHasRow, isTrue);
+      expect(state.countryWithoutRow, isFalse);
+      expect(
+        controller.countryFromSettings,
+        isTrue,
+        reason: 'the ticket shows the default until the user says otherwise',
+      );
+      expect(
+        state.countryChoices.map((CountryRow row) => row.countryCode),
+        <String>['ES', 'DE'],
+        reason: 'the countries the app has anything to apply for',
+      );
+    });
+
+    test('a change made for one ticket is not the new default', () async {
+      final FakeCountrySetting settings = FakeCountrySetting(
+        const CountrySetting('DE'),
+      );
+      final FakeReviewSecondRead secondRead = FakeReviewSecondRead();
+      final HistoryEntry entry = aReviewingEntry();
+      await store.create(entry);
+      final ReviewController controller = aController(
+        entry: entry,
+        country: settings,
+        secondRead: secondRead,
+      );
+      await controller.load();
+      final List<String> before = controller.state.fields
+          .map((ReviewFieldValue value) => value.text)
+          .toList();
+
+      controller.chooseCountry('ES');
+
+      expect(controller.state.countryCode, 'ES');
+      expect(controller.state.countryRow, CountryTable.es);
+      expect(controller.countryFromSettings, isFalse);
+      expect(
+        settings.writes,
+        0,
+        reason: 'the ticket\'s change never writes the settings',
+      );
+      expect(settings.setting, const CountrySetting('DE'));
+      expect(
+        secondRead.docIds,
+        isEmpty,
+        reason: 'the change does not by itself re-read the document',
+      );
+      expect(
+        controller.state.fields
+            .map((ReviewFieldValue value) => value.text)
+            .toList(),
+        before,
+        reason: 'nor does it rewrite a value already produced by the read',
+      );
+
+      // The next ticket takes the default again: the setting was never changed.
+      final ReviewController next = aController(
+        entry: aReviewingEntry(docId: aDocId(31)),
+        country: settings,
+      );
+      await next.load();
+      expect(next.state.countryCode, 'DE');
+      expect(
+        controller.state.countryCode,
+        'ES',
+        reason: 'and the earlier ticket still shows what the user chose',
+      );
+    });
+
+    test(
+      'a country without a row says so and applies no row in its place',
+      () async {
+        final ReviewController controller = aController(
+          entry: aReviewingEntry(),
+          country: FakeCountrySetting(const CountrySetting('PT')),
+        );
+
+        await controller.load();
+
+        expect(controller.state.countryCode, 'PT');
+        expect(controller.state.countryRow, isNull);
+        expect(controller.state.countryHasRow, isFalse);
+        expect(controller.state.countryWithoutRow, isTrue);
+        expect(
+          controller.state.fields.map(
+            (ReviewFieldValue value) => value.confidence,
+          ),
+          everyElement(
+            anyOf(
+              ConfidenceState.amber,
+              ConfidenceState.green,
+              ConfidenceState.red,
+            ),
+          ),
+          reason: 'no fourth state is invented for the case (PO, 2026-10-17)',
+        );
+      },
+    );
+
+    test('a country the user picks may have no row either', () async {
+      final ReviewController controller = aController(
+        entry: aReviewingEntry(),
+        country: FakeCountrySetting(const CountrySetting('DE')),
+      );
+      await controller.load();
+
+      controller.chooseCountry('FR');
+
+      expect(controller.state.countryCode, 'FR');
+      expect(controller.state.countryRow, isNull);
+      expect(controller.state.countryWithoutRow, isTrue);
+    });
+
+    test(
+      'a settings file that cannot be read is no country in force',
+      () async {
+        final ReviewController controller = aController(
+          entry: aReviewingEntry(),
+          country: FakeCountrySetting()..unreadable = true,
+        );
+
+        await controller.load();
+
+        expect(controller.state.countryCode, isNull);
+        expect(controller.state.countryHasRow, isFalse);
+        expect(
+          controller.state.countryWithoutRow,
+          isFalse,
+          reason: 'no country at all is its own case, and says so',
+        );
+        expect(
+          controller.state.ready,
+          isTrue,
+          reason: 'the document still opens: the setting is not the document',
+        );
+      },
+    );
+  });
+
+  group('[review-screen/second-read-is-requested-and-shown-running]', () {
+    test(
+      'it fills an empty field and refines a value the user did not touch',
+      () async {
+        final ReviewController controller = aController(
+          entry: aReviewingEntry(values: aDocumentWithOnlyTheDate()),
+          secondRead: FakeReviewSecondRead(
+            answer: (HistoryEntry entry) => aConfirmedDocument(),
+          ),
+        );
+        await controller.load();
+
+        await controller.reRead();
+
+        expect(
+          reviewFieldValue(
+            controller.state.document!,
+            ReviewField.docDate,
+          ).text,
+          '2026-10-01',
+          reason: 'the untouched date is refined by the second read',
+        );
+        expect(
+          reviewFieldValue(
+            controller.state.document!,
+            ReviewField.grossTotal,
+          ).text,
+          '12.10',
+          reason: 'the empty field is filled',
+        );
+        expect(controller.state.reReading, isFalse);
+        expect(controller.state.reReadFailed, isFalse);
+      },
+    );
+
+    test(
+      'a value the user edited survives the second read, with its mark',
+      () async {
+        final ReviewController controller = aController(
+          entry: aReviewingEntry(values: aPhotoDocument()),
+          secondRead: FakeReviewSecondRead(
+            answer: (HistoryEntry entry) => aConfirmedDocument(),
+          ),
+        );
+        await controller.load();
+        expect(controller.edit(ReviewField.docDate, '2026-12-24'), isTrue);
+        controller.unlock(ReviewField.grossTotal);
+        expect(controller.edit(ReviewField.grossTotal, '13.00'), isTrue);
+
+        await controller.reRead();
+
+        final CanonicalDocument document = controller.state.document!;
+        final ReviewFieldValue date = reviewFieldValue(
+          document,
+          ReviewField.docDate,
+        );
+        expect(date.text, '2026-12-24');
+        expect(date.edited, isTrue);
+        final ReviewFieldValue total = reviewFieldValue(
+          document,
+          ReviewField.grossTotal,
+        );
+        expect(
+          total.text,
+          '13.00',
+          reason: 'the user\'s total is the value kept',
+        );
+        expect(total.edited, isTrue);
+        expect(
+          reviewFieldValue(document, ReviewField.supplierName).text,
+          'Acme Ibérica',
+          reason: 'a field the user never touched takes the later reading',
+        );
+      },
+    );
+
+    test('the screen says it is running, and stops when it is done', () async {
+      final FakeReviewSecondRead secondRead = FakeReviewSecondRead(
+        answer: (HistoryEntry entry) => aConfirmedDocument(),
+      )..pending = Completer<void>();
+      final ReviewController controller = aController(
+        entry: aReviewingEntry(),
+        secondRead: secondRead,
+      );
+      await controller.load();
+
+      final Future<void> running = controller.reRead();
+      expect(controller.state.reReading, isTrue);
+      expect(secondRead.docIds, <String>[controller.state.entry!.docId]);
+
+      secondRead.pending!.complete();
+      await running;
+
+      expect(controller.state.reReading, isFalse);
+    });
+
+    test('a second read that could not run changes nothing', () async {
+      final CanonicalDocument before = aConfirmedDocument();
+      final FakeReviewSecondRead secondRead = FakeReviewSecondRead()
+        ..failure = const FileSystemException('the file could not be read');
+      final ReviewController controller = aController(
+        entry: aReviewingEntry(values: before),
+        secondRead: secondRead,
+      );
+      await controller.load();
+
+      await controller.reRead();
+
+      expect(controller.state.reReadFailed, isTrue);
+      expect(controller.state.reReading, isFalse);
+      expect(controller.state.document!.toJson(), before.toJson());
+    });
+
+    test('it reads under the country now in force for the ticket', () async {
+      final FakeReviewSecondRead secondRead = FakeReviewSecondRead(
+        answer: (HistoryEntry entry) => aPhotoDocument(),
+      );
+      final ReviewController controller = aController(
+        entry: aReviewingEntry(),
+        country: FakeCountrySetting(const CountrySetting('DE')),
+        secondRead: secondRead,
+      );
+      await controller.load();
+
+      await controller.reRead();
+      expect(secondRead.countries, <CountryRow?>[CountryTable.de]);
+
+      controller.chooseCountry('ES');
+      await controller.reRead();
+
+      expect(secondRead.countries, <CountryRow?>[
+        CountryTable.de,
+        CountryTable.es,
+      ], reason: 'a country change reaches the values through a read');
+    });
+
+    test('[review-screen/never-block-a-save] a save is not held back by a '
+        'second read', () async {
+      final FakeReviewSecondRead secondRead = FakeReviewSecondRead(
+        answer: (HistoryEntry entry) => aConfirmedDocument(),
+      )..pending = Completer<void>();
+      final FakeReviewSender sender = FakeReviewSender();
+      final ReviewController controller = aController(
+        entry: aReviewingEntry(),
+        secondRead: secondRead,
+        sender: sender,
+        acknowledgement: MemoryAcknowledgement(fixedDay()),
+      );
+      await controller.load();
+      expect(controller.state.saveEnabled, isTrue);
+
+      final Future<void> running = controller.reRead();
+      expect(controller.state.reReading, isTrue);
+      await controller.save();
+
+      expect(
+        sender.sent,
+        hasLength(1),
+        reason: 'a second read under way is not a condition of saving',
+      );
+
+      secondRead.pending!.complete();
+      await running;
+    });
   });
 }

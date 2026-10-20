@@ -246,4 +246,118 @@ void main() {
       );
     });
   });
+
+  group(
+    '[validation-confidence/currency-carries-its-own-confidence-state]',
+    () {
+      test(
+        'a currency the country setting supplies says where it came from',
+        () {
+          final ReviewFieldValue shown = reviewFieldValue(
+            aPhotoDocument(),
+            ReviewField.currency,
+          );
+
+          expect(shown.confidence, ConfidenceState.green);
+          expect(
+            shown.source,
+            ValueSource.countrySetting,
+            reason: 'DEC-023: green because of its origin, which is shown',
+          );
+        },
+      );
+
+      test(
+        'a value read from the document has no origin of its own to show',
+        () {
+          expect(
+            reviewFieldValue(aConfirmedDocument(), ReviewField.currency).source,
+            isNull,
+          );
+          expect(
+            reviewFieldValue(
+              aConfirmedDocument(),
+              ReviewField.grossTotal,
+            ).source,
+            isNull,
+          );
+        },
+      );
+    },
+  );
+
+  group('[extraction-pipeline/second-read-on-the-users-request]', () {
+    test('an empty field is filled and an untouched value is refined', () {
+      // The first read produced a date and nothing else.
+      final CanonicalDocument first = aDocumentWithOnlyTheDate();
+      final CanonicalDocument second = aConfirmedDocument();
+
+      final CanonicalDocument merged = mergeSecondRead(
+        current: first,
+        secondRead: second,
+      );
+
+      expect(
+        reviewFieldValue(merged, ReviewField.docDate).text,
+        '2026-10-01',
+        reason: 'an untouched value is refined by the later reading',
+      );
+      expect(
+        reviewFieldValue(merged, ReviewField.grossTotal).text,
+        '12.10',
+        reason: 'a field nothing was read for is filled',
+      );
+      expect(
+        reviewFieldValue(merged, ReviewField.supplierName).text,
+        'Acme Ibérica',
+      );
+    });
+
+    test('a value the user edited is never replaced, and keeps its mark', () {
+      final ReviewEdit edit = editReviewField(
+        document: aDocumentWithOnlyTheDate(),
+        field: ReviewField.docDate,
+        text: '2026-12-24',
+      );
+      final CanonicalDocument typed = edit.document!;
+
+      final CanonicalDocument merged = mergeSecondRead(
+        current: typed,
+        secondRead: aConfirmedDocument(),
+      );
+
+      final ReviewFieldValue date = reviewFieldValue(
+        merged,
+        ReviewField.docDate,
+      );
+      expect(date.text, '2026-12-24', reason: 'the user\'s value is the value');
+      expect(date.edited, isTrue, reason: 'and it keeps its edited mark');
+      expect(date.confidence, isNull);
+      expect(
+        reviewFieldValue(merged, ReviewField.grossTotal).text,
+        '12.10',
+        reason: 'what the user did not touch is still filled',
+      );
+    });
+
+    test('a reading that read nothing changes nothing', () {
+      final CanonicalDocument current = aConfirmedDocument();
+
+      final CanonicalDocument merged = mergeSecondRead(
+        current: current,
+        secondRead: anUnreadDocument(),
+      );
+
+      expect(merged.toJson(), current.toJson());
+    });
+
+    test('the document hash stays the stored document\'s', () {
+      final CanonicalDocument merged = mergeSecondRead(
+        current: aDocumentWithOnlyTheDate(),
+        secondRead: aConfirmedDocument(),
+      );
+
+      expect(merged.sourceHash, aDocumentWithOnlyTheDate().sourceHash);
+    });
+  });
 }

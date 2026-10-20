@@ -971,4 +971,353 @@ void main() {
       expect(fakes.text.readPaths, isEmpty);
     },
   );
+
+  group('[countries-languages/country-is-an-input] the country of a photograph is '
+      'the caller\'s input', () {
+    /// A stored photo and the fakes that read it as [pages].
+    Future<
+      ({
+        IntakeResult document,
+        ExtractionService service,
+        FakeOcrTextSource ocr,
+      })
+    >
+    aPhoto(List<TextPage> pages, {int seed = 100}) async {
+      final IntakeResult document = await storedDocument(
+        mediaType: 'image/jpeg',
+        bytes: textBytes('a synthetic photo'),
+        seed: seed,
+      );
+      final ({
+        ExtractionService service,
+        FakePdfTextSource text,
+        FakeOcrTextSource ocr,
+      })
+      fakes = serviceOver(
+        passes: <OcrPass>[OcrPass(MlKitOcrTextSource.imagePassId, pages)],
+      );
+      return (document: document, service: fakes.service, ocr: fakes.ocr);
+    }
+
+    test('the row in force decides, and the identifier printed on the image '
+        'does not', () async {
+      // A photographed ticket printing a Spanish issuer's CIF, read under the German row.
+      final ({
+        IntakeResult document,
+        ExtractionService service,
+        FakeOcrTextSource ocr,
+      })
+      photo = await aPhoto(<TextPage>[spanishInvoicePage(0)]);
+
+      final ExtractionOutcome outcome = await photo.service.extract(
+        photo.document,
+        country: CountryTable.de,
+      );
+
+      final ExtractionCompleted completed = outcome as ExtractionCompleted;
+      expect(
+        completed.detection,
+        Detected(row: CountryTable.de, evidence: const <CountryEvidenceKind>[]),
+        reason:
+            'the country is the input: nothing on the image was read as '
+            'evidence, so no evidence kind is reported (DEC-022)',
+      );
+      expect(completed.country, CountryTable.de);
+      expect(
+        completed.document.taxSlots,
+        hasLength(CountryTable.de.slotCount),
+        reason:
+            'the German row applied: its rate set is the slot count, and ES '
+            'declares a different one',
+      );
+      expect(
+        completed.document.recognitionEngine,
+        'photo-ocr/$ocrEngine',
+        reason:
+            'the country in force is not written into the engine metadata: '
+            'what a photo entry records about its country is GAP-034, undecided',
+      );
+      expect(completed.entry.state, DocumentState.reviewing);
+      expect(completed.entry.failureReason, isNull);
+    });
+
+    test('a country without a row gets no read at all, and the ticket is '
+        'reviewed by hand', () async {
+      final ({
+        IntakeResult document,
+        ExtractionService service,
+        FakeOcrTextSource ocr,
+      })
+      photo = await aPhoto(<TextPage>[photoTotalPage(0)], seed: 101);
+
+      final ExtractionOutcome outcome = await photo.service.extract(
+        photo.document,
+        country: null,
+      );
+
+      expect(
+        outcome,
+        isA<ExtractionCompleted>(),
+        reason: 'the document was read as far as it can be read: not a failure',
+      );
+      final ExtractionCompleted completed = outcome as ExtractionCompleted;
+      expect(
+        completed.detection,
+        const Undetected(reason: UndetectedReason.countryWithoutRow),
+      );
+      expect(completed.country, isNull);
+      expect(completed.document.grossTotal, const Absent<Money>());
+      expect(
+        completed.document.currency,
+        const Absent<CurrencyCode>(),
+        reason: 'no row, so no currency from anywhere else (GAP-036)',
+      );
+      expect(completed.document.taxSlots, isEmpty);
+      expect(completed.document.needsReview, isTrue);
+      expect(
+        completed.document.reviewReason,
+        ReviewReason.countryWithoutRow,
+        reason: 'the reason the screen shows is Core\'s own',
+      );
+      expect(completed.entry.state, DocumentState.reviewing);
+      expect(completed.entry.failureReason, isNull);
+      expect(
+        completed.document.recognitionEngine,
+        'photo-ocr/$ocrEngine',
+        reason: 'the no-row reason is not appended on the photo route',
+      );
+    });
+
+    test('the currency of a photographed ticket is its row\'s, green, with the '
+        'country setting as its source', () async {
+      final ({
+        IntakeResult document,
+        ExtractionService service,
+        FakeOcrTextSource ocr,
+      })
+      photo = await aPhoto(<TextPage>[photoTotalPage(0)], seed: 102);
+
+      final ExtractionOutcome outcome = await photo.service.extract(
+        photo.document,
+        country: CountryTable.es,
+      );
+
+      final CanonicalDocument values =
+          (outcome as ExtractionCompleted).document;
+      expect(
+        values.currency,
+        Present<CurrencyCode>(
+          eur,
+          Provenance.derived,
+          ConfidenceState.green,
+          source: ValueSource.countrySetting,
+        ),
+        reason:
+            'DEC-023: green, and its origin is the country setting rather than '
+            'a reading of the paper',
+      );
+      expect(
+        values.grossTotal,
+        Present<Money>(
+          Money(1250, eur),
+          Provenance.read,
+          ConfidenceState.amber,
+        ),
+        reason:
+            'the labelled total is read from the image, in the row\'s money',
+      );
+    });
+
+    test('the text route still detects its country, whatever the caller says '
+        'about one', () async {
+      final IntakeResult document = await storedDocument(seed: 103);
+      final ({
+        ExtractionService service,
+        FakePdfTextSource text,
+        FakeOcrTextSource ocr,
+      })
+      fakes = serviceOver(textPages: <TextPage>[spanishInvoicePage(0)]);
+
+      final ExtractionOutcome outcome = await fakes.service.extract(
+        document,
+        country: CountryTable.de,
+      );
+
+      final ExtractionCompleted completed = outcome as ExtractionCompleted;
+      expect(
+        completed.detection,
+        Detected(
+          row: CountryTable.es,
+          evidence: const <CountryEvidenceKind>[CountryEvidenceKind.taxId],
+        ),
+        reason:
+            'the PDF text route is not touched by DEC-022: its country is its '
+            'own evidence',
+      );
+      expect(
+        completed.document.taxSlots,
+        hasLength(CountryTable.es.slotCount),
+        reason: 'the detected Spanish row governed the reading',
+      );
+    });
+  });
+
+  group('[extraction-pipeline/second-read-on-the-users-request] the second read '
+      'runs on the same document', () {
+    test('it reads the stored document again, moves no state and writes '
+        'nothing', () async {
+      final IntakeResult document = await storedDocument(
+        mediaType: 'image/jpeg',
+        bytes: textBytes('a synthetic photo'),
+        seed: 110,
+      );
+      final ({
+        ExtractionService service,
+        FakePdfTextSource text,
+        FakeOcrTextSource ocr,
+      })
+      fakes = serviceOver(
+        passes: <OcrPass>[
+          OcrPass(MlKitOcrTextSource.imagePassId, <TextPage>[
+            photoTotalPage(0),
+          ]),
+        ],
+      );
+      await fakes.service.extract(document, country: CountryTable.es);
+      final HistoryEntry firstRead = await files.get(document.docId);
+      final String before = sha256Of(
+        File(document.storedPath).readAsBytesSync(),
+      );
+      store.writtenStates.clear();
+
+      final CanonicalDocument second = await fakes.service.reRead(
+        document,
+        country: CountryTable.es,
+      );
+
+      expect(
+        fakes.ocr.recognisePaths,
+        <String>[document.storedPath, document.storedPath],
+        reason:
+            'the second read runs the route again over the same stored file, '
+            'with no new capture',
+      );
+      expect(
+        second.grossTotal,
+        Present<Money>(
+          Money(1250, eur),
+          Provenance.read,
+          ConfidenceState.amber,
+        ),
+        reason: 'the same consensus as the first read, and no new strength',
+      );
+      expect(
+        store.writtenStates,
+        isEmpty,
+        reason:
+            'a second look is not a state of the document: nothing is written '
+            'and no revision is bumped',
+      );
+      expect(await files.get(document.docId), firstRead);
+      expect(
+        sha256Of(File(document.storedPath).readAsBytesSync()),
+        before,
+        reason: 'the stored copy is read, never written (ADR-015)',
+      );
+    });
+
+    test('it reads under the country now in force for the ticket', () async {
+      final IntakeResult document = await storedDocument(
+        mediaType: 'image/jpeg',
+        bytes: textBytes('a synthetic photo'),
+        seed: 111,
+      );
+      final ({
+        ExtractionService service,
+        FakePdfTextSource text,
+        FakeOcrTextSource ocr,
+      })
+      fakes = serviceOver(
+        passes: <OcrPass>[
+          OcrPass(MlKitOcrTextSource.imagePassId, <TextPage>[
+            photoTotalPage(0),
+          ]),
+        ],
+      );
+
+      final CanonicalDocument underGermany = await fakes.service.reRead(
+        document,
+        country: CountryTable.de,
+      );
+      final CanonicalDocument underSpain = await fakes.service.reRead(
+        document,
+        country: CountryTable.es,
+      );
+
+      expect(underGermany.taxSlots, hasLength(CountryTable.de.slotCount));
+      expect(underSpain.taxSlots, hasLength(CountryTable.es.slotCount));
+    });
+
+    test('a country without a row reads nothing, and no convention is '
+        'assumed', () async {
+      final IntakeResult document = await storedDocument(
+        mediaType: 'image/jpeg',
+        bytes: textBytes('a synthetic photo'),
+        seed: 112,
+      );
+      final ({
+        ExtractionService service,
+        FakePdfTextSource text,
+        FakeOcrTextSource ocr,
+      })
+      fakes = serviceOver(
+        passes: <OcrPass>[
+          OcrPass(MlKitOcrTextSource.imagePassId, <TextPage>[
+            photoTotalPage(0),
+          ]),
+        ],
+      );
+
+      final CanonicalDocument document2 = await fakes.service.reRead(
+        document,
+        country: null,
+      );
+
+      expect(document2.grossTotal, const Absent<Money>());
+      expect(document2.currency, const Absent<CurrencyCode>());
+      expect(document2.reviewReason, ReviewReason.countryWithoutRow);
+    });
+
+    test('a route that cannot read the document this time throws, and leaves '
+        'the document alone', () async {
+      final IntakeResult document = await storedDocument(
+        mediaType: 'image/jpeg',
+        bytes: textBytes('a synthetic photo'),
+        seed: 113,
+      );
+      final ({ExtractionService service, FakePdfTextSource text}) failing = (
+        service: ExtractionService(
+          store: store,
+          router: ExtractionRouter(
+            pdfText: FakePdfTextSource(),
+            ocr: FakeOcrTextSource(
+              failure: const OcrFailure('the file could not be read'),
+            ),
+          ),
+        ),
+        text: FakePdfTextSource(),
+      );
+
+      await expectLater(
+        failing.service.reRead(document, country: CountryTable.es),
+        throwsA(isA<ExtractionFailure>()),
+      );
+
+      expect(
+        (await files.get(document.docId)).state,
+        DocumentState.pending,
+        reason: 'a second read under review changes no state, failed or not',
+      );
+    });
+  });
 }

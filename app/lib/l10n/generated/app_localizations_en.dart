@@ -379,4 +379,43 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get reviewErrorAmountNeedsCurrency =>
       'Set the currency first, so that the amount can be read.';
+
+  @override
+  String get reviewCountryLabel => 'Country';
+
+  @override
+  String get reviewCountryUnset => 'Not set';
+
+  @override
+  String get reviewCountryFromSettings => 'from the settings';
+
+  @override
+  String get reviewCountryForTicket => 'changed for this ticket';
+
+  @override
+  String get reviewCountryAction => 'Change the country';
+
+  @override
+  String get reviewCountryTitle => 'Which country is this ticket read under?';
+
+  @override
+  String get reviewCountryNoRowWarning =>
+      'This country has no row in Paperdrop\'s country table: its readers are not applied, so fill the fields in by hand.';
+
+  @override
+  String get reviewCountryUnsetWarning =>
+      'No country is set for this ticket, so no country row applies: fill the fields in by hand.';
+
+  @override
+  String get reviewCurrencySourceCountrySetting => 'from the country setting';
+
+  @override
+  String get reviewReReadAction => 'Re-read to refine';
+
+  @override
+  String get reviewReReadRunning => 'Reading the document again.';
+
+  @override
+  String get reviewReReadFailed =>
+      'The document could not be read again. Nothing on this ticket changed.';
 }

@@ -7,12 +7,26 @@
 /// (`review-screen/amounts-block-collapse-rule`), FR-REV-007 (`review-screen/duplicate-notice`),
 /// FR-REV-008 (`review-screen/save-button-names-the-destination`), FR-REV-009
 /// (`review-screen/never-block-a-save`) and FR-REV-011 (`review-screen/discard-a-document`), with
-/// DEC-007 and NFR-ACC-001.
+/// DEC-007 and NFR-ACC-001 — plus the two requirements of `adopt-app-cust-readers`:
+/// `review-screen` · `country-shown-and-editable-per-ticket` (DEC-022) and
+/// `review-screen` · `second-read-is-requested-and-shown-running` (DEC-024).
 ///
 /// **It draws, it decides nothing.** Every rule — which field holds the focus, when the block
-/// collapses, whether an edit is allowed, whether the save is enabled, what a save sends — is
-/// [ReviewController]'s, and this file reads the state and renders it. That is what lets a host test
-/// cover the rules and a widget test cover what a person sees (design §1).
+/// collapses, whether an edit is allowed, whether the save is enabled, what a save sends, which
+/// country is in force and what a second read may replace — is [ReviewController]'s, and this file
+/// reads the state and renders it. That is what lets a host test cover the rules and a widget test
+/// cover what a person sees (design §1).
+///
+/// **The country is a line of its own, outside the six** (`country-shown-and-editable-per-ticket`):
+/// it shows the country in force for the ticket with where it came from — the settings, or a change
+/// made for this ticket — and tapping it opens the country selection without leaving the document.
+/// Changing it re-reads nothing and rewrites no value; when the country has no row in the country
+/// table the line says so and says the fields are to be filled by hand (GAP-036). The six core
+/// fields keep their order and their number: the country is not one of them.
+///
+/// **The second read is a button, and the screen shows it running** (DEC-024): it disables nothing —
+/// a save made while it runs is a save — and it never runs on its own. What it filled or refined
+/// appears when it finishes, and a value the user edited or typed stays the user's.
 ///
 /// **The save is fixed at the bottom and names the table** (FR-REV-008). It is drawn outside the
 /// scrolling column, so a long document scrolled to any position still shows it, and its label is
@@ -39,7 +53,8 @@ import 'package:paperdrop/features/review/review_thumbnail.dart';
 import 'package:paperdrop/features/wizard/destination.dart';
 import 'package:paperdrop/history/history_entry.dart';
 import 'package:paperdrop/l10n/generated/app_localizations.dart';
-import 'package:paperdrop_core/paperdrop_core.dart' show ConfidenceState, Money;
+import 'package:paperdrop_core/paperdrop_core.dart'
+    show ConfidenceState, CountryRow, Money;
 
 /// The review screen of one document.
 class ReviewScreen extends StatefulWidget {
@@ -106,6 +121,32 @@ class ReviewScreen extends StatefulWidget {
 
   /// The notice's *save anyway* action.
   static const Key duplicateProceedKey = Key('review-duplicate-proceed');
+
+  /// The country in force for the ticket, and where it came from (DEC-022).
+  static const Key countryKey = Key('review-country');
+
+  /// The country line as the control that opens the country selection.
+  static const Key countryActionKey = Key('review-country-action');
+
+  /// The warning a country without a row owes the user (GAP-036).
+  static const Key countryWarningKey = Key('review-country-warning');
+
+  /// One country the selection offers, by its ISO 3166-1 alpha-2 code.
+  static Key countryChoiceKey(String countryCode) =>
+      ValueKey<String>('review-country-choice-$countryCode');
+
+  /// The origin of one field's value, when it is not the document itself (DEC-023).
+  static Key fieldSourceKey(ReviewField field) =>
+      ValueKey<String>('review-field-source-${field.wireName}');
+
+  /// The requested second read of DEC-024.
+  static const Key reReadKey = Key('review-re-read');
+
+  /// The line that shows the second read running.
+  static const Key reReadRunningKey = Key('review-re-read-running');
+
+  /// The line that says the second read could not run.
+  static const Key reReadFailedKey = Key('review-re-read-failed');
 
   /// The amounts block.
   static const Key amountsKey = Key('review-amounts');
@@ -232,6 +273,63 @@ class _ReviewScreenState extends State<ReviewScreen> {
       return;
     }
     widget.onDiscarded?.call();
+  }
+
+  /// Opens the country selection without leaving the document
+  /// (`country-shown-and-editable-per-ticket`).
+  ///
+  /// The countries offered are the rows of the country table: they are the countries this app has
+  /// anything to apply for, and no source in the project lists countries beyond them
+  /// (`countries-languages` · `launch-rows`). The change is the ticket's — the controller writes
+  /// nothing to the settings and re-reads nothing — so the sheet simply closes.
+  Future<void> _chooseCountry() async {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    final ReviewState state = widget.controller.state;
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (BuildContext sheet) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                l10n.reviewCountryTitle,
+                style: Theme.of(sheet).textTheme.titleLarge,
+              ),
+            ),
+            for (final CountryRow row in state.countryChoices)
+              ListTile(
+                key: ReviewScreen.countryChoiceKey(row.countryCode),
+                title: Text(row.countryCode),
+                selected: row.countryCode == state.countryCode,
+                onTap: () {
+                  widget.controller.chooseCountry(row.countryCode);
+                  Navigator.of(sheet).pop();
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  /// Asks for the second read of DEC-024 and redraws while it runs.
+  ///
+  /// The controller marks the read as running before it reaches its first `await`, so the redraw
+  /// that follows the call is the one that shows it; the second redraw is the one that stops
+  /// showing it, whether the read filled something or not.
+  Future<void> _reRead() async {
+    final Future<void> running = widget.controller.reRead();
+    setState(() {});
+    await running;
+    if (!mounted) {
+      return;
+    }
+    setState(() {});
   }
 
   /// Opens the destination selection without leaving the document (FR-REV-001).
@@ -361,6 +459,10 @@ class _ReviewScreenState extends State<ReviewScreen> {
                     ?.copyWith(color: Theme.of(context).colorScheme.error),
               ),
             ],
+            const SizedBox(height: 16),
+            _countryLine(l10n, state),
+            const SizedBox(height: 16),
+            _reReadAction(l10n, state),
             if (amounts != null) ...<Widget>[
               const SizedBox(height: 16),
               _amountsBlock(context, l10n, amounts),
@@ -493,6 +595,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
     final bool locked =
         confidence == ConfidenceState.green && !state.unlocked.contains(field);
     final bool editing = _editing == field;
+    final String? source = reviewValueSourceLabel(l10n, value.source);
     return Focus(
       focusNode: _focus[field],
       // The node is focused when it is attached, which is the only moment a `Focus` can take the
@@ -502,60 +605,184 @@ class _ReviewScreenState extends State<ReviewScreen> {
         child: Padding(
           key: ReviewScreen.fieldKey(field),
           padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Expanded(
-                child: editing
-                    ? TextField(
-                        key: ReviewScreen.editorKey(field),
-                        controller: _editor,
-                        autofocus: true,
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          fontSize: 22,
-                        ),
-                        decoration: InputDecoration(labelText: label),
-                        textInputAction: TextInputAction.done,
-                        onSubmitted: (String text) => _commit(field),
-                      )
-                    : InkWell(
-                        onTap: widget.controller.canEdit(field)
-                            ? () => _startEdit(field, value.text)
-                            : null,
-                        child: Text(
-                          shown,
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            fontSize: 22,
-                            color: cue?.colour,
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: editing
+                        ? TextField(
+                            key: ReviewScreen.editorKey(field),
+                            controller: _editor,
+                            autofocus: true,
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              fontSize: 22,
+                            ),
+                            decoration: InputDecoration(labelText: label),
+                            textInputAction: TextInputAction.done,
+                            onSubmitted: (String text) => _commit(field),
+                          )
+                        : InkWell(
+                            onTap: widget.controller.canEdit(field)
+                                ? () => _startEdit(field, value.text)
+                                : null,
+                            child: Text(
+                              shown,
+                              style: theme.textTheme.bodyLarge?.copyWith(
+                                fontSize: 22,
+                                color: cue?.colour,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
+                  ),
+                  if (cue != null && confidence != null)
+                    Icon(
+                      cue.icon,
+                      color: cue.colour,
+                      semanticLabel: reviewConfidenceLabel(l10n, confidence),
+                    ),
+                  if (locked)
+                    IconButton(
+                      key: ReviewScreen.lockKey(field),
+                      tooltip: l10n.reviewLockAction,
+                      onPressed: () {
+                        widget.controller.unlock(field);
+                        setState(() {});
+                      },
+                      icon: const Icon(lockIcon),
+                    ),
+                  if (value.edited)
+                    Icon(
+                      editedIcon,
+                      color: theme.colorScheme.onSurfaceVariant,
+                      semanticLabel: reviewEditedLabel(l10n),
+                    ),
+                ],
               ),
-              if (cue != null && confidence != null)
-                Icon(
-                  cue.icon,
-                  color: cue.colour,
-                  semanticLabel: reviewConfidenceLabel(l10n, confidence),
-                ),
-              if (locked)
-                IconButton(
-                  key: ReviewScreen.lockKey(field),
-                  tooltip: l10n.reviewLockAction,
-                  onPressed: () {
-                    widget.controller.unlock(field);
-                    setState(() {});
-                  },
-                  icon: const Icon(lockIcon),
-                ),
-              if (value.edited)
-                Icon(
-                  editedIcon,
-                  color: theme.colorScheme.onSurfaceVariant,
-                  semanticLabel: reviewEditedLabel(l10n),
+              // Where the value came from, when it is not the document: DEC-023's currency is
+              // green because the country setting sets it, and the screen has to say so for the
+              // green not to read as a confirmed reading of the paper.
+              if (source != null)
+                Text(
+                  source,
+                  key: ReviewScreen.fieldSourceKey(field),
+                  style: theme.textTheme.bodySmall,
                 ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  /// The country in force for the ticket, where it came from, and the warning when it has no row.
+  ///
+  /// The country is drawn outside the six core fields and never between them
+  /// (`country-shown-and-editable-per-ticket` · *the six core fields keep their order*): the order of
+  /// FR-REV-004 is the enum's, and nothing here re-sorts it.
+  Widget _countryLine(AppLocalizations l10n, ReviewState state) {
+    final ThemeData theme = Theme.of(context);
+    final String code = reviewCountryText(l10n, state.countryCode);
+    return Column(
+      key: ReviewScreen.countryKey,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Tooltip(
+          message: l10n.reviewCountryAction,
+          child: MergeSemantics(
+            child: Semantics(
+              button: true,
+              child: InkWell(
+                key: ReviewScreen.countryActionKey,
+                onTap: _chooseCountry,
+                // The line is a control, so it is a touch target a person can hit
+                // (NFR-ACC-001, androidTapTargetGuideline).
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 48),
+                  child: Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: Text(
+                          l10n.reviewFieldValue(l10n.reviewCountryLabel, code),
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            fontSize: 22,
+                          ),
+                        ),
+                      ),
+                      const Icon(Icons.public),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        Text(
+          reviewCountrySource(l10n, widget.controller.countryFromSettings),
+          style: theme.textTheme.bodySmall,
+        ),
+        if (!state.countryHasRow) ...<Widget>[
+          const SizedBox(height: 8),
+          Text(
+            reviewCountryWarning(l10n, state.countryCode),
+            key: ReviewScreen.countryWarningKey,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: confidenceCues[ConfidenceState.amber]!.colour,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  /// The requested second read: the action, the line that shows it running, and its failure.
+  ///
+  /// It is disabled while it runs — a second request would be a second read of a read already under
+  /// way — and it disables nothing else: the save action at the bottom stays available, because a
+  /// second read is never a condition of saving (`never-block-a-save`).
+  Widget _reReadAction(AppLocalizations l10n, ReviewState state) {
+    final ThemeData theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        OutlinedButton.icon(
+          key: ReviewScreen.reReadKey,
+          onPressed: state.reReading ? null : _reRead,
+          icon: const Icon(Icons.refresh_outlined),
+          label: Text(l10n.reviewReReadAction),
+        ),
+        if (state.reReading) ...<Widget>[
+          const SizedBox(height: 8),
+          Row(
+            key: ReviewScreen.reReadRunningKey,
+            children: <Widget>[
+              const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  l10n.reviewReReadRunning,
+                  style: theme.textTheme.bodyMedium,
+                ),
+              ),
+            ],
+          ),
+        ],
+        if (state.reReadFailed) ...<Widget>[
+          const SizedBox(height: 8),
+          Text(
+            l10n.reviewReReadFailed,
+            key: ReviewScreen.reReadFailedKey,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.error,
+            ),
+          ),
+        ],
+      ],
     );
   }
 

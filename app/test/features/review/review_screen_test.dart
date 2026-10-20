@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ninox_client/ninox_client.dart' show SendOutcome;
@@ -7,6 +10,7 @@ import 'package:paperdrop/features/review/review_amounts.dart';
 import 'package:paperdrop/features/review/review_controller.dart';
 import 'package:paperdrop/features/review/review_field.dart';
 import 'package:paperdrop/features/review/review_screen.dart';
+import 'package:paperdrop/features/review/review_second_read.dart';
 import 'package:paperdrop/features/review/review_sender.dart';
 import 'package:paperdrop/features/review/review_thumbnail.dart';
 import 'package:paperdrop/features/wizard/data/destination_store.dart';
@@ -14,6 +18,7 @@ import 'package:paperdrop/features/wizard/destination.dart' show Destination;
 import 'package:paperdrop/history/duplicate_checker.dart';
 import 'package:paperdrop/history/history_entry.dart';
 import 'package:paperdrop/l10n/generated/app_localizations.dart';
+import 'package:paperdrop/settings/country_setting.dart';
 import 'package:paperdrop_core/paperdrop_core.dart';
 
 import '../../history/history_fixtures.dart';
@@ -45,6 +50,8 @@ void main() {
     DestinationAcknowledgement? acknowledgement,
     ReviewSender? sender,
     CaptureDiscard? discard,
+    CountrySettingStore? country,
+    ReviewSecondRead? secondRead,
   }) => ReviewController(
     store: store,
     duplicates: DuplicateChecker(store),
@@ -57,6 +64,8 @@ void main() {
     acknowledgement: acknowledgement ?? MemoryAcknowledgement(fixedDay()),
     sender: sender ?? FakeReviewSender(),
     discard: discard ?? FakeCaptureDiscard(),
+    country: country ?? FakeCountrySetting(),
+    secondRead: secondRead ?? FakeReviewSecondRead(),
     clock: fixedClock,
     entry: entry,
   );
@@ -542,5 +551,239 @@ void main() {
     await expectLater(tester, meetsGuideline(textContrastGuideline));
 
     handle.dispose();
+  });
+
+  group('[review-screen/country-shown-and-editable-per-ticket]', () {
+    testWidgets('the ticket shows the country it was read under, and where it '
+        'came from', (WidgetTester tester) async {
+      await pumpReview(
+        tester,
+        aController(
+          entry: aReviewingEntry(),
+          country: FakeCountrySetting(const CountrySetting('DE')),
+        ),
+      );
+
+      expect(
+        find.text(en.reviewFieldValue(en.reviewCountryLabel, 'DE')),
+        findsOneWidget,
+      );
+      expect(find.text(en.reviewCountryFromSettings), findsOneWidget);
+      expect(
+        find.byKey(ReviewScreen.countryWarningKey),
+        findsNothing,
+        reason: 'Germany has a row, so there is nothing to warn about',
+      );
+    });
+
+    testWidgets('the country changes for this ticket, without leaving the '
+        'document and without touching the settings', (
+      WidgetTester tester,
+    ) async {
+      final FakeCountrySetting settings = FakeCountrySetting(
+        const CountrySetting('DE'),
+      );
+      final ReviewController controller = aController(
+        entry: aReviewingEntry(),
+        country: settings,
+      );
+      await pumpReview(tester, controller);
+      final List<String> before = controller.state.fields
+          .map((ReviewFieldValue value) => value.text)
+          .toList();
+
+      await tester.tap(find.byKey(ReviewScreen.countryActionKey));
+      await tester.pumpAndSettle();
+      expect(find.text(en.reviewCountryTitle), findsOneWidget);
+      await tester.tap(find.byKey(ReviewScreen.countryChoiceKey('ES')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(en.reviewFieldValue(en.reviewCountryLabel, 'ES')),
+        findsOneWidget,
+      );
+      expect(find.text(en.reviewCountryForTicket), findsOneWidget);
+      expect(
+        settings.writes,
+        0,
+        reason: 'the settings keep their default: the change is the ticket\'s',
+      );
+      expect(settings.setting, const CountrySetting('DE'));
+      expect(
+        controller.state.fields
+            .map((ReviewFieldValue value) => value.text)
+            .toList(),
+        before,
+        reason: 'what was read is what stays on screen',
+      );
+      expect(
+        find.byKey(ReviewScreen.fieldKey(ReviewField.grossTotal)),
+        findsOneWidget,
+        reason: 'the document is still under review',
+      );
+    });
+
+    testWidgets('a country with no row is announced on the ticket', (
+      WidgetTester tester,
+    ) async {
+      await pumpReview(
+        tester,
+        aController(
+          entry: aReviewingEntry(),
+          country: FakeCountrySetting(const CountrySetting('PT')),
+        ),
+      );
+
+      expect(find.text(en.reviewCountryNoRowWarning), findsOneWidget);
+      expect(find.text(en.reviewCountryUnsetWarning), findsNothing);
+    });
+
+    testWidgets('a settings file with no country at all says so, and warns', (
+      WidgetTester tester,
+    ) async {
+      await pumpReview(
+        tester,
+        aController(
+          entry: aReviewingEntry(),
+          country: FakeCountrySetting()..unreadable = true,
+        ),
+      );
+
+      expect(
+        find.text(
+          en.reviewFieldValue(en.reviewCountryLabel, en.reviewCountryUnset),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text(en.reviewCountryUnsetWarning), findsOneWidget);
+    });
+
+    testWidgets('the currency says it comes from the country setting', (
+      WidgetTester tester,
+    ) async {
+      await pumpReview(
+        tester,
+        aController(entry: aReviewingEntry(values: aPhotoDocument())),
+      );
+
+      expect(
+        find.byKey(ReviewScreen.fieldSourceKey(ReviewField.currency)),
+        findsOneWidget,
+        reason: 'DEC-023: the green of the currency has to name its source',
+      );
+      expect(find.text(en.reviewCurrencySourceCountrySetting), findsOneWidget);
+      expect(
+        find.byKey(ReviewScreen.fieldSourceKey(ReviewField.grossTotal)),
+        findsNothing,
+        reason: 'a value read from the document has no source to declare',
+      );
+    });
+  });
+
+  group('[review-screen/second-read-is-requested-and-shown-running]', () {
+    testWidgets('the user asks for it, the screen shows it running, and then '
+        'stops showing it', (WidgetTester tester) async {
+      final FakeReviewSecondRead secondRead = FakeReviewSecondRead(
+        answer: (HistoryEntry entry) => aDocumentWithOnlyTheDate(),
+      )..pending = Completer<void>();
+      await pumpReview(
+        tester,
+        aController(entry: aReviewingEntry(), secondRead: secondRead),
+      );
+
+      await tester.tap(find.byKey(ReviewScreen.reReadKey));
+      await tester.pump();
+      expect(find.byKey(ReviewScreen.reReadRunningKey), findsOneWidget);
+      expect(find.text(en.reviewReReadRunning), findsOneWidget);
+
+      secondRead.pending!.complete();
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(ReviewScreen.reReadRunningKey), findsNothing);
+    });
+
+    testWidgets('a total the user typed is still on screen after the second '
+        'read', (WidgetTester tester) async {
+      final FakeReviewSecondRead secondRead = FakeReviewSecondRead(
+        answer: (HistoryEntry entry) => aConfirmedDocument(),
+      );
+      final ReviewController controller = aController(
+        entry: aReviewingEntry(values: aPhotoDocument()),
+        secondRead: secondRead,
+      );
+      await pumpReview(tester, controller);
+
+      // An amber total is directly editable: tap it and type another one.
+      await tester.tap(
+        find.byKey(ReviewScreen.fieldKey(ReviewField.grossTotal)),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(ReviewScreen.editorKey(ReviewField.grossTotal)),
+        '13.00',
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(ReviewScreen.reReadKey));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(en.reviewFieldValue(en.reviewFieldGrossTotal, '13.00')),
+        findsOneWidget,
+        reason: 'the user\'s value is the value kept (FR-REV-010, DEC-024)',
+      );
+    });
+
+    testWidgets(
+      'a second read that could not run says so and changes nothing',
+      (WidgetTester tester) async {
+        final FakeReviewSecondRead secondRead = FakeReviewSecondRead()
+          ..failure = const FileSystemException('the file could not be read');
+        await pumpReview(
+          tester,
+          aController(entry: aReviewingEntry(), secondRead: secondRead),
+        );
+
+        await tester.tap(find.byKey(ReviewScreen.reReadKey));
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(ReviewScreen.reReadFailedKey), findsOneWidget);
+        expect(find.byKey(ReviewScreen.reReadRunningKey), findsNothing);
+        expect(
+          find.text(en.reviewFieldValue(en.reviewFieldGrossTotal, '12.10')),
+          findsOneWidget,
+          reason: 'the values stay exactly as they were',
+        );
+      },
+    );
+
+    testWidgets('a save is not held back while the second read runs', (
+      WidgetTester tester,
+    ) async {
+      final FakeReviewSecondRead secondRead = FakeReviewSecondRead(
+        answer: (HistoryEntry entry) => aConfirmedDocument(),
+      )..pending = Completer<void>();
+      final FakeReviewSender sender = FakeReviewSender();
+      await pumpReview(
+        tester,
+        aController(
+          entry: aReviewingEntry(),
+          secondRead: secondRead,
+          sender: sender,
+        ),
+      );
+
+      await tester.tap(find.byKey(ReviewScreen.reReadKey));
+      await tester.pump();
+      await tester.tap(find.byKey(ReviewScreen.saveKey));
+      await tester.pump();
+
+      expect(sender.sent, hasLength(1));
+
+      secondRead.pending!.complete();
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 5));
+    });
   });
 }

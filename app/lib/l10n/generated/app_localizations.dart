@@ -729,6 +729,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Set the currency first, so that the amount can be read.'**
   String get reviewErrorAmountNeedsCurrency;
+
+  /// The name of the country line on the review screen: the country in force for the ticket, shown without the user having to ask for it (review-screen/country-shown-and-editable-per-ticket, DEC-022).
+  ///
+  /// In en, this message translates to:
+  /// **'Country'**
+  String get reviewCountryLabel;
+
+  /// What the country line shows when the settings hold no country at all, because the phone named no region on the first run and no country was assumed (countries-languages/country-is-an-input).
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get reviewCountryUnset;
+
+  /// The country line's source while the ticket still holds the settings' default country (countries-languages/country-is-an-input).
+  ///
+  /// In en, this message translates to:
+  /// **'from the settings'**
+  String get reviewCountryFromSettings;
+
+  /// The country line's source once the user changed the country for this ticket: the change is this ticket's and the settings keep their default (review-screen/the next ticket goes back to the default).
+  ///
+  /// In en, this message translates to:
+  /// **'changed for this ticket'**
+  String get reviewCountryForTicket;
+
+  /// The accessible name of the country line, which opens the country selection without leaving the document (review-screen/country-shown-and-editable-per-ticket).
+  ///
+  /// In en, this message translates to:
+  /// **'Change the country'**
+  String get reviewCountryAction;
+
+  /// Title of the country selection the country line opens.
+  ///
+  /// In en, this message translates to:
+  /// **'Which country is this ticket read under?'**
+  String get reviewCountryTitle;
+
+  /// The warning of GAP-036 (product owner, 2026-10-19): the country in force has no row, no row is applied in its place, nothing is assumed, and the fields are filled by hand.
+  ///
+  /// In en, this message translates to:
+  /// **'This country has no row in Paperdrop\'s country table: its readers are not applied, so fill the fields in by hand.'**
+  String get reviewCountryNoRowWarning;
+
+  /// The same warning for a settings file that holds no country at all: no row applies and nothing is assumed in its place.
+  ///
+  /// In en, this message translates to:
+  /// **'No country is set for this ticket, so no country row applies: fill the fields in by hand.'**
+  String get reviewCountryUnsetWarning;
+
+  /// Shown beside the currency when it comes from the country row rather than from the document: the source is visible so that the green of DEC-023 is not mistaken for a confirmed reading.
+  ///
+  /// In en, this message translates to:
+  /// **'from the country setting'**
+  String get reviewCurrencySourceCountrySetting;
+
+  /// The requested second read of DEC-024 (review-screen/second-read-is-requested-and-shown-running): the user asks for it and it never runs on its own.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-read to refine'**
+  String get reviewReReadAction;
+
+  /// Shown while the requested second read runs, so that the wait is not mistaken for a block (DEC-024).
+  ///
+  /// In en, this message translates to:
+  /// **'Reading the document again.'**
+  String get reviewReReadRunning;
+
+  /// A second read the route could not make: the values on screen stay as they were, including everything the user typed.
+  ///
+  /// In en, this message translates to:
+  /// **'The document could not be read again. Nothing on this ticket changed.'**
+  String get reviewReReadFailed;
 }
 
 class _AppLocalizationsDelegate

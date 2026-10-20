@@ -5,6 +5,7 @@
 /// (`implement-review-screen`, design §1 and §7). Every identifier and every value is synthetic.
 library;
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -14,11 +15,13 @@ import 'package:ninox_client/ninox_client.dart'
     show NinoxEndpoint, SendOutcome, TableRef;
 import 'package:paperdrop/features/review/capture_discard.dart';
 import 'package:paperdrop/features/review/destination_acknowledgement.dart';
+import 'package:paperdrop/features/review/review_second_read.dart';
 import 'package:paperdrop/features/review/review_sender.dart';
 import 'package:paperdrop/features/wizard/data/destination_store.dart';
 import 'package:paperdrop/features/wizard/destination.dart';
 import 'package:paperdrop/history/history_entry.dart';
 import 'package:paperdrop/history/history_store.dart';
+import 'package:paperdrop/settings/country_setting.dart';
 import 'package:paperdrop_core/paperdrop_core.dart';
 import 'package:path/path.dart' as p;
 
@@ -170,6 +173,40 @@ CanonicalDocument anUnreadDocument() => CanonicalDocument(
   needsReview: false,
   recognitionEngine: 'pdf-text/pdfrx',
   sourceHash: aDocumentHash('unread'),
+);
+
+/// A photographed ticket's document: its currency comes from the country row (DEC-023).
+///
+/// It is green — the state DEC-023 gives that one source — and its `ValueSource` is the country
+/// setting, which is what the screen has to be able to say.
+CanonicalDocument aPhotoDocument() => CanonicalDocument(
+  docDate: Present<CalendarDate>(
+    CalendarDate(2026, 10, 5),
+    Provenance.read,
+    ConfidenceState.amber,
+  ),
+  grossTotal: aReadAmount(1250, ConfidenceState.amber),
+  currency: Present<CurrencyCode>(
+    euro,
+    Provenance.derived,
+    ConfidenceState.green,
+    source: ValueSource.countrySetting,
+  ),
+  needsReview: true,
+  recognitionEngine: 'photo-ocr/google_mlkit_text_recognition 0.17.1',
+  sourceHash: aDocumentHash('photo'),
+);
+
+/// A first read that produced the date and nothing else, for the second read's merge to fill.
+CanonicalDocument aDocumentWithOnlyTheDate() => CanonicalDocument(
+  docDate: Present<CalendarDate>(
+    CalendarDate(2026, 10, 6),
+    Provenance.read,
+    ConfidenceState.amber,
+  ),
+  needsReview: true,
+  recognitionEngine: 'photo-ocr/google_mlkit_text_recognition 0.17.1',
+  sourceHash: aDocumentHash('date-only'),
 );
 
 /// The destination this device holds, and shows in the bar.
@@ -324,6 +361,83 @@ final class FakeCaptureDiscard implements CaptureDiscard {
       throw const FileSystemException('the capture could not be deleted');
     }
     deleted.add(docId);
+  }
+}
+
+/// A [CountrySettingStore] in memory: the settings' default country.
+///
+/// It exists so that a test can prove the two halves of `country-is-an-input` that are about the
+/// settings rather than about the screen: the default is **read** when a ticket opens, and a change
+/// made for one ticket **writes nothing here**.
+final class FakeCountrySetting implements CountrySettingStore {
+  /// Builds the store over [setting] — Spain unless a test says otherwise.
+  FakeCountrySetting([this.setting = const CountrySetting('ES')]);
+
+  /// What [read] answers.
+  CountrySetting setting;
+
+  /// Set when a read should behave like a file that is not one this app wrote.
+  bool unreadable = false;
+
+  /// How many times the setting was read.
+  int reads = 0;
+
+  /// How many times the setting was written.
+  int writes = 0;
+
+  @override
+  Future<CountrySetting> read() async {
+    reads++;
+    if (unreadable) {
+      throw const FormatException('the country file is not one of ours');
+    }
+    return setting;
+  }
+
+  @override
+  Future<void> write(CountrySetting setting) async {
+    writes++;
+    this.setting = setting;
+  }
+}
+
+/// A [ReviewSecondRead] a test scripts: what it answers, and what it was asked.
+final class FakeReviewSecondRead implements ReviewSecondRead {
+  /// Builds the read over [answer], which is the reading a call produces.
+  FakeReviewSecondRead({CanonicalDocument Function(HistoryEntry entry)? answer})
+    : answer = answer ?? ((HistoryEntry entry) => anUnreadDocument());
+
+  /// What a call answers, unless [failure] says otherwise.
+  CanonicalDocument Function(HistoryEntry entry) answer;
+
+  /// The documents the second read was asked about, in order.
+  final List<String> docIds = <String>[];
+
+  /// The country each call was given, in order.
+  final List<CountryRow?> countries = <CountryRow?>[];
+
+  /// Set while a call should wait, so that a test can look at the screen while it runs.
+  Completer<void>? pending;
+
+  /// Set when the read should behave like a route that could not read the document.
+  Exception? failure;
+
+  @override
+  Future<CanonicalDocument> reRead(
+    HistoryEntry entry, {
+    required CountryRow? country,
+  }) async {
+    docIds.add(entry.docId);
+    countries.add(country);
+    final Completer<void>? gate = pending;
+    if (gate != null) {
+      await gate.future;
+    }
+    final Exception? refusal = failure;
+    if (refusal != null) {
+      throw refusal;
+    }
+    return answer(entry);
   }
 }
 

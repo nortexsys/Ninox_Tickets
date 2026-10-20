@@ -6,6 +6,7 @@ import 'package:paperdrop/features/capture/capture_controller.dart';
 import 'package:paperdrop/features/wizard/data/destination_store.dart';
 import 'package:paperdrop/features/wizard/destination.dart';
 import 'package:paperdrop/intake/document_intake.dart';
+import 'package:paperdrop/settings/country_setting.dart';
 
 /// The capture pipeline as the device provides it: the app's own documents
 /// directory, ML Kit's document scanner, the platform's file picker, and Android
@@ -53,3 +54,20 @@ Future<bool> deviceHasDestination({DestinationStore? store}) async {
   }
   return destinations.isNotEmpty;
 }
+
+/// The settings' default country as the device keeps it
+/// (`countries-languages` · `country-is-an-input`, DEC-022).
+///
+/// **One value, in one file, beside the destinations.** It is the application's composition of the
+/// two platform-bound halves — the documents directory from `path_provider` and the phone's region
+/// from `dart:io` — and nothing else: the first run asks the region once and stores the answer, and
+/// from then on the file is the answer (`FileCountrySettingStore`).
+///
+/// **Who reads it.** The review screen's controller, which shows the country in force for a ticket
+/// and never writes this value back; the composition of that screen's own collaborators is the step
+/// that wires extraction and review together, and it is not this file's.
+CountrySettingStore deviceCountrySettingStore() =>
+    const FileCountrySettingStore(
+      storage: PathProviderAppStorage(),
+      region: PlatformPhoneRegion(),
+    );

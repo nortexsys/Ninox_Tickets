@@ -2,8 +2,8 @@
 ///
 /// Requirement served: NFR-I18N-001 (`local-config-privacy/all-user-facing-strings-are-externalised`)
 /// — every sentence the screen shows is a key of `app_en.arb` — for the labels of FR-REV-004's six
-/// fields, the names of the three confidence states, the lines of the amounts block and the refusal
-/// an edit earns.
+/// fields, the names of the three confidence states, the lines of the amounts block, the refusal an
+/// edit earns, and the country line and second read of `adopt-app-cust-readers`.
 ///
 /// **Exhaustive by construction.** Each function switches over its enum without a default, so a new
 /// field, state, amount line or refusal cannot be added without the compiler asking for its
@@ -16,7 +16,7 @@ import 'package:paperdrop/features/review/review_amounts.dart';
 import 'package:paperdrop/features/review/review_field.dart';
 import 'package:paperdrop/l10n/generated/app_localizations.dart';
 import 'package:paperdrop_core/paperdrop_core.dart'
-    show ConfidenceState, RateBp;
+    show ConfidenceState, RateBp, ValueSource;
 
 /// The plain-language name of one of the six core fields (FR-REV-004).
 String reviewFieldLabel(AppLocalizations l10n, ReviewField field) =>
@@ -80,3 +80,43 @@ String reviewEditRefusalMessage(
   ReviewEditRefusal.unknownCurrency => l10n.reviewErrorUnknownCurrency,
   ReviewEditRefusal.amountNeedsCurrency => l10n.reviewErrorAmountNeedsCurrency,
 };
+
+/// The country in force for the ticket, as the country line shows it
+/// (`review-screen` · `country-shown-and-editable-per-ticket`).
+///
+/// The value is the ISO 3166-1 alpha-2 code the settings hold — `ES`, `DE`, `PT` — because that is
+/// what the country is and what the country table answers for; a country the app has no name for in
+/// its dictionaries is still a country, and inventing a display name here would be data no
+/// requirement asked for. `null` is the settings' *no country at all*, and it is said in words
+/// rather than left blank.
+String reviewCountryText(AppLocalizations l10n, String? countryCode) =>
+    countryCode ?? l10n.reviewCountryUnset;
+
+/// Where the country on the ticket came from: the settings, or a change made for this ticket.
+///
+/// The two are told apart on purpose — DEC-023's origin has to be visible for the currency, and the
+/// same is true of the country itself: a user who changed the country of one ticket must be able to
+/// see that the next one goes back to the default.
+String reviewCountrySource(AppLocalizations l10n, bool fromSettings) =>
+    fromSettings ? l10n.reviewCountryFromSettings : l10n.reviewCountryForTicket;
+
+/// The warning a ticket owes the user when no country row is in force (GAP-036).
+///
+/// Two cases, one consequence: a country the table has no row for, and a settings file that names
+/// no country at all. Neither applies a row in the other's place, and both leave the fields to the
+/// user.
+String reviewCountryWarning(AppLocalizations l10n, String? countryCode) =>
+    countryCode == null
+    ? l10n.reviewCountryUnsetWarning
+    : l10n.reviewCountryNoRowWarning;
+
+/// Where a value came from, when that is worth a line of its own — `null` when it is not.
+///
+/// The photo route's currency is green *because* its source is the country setting and not a reading
+/// (DEC-023), so the screen says so; a value read from the document needs no such line, and supplier
+/// memory (`ValueSource.memory`) has none in this change.
+String? reviewValueSourceLabel(AppLocalizations l10n, ValueSource? source) =>
+    switch (source) {
+      ValueSource.countrySetting => l10n.reviewCurrencySourceCountrySetting,
+      ValueSource.document || ValueSource.memory || null => null,
+    };

@@ -1,10 +1,16 @@
 /// The country of one extraction, decided over all of its passes and not over one of them.
 ///
 /// Requirement served: `countries-languages` · `deterministic-country-detection` (FR-CTR-001)
-/// — the country is the document's own evidence and never a setting — and
+/// — on every route but one, the country is the document's own evidence and never a setting — and
 /// `extraction-pipeline` · `consensus-by-majority` (FR-EXT-006), which design §3 applies to
 /// the country as well: one document read in several passes is one answer, and a pass that
 /// disagrees about the country is not a vote.
+///
+/// **The photo route does not come through here** (DEC-022,
+/// `countries-languages` · `country-is-an-input`): the country of a photographed ticket is an
+/// input — the settings default, or the value the review screen holds for that ticket — so
+/// `ExtractionService` never asks this function about a `photo-ocr` pass. Nothing on the image can
+/// outvote the setting in force.
 ///
 /// **Why this is not in Core.** `detectCountry` answers for one page set. How many page
 /// sets an extraction has, and whether their answers agree, is the orchestration's question:
