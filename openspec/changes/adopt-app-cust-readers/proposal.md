@@ -10,7 +10,9 @@ phones with two readers: a labelled reader (`receipt.dart`, table pass then labe
 vocabulary-free arithmetic reader (`receipt_arithmetic.dart`), fed by rows rebuilt from ML Kit
 bounding boxes (`ocr.dart`). Its tests are synthetic.
 
-## What changes (PO decisions of 2026-10-19)
+## What Changes
+
+PO decisions of 2026-10-19.
 
 1. **Port the three readers into Core as the photo route's reader**, logic unchanged. `DECOUPLING.md`
    of the App Cust says nothing is copied without a decision; this is that decision.

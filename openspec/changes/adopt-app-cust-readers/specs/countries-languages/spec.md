@@ -44,13 +44,23 @@ run from the phone's region and not re-read from the device afterwards, SHALL us
 that default for every ticket until the country of a ticket is changed, and SHALL
 take the country of a ticket from that default or from the change the user makes for
 that ticket (`review-screen` · `country-shown-and-editable-per-ticket`) — from
-nothing else.
+nothing else. A change made for one ticket SHALL be that ticket's alone: the default
+country in the settings SHALL NOT change, and the next ticket SHALL take the default
+from the settings again.
 The country row the country resolves to SHALL supply that ticket's decimal
 convention, date order and date separator, legal rate set, currency and label
 vocabulary; where a row is in force its declared date order and decimal convention
 SHALL decide the parse, and the inference of `format-inference` SHALL apply only to a
 value the row's declaration leaves unsettled.
-[Origen: Funcional §4.11 FR-CTR-001; Funcional §4.11 FR-CTR-005; PDR §10; ADR-005; DEC-022]
+Where the country in force has no row in the table, no row SHALL be applied in its
+place: the app SHALL warn the user that the country has no row and that the ticket's
+fields are to be filled by hand (`review-screen` · `country-shown-and-editable-per-ticket`
+shows that warning), none of the row's parameters — decimal convention, date order
+and date separator, legal rate set, currency, label vocabulary — SHALL be assumed for
+that ticket, and nothing SHALL be guessed in their place. The universal core of
+`universal-core` is not affected by this case: it does not depend on the country
+table, and it still applies to whatever the ticket carries.
+[Origen: Funcional §4.11 FR-CTR-001; Funcional §4.11 FR-CTR-002; Funcional §4.11 FR-CTR-005; PDR §10; ADR-005; DEC-022]
 
 #### Scenario: the first run takes the phone's region
 
@@ -65,6 +75,25 @@ value the row's declaration leaves unsettled.
 - WHEN two documents are captured and the country of neither ticket is changed
 - THEN both are read with the German row
 
+#### Scenario: a change made for one ticket is not the new default
+
+- GIVEN a default country of Germany in the settings
+- AND a ticket whose country the user changed to Spain
+- WHEN the next document is captured
+- THEN the new ticket's country is Germany, the default from the settings
+- AND the earlier ticket still shows Spain
+
+#### Scenario: a country without a row is named and nothing is assumed
+
+- GIVEN a ticket whose country in force is Portugal, which has no row in the country
+  table
+- WHEN the ticket is reviewed
+- THEN the app warns that the country has no row and that the fields are to be filled
+  by hand
+- AND no row is applied in its place
+- AND no decimal convention, date order, date separator, legal rate set, currency or
+  label vocabulary is assumed for that ticket
+
 #### Scenario: the row's declaration is applied before format inference
 
 - GIVEN a photographed ticket with Spain in force printing a date as `05/06/2026`
@@ -78,8 +107,9 @@ value the row's declaration leaves unsettled.
 
 - **What the confidence state of a value read under a country row is.** The three
   strengths, and that a currency sourced from the row is presented in whatever state
-  `validation-confidence` allows, are FR-VAL-001, FR-VAL-009 and BR-04/BR-05. This
-  capability states which row is in force and what it supplies.
+  `validation-confidence` allows, are FR-VAL-001, FR-VAL-009 and BR-04/BR-05. Since
+  DEC-023 that state is green, as that decision's exception to BR-04 for this source
+  alone. This capability states which row is in force and what it supplies.
 - **The presentation and the editing of the country on the review screen.** That the
   ticket shows the country and lets the user change it there is `review-screen`'s
   `country-shown-and-editable-per-ticket`; this capability owns the setting and the
@@ -97,9 +127,9 @@ value the row's declaration leaves unsettled.
   and the photo route's currency (`currency-is-read-from-the-document`).
 - `review-screen` — shows the country in force for the ticket and lets the user
   change it there (`country-shown-and-editable-per-ticket`).
-- `validation-confidence` — owns what may be presented as confirmed, unchanged by
-  this decision: a currency that comes from a row rather than from the document is
-  still that capability's to state.
+- `validation-confidence` — owns what may be presented as confirmed. A currency that
+  comes from a row rather than from the document is still that capability's to state;
+  DEC-023 is its exception to BR-04, made there and not here.
 - `local-config-privacy` — owns the configuration file and the clearing action; if
   the default country travels in either, that is a change to its requirements and is
   not made here (GAP-039).
@@ -110,13 +140,6 @@ value the row's declaration leaves unsettled.
 
 ## Open Questions
 
-- **GAP-036** — what the app does, and what the user sees, when the country in force
-  has no row in the country table (a phone whose region is France, for instance). A
-  photographed document read with a row in force is specified above; the no-row case
-  is not, and it is blocking for that case only.
-- **GAP-038** — whether a country changed for one ticket also becomes the new
-  default, or whether the default stays as it was and each further ticket goes back
-  to it.
 - **GAP-039** — whether the default country travels in the configuration export,
   whether the clearing action resets it to the phone's region, and whether it is
   offered as a step of the first-run wizard.
