@@ -21,7 +21,7 @@ ahead of `origin/main` (`3eb209a`) and **has not been pushed**. Nothing was writ
 | `main` against the remote | `git log origin/main..main` | 60 commits unpushed |
 | T2.2 review screen and T2.4 negative checklist are on `main` | `git log main --grep` | Merged 2026-10-18 (`e2d4ef3`, `1d5ed74`). `AGENTS.md` §3 still said "in flight" |
 | Gaps 031–040 are in the register | `openspec/gaps-register.md` | Filed. 031, 035–038, 040 closed; 032–034 and 039 open. The status of 2026-10-17 said they were not filed |
-| CI scripts on `main` | run locally | `core_purity` 0, `no_ninox_db_id` 0, `encoding_guard` 0, **`privacy_check` 1 finding** (§5) |
+| CI on `main` | GitHub Actions run on `6f59b7a` | `analyze`, `format`, `python-checks` green; `test` red (§5, 4 tests) |
 | Tests | **not run this session** | Last known: app 423, core 265, ninox_client 272 (status 2026-10-10 tree), not re-run on `main` since |
 | Merged changes against their `tasks.md` | `plan_board.py --drift` | 20 changes were merged with open tasks and none archived; **15 archived on 2026-10-20**; 5 remain (§5) |
 | Task status | `plan-tasks.yaml` against `main` | Board in §2 |
@@ -79,7 +79,6 @@ against the v0.3 dates; M0 is closed.
 | # | What | Needed by |
 |---|---|---|
 | 1 | ~~Plan v0.3, D1–D6~~ all decided 2026-10-20 (DEC-026) | — |
-| 2 | `git push` of `main` (60 commits) | when the PO decides |
 | 3 | ~~D4~~ decided: ML Kit bundled in the app. The signing key for T2.8 is the PO's: say when it exists | Thu 22 Oct |
 | 4 | `adb pair` of the S22 on the current wifi, so the device pass can start | Wed 21 Oct |
 | 5 | Users for T3.2: "available when needed" (PO, 2026-10-20). Approved with 48 hours of notice assumed (D5); call them on Mon 26 Oct for 28–29 Oct | Mon 26 Oct |
@@ -87,9 +86,12 @@ against the v0.3 dates; M0 is closed.
 
 ## 5 · Open, and only open
 
-* **`privacy_check` fails on `main`:** `openspec/changes/add-amount-coherence-rules/proposal.md:19` names a
-  corpus path (`corpus-file` rule). CI is red until that line is reworded. Not fixed: it is a PO-approved
-  change.
+* **CI is red on `main` since 2026-10-17** (run on `6f59b7a`, 2026-10-20). Only the step "Test app with coverage"
+  fails: 548 tests pass, **4 fail**, all in `app/test/adapters/ocr/pdfrx_page_rasterizer_test.dart`: "Failed to load
+  PDFium module" — the Linux runner has no PDFium native library. A CI-environment gap, not a product defect
+  (the same tests pass on the PO's machine). `analyze`, `format` and `python-checks` (privacy, database id, encoding,
+  handover) are green. Fix for the Mobile/QA lane: give the runner PDFium, or tag those 4 tests as device/host-only
+  and skip them in CI; either way a PO-visible change to `ci.yml` or the tests.
 * **`docs/Plan/test-traceability.md` reads 4 test names against 304 scenarios** (capture-intake 0 of 18). Either
   tests do not carry scenario tags or the script misses them. Until known, no coverage figure is usable.
 * **Gaps open:** GAP-001 (ADR-010, blocks `FR-EXT-005`, `FR-EXT-015`, `UC-14`), 003 (thresholds, closes with
