@@ -19,7 +19,7 @@ docs/Plan/Paperdrop_MVP_Plan_v0.2_EN.md | job failing on any mention of `NINOX_D
 docs/Plan/Paperdrop_MVP_Plan_v0.2_EN.md | An agent picks up `NINOX_DB_ID` | the v0.2 plan records the risk
 docs/Plan/Paperdrop_MVP_RESPUESTAS_1.md | NINOX_DB_ID_CLIENT_A_PROD | the PO's answer recommends renaming the variable
 docs/Plan/SPIKE_GAP-022_schema_formula_fields.md | `NINOX_DB_ID` was **not** consulted | the spike records that it did not use the variable
-docs/Plan/status/2026-09-26.md | `NINOX_DB_ID` never. | the status file records the lane rule
+docs/Plan/diario/2026-09-26.md | `NINOX_DB_ID` never. | the status file records the lane rule
 openspec/changes/archive/2026-09-23-add-product-invariants/proposal.md | `NINOX_DB_ID` pointed at a production database | the archived proposal records GAP-012
 openspec/changes/archive/2026-09-23-add-product-invariants/specs/product-invariants/spec.md | `NINOX_DB_ID` pointed at a production database in the test | the archived spec records GAP-012
 openspec/changes/archive/2026-09-28-setup-mvp-foundations/design.md | the string `NINOX_DB_ID` appears in any tracked file outside an explicit allowlist | the design specifies this check
@@ -36,5 +36,5 @@ openspec/changes/archive/2026-10-08-implement-ninox-client/proposal.md | `NINOX_
 openspec/changes/implement-android-capture-and-store/proposal.md | No step uses `NINOX_DB_ID` | the proposal asserts the change never uses the variable (GAP-012)
 openspec/changes/implement-ninox-send-pipeline/design.md | no `NINOX_DB_ID`; no token in a file | design line stating the rule (it forbids the variable); found by the lane 2026-10-17, allowlisted by PO decision
 openspec/changes/verify-live-send-pipeline/design.md | `NINOX_DB_ID` is never used | design line stating the rule (it forbids the variable)
-openspec/changes/implement-negative-release-checklist/design.md | `NINOX_DB_ID` is never referenced | design line stating the rule (it forbids the variable); found by the QA lane 2026-10-17
+openspec/changes/archive/2026-10-20-implement-negative-release-checklist/design.md | `NINOX_DB_ID` is never referenced | design line stating the rule (it forbids the variable); found by the QA lane 2026-10-17
 validation/release_checklist/no_credential_test.dart | const String forbiddenEnvironmentVariable | the checklist's group 3 scans the shipped product for the variable AGENTS.md §1.4 forbids

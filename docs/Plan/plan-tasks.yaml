@@ -1,0 +1,315 @@
+# The plan's tasks and where each one stands. Source for the board in docs/Plan/ESTADO.md.
+#
+# The plan (Paperdrop_MVP_Plan_v0.2_EN.md §9) defines WHAT each task is and WHEN it is due.
+# This file records HOW FAR it is. It is the only place a task's status is written by hand;
+# the board in ESTADO.md is generated from it (python docs/Plan/scripts/plan_board.py --write).
+#
+# status: DONE | IN_PROGRESS | BLOCKED_PO | NOT_STARTED.   LATE is derived (due passed, not DONE).
+# DONE needs `evidence`: a commit, a merged change, a file or a run that was READ, not remembered.
+# change: the OpenSpec change that carries the task (blank when there is none).
+# Dates are those of plan v0.3 (approved 2026-10-20); `v02_due` keeps the v0.2 date so the slip stays visible.
+# Last full review against `main` (d2013b2): 2026-10-20.
+
+tasks:
+  # ---- M0 Foundations (gate Tue 2026-09-29) ----
+  - id: "T0.1"
+    ms: M0
+    due: 2026-09-29
+    owner: "Orchestrator"
+    title: "Repository root verified, OpenSpec pinned"
+    status: "DONE"
+    change: "setup-mvp-foundations"
+    evidence: "archived 2026-09-28"
+  - id: "T0.2"
+    ms: M0
+    due: 2026-09-29
+    owner: "Spec + PO"
+    title: "resolve-mvp-planning-gaps approved and archived"
+    status: "DONE"
+    change: "resolve-mvp-planning-gaps"
+    evidence: "archived 2026-09-25"
+  - id: "T0.3"
+    ms: M0
+    due: 2026-09-29
+    owner: "QA"
+    title: "CI with privacy and forbidden-database-id jobs"
+    status: "DONE"
+    evidence: ".github/workflows/ci.yml has analyze, format, test, privacy, no_ninox_db_id"
+  - id: "T0.4"
+    ms: M0
+    due: 2026-09-29
+    owner: "PO"
+    title: "tools/ and sql/ moved to Paperdrop_corpus"
+    status: "DONE"
+    evidence: "GAP-017 closed 2026-09-26"
+  - id: "T0.5"
+    ms: M0
+    due: 2026-09-29
+    owner: "Orchestrator"
+    title: "Dart workspace, lints, applicationId"
+    status: "DONE"
+    change: "setup-mvp-foundations"
+    evidence: "packages/ and app/ in main"
+  - id: "T0.6"
+    ms: M0
+    due: 2026-09-29
+    owner: "Ninox + PO"
+    title: "ninox-agent-skill corrected and re-vendored"
+    status: "DONE"
+    evidence: "commit 4c14ee4"
+  - id: "T0.7"
+    ms: M0
+    due: 2026-09-29
+    owner: "QA"
+    title: "Feedback templates and scenario-tag coverage script"
+    status: "DONE"
+    evidence: ".github/ISSUE_TEMPLATE and .github/scripts/scenario_coverage.py; but docs/Plan/test-traceability.md reads 4 of 304 scenarios, so the report is not trustworthy yet (see ESTADO §5)"
+  - id: "T0.8"
+    ms: M0
+    due: 2026-10-02
+    owner: "QA + PO"
+    title: "Ground truth of the 16 documents"
+    status: "DONE"
+    evidence: "closed as superseded by the PO on 2026-10-20 (plan v0.3 D6): the PO's hand verdicts on the 19 photographs replace the 16-document ground truth; no further confirmation is owed"
+  - id: "T0.9"
+    ms: M0
+    due: 2026-09-29
+    owner: "Orchestrator"
+    title: "Lane runner around factory.py"
+    status: "DONE"
+    evidence: "agents/lanes/runner.py; lanes dispatched since 2026-10-07"
+  - id: "T0.10"
+    ms: "M0"
+    due: 2026-09-29
+    owner: "Orchestrator"
+    title: "Encoding guard in CI"
+    status: "DONE"
+    evidence: ".github/scripts/encoding_guard.py wired in ci.yml"
+
+  # ---- M1 Parallel build (demo Fri 2026-10-09) ----
+  - id: "T1.1"
+    ms: M1
+    due: 2026-10-09
+    owner: "Core"
+    title: "Money and rate types"
+    status: "DONE"
+    change: "implement-core-model-and-countries"
+    evidence: "archived 2026-10-07; packages/paperdrop_core/lib/src/money"
+  - id: "T1.2"
+    ms: M1
+    due: 2026-10-09
+    owner: "Core"
+    title: "Canonical model and provenance"
+    status: "DONE"
+    change: "implement-core-model-and-countries"
+    evidence: "archived 2026-10-07"
+  - id: "T1.3"
+    ms: M1
+    due: 2026-10-09
+    owner: "Core"
+    title: "Country table ES + DE and check digits"
+    status: "DONE"
+    change: "implement-core-model-and-countries"
+    evidence: "archived 2026-10-07; DE_USTID is not validated in the MVP (GAP-030)"
+  - id: "T1.4"
+    ms: M1
+    due: 2026-10-09
+    owner: "Core"
+    title: "Format inference and label dictionaries"
+    status: "DONE"
+    change: "extend-label-dictionary"
+    evidence: "archived 2026-10-07 (DEC-014)"
+  - id: "T1.5"
+    ms: M1
+    due: 2026-10-09
+    owner: "Core"
+    title: "Layout reasoning and consensus"
+    status: "DONE"
+    change: "implement-validation-and-extraction-core"
+    evidence: "packages/paperdrop_core layout and consensus; change has 15 of 16 tasks ticked"
+  - id: "T1.6"
+    ms: M1
+    due: 2026-10-09
+    owner: "Core"
+    title: "Amount solver"
+    status: "DONE"
+    change: "implement-validation-and-extraction-core"
+    evidence: "packages/paperdrop_core solver; amount coherence rules merged 2026-10-20"
+  - id: "T1.7"
+    ms: M1
+    due: 2026-10-09
+    owner: "Core"
+    title: "Confidence, repair, never-green"
+    status: "DONE"
+    change: "implement-validation-and-extraction-core"
+    evidence: "merged; text-layer confidence amended by DEC-018"
+  - id: "T1.8"
+    ms: M1
+    due: 2026-10-09
+    owner: "Ninox"
+    title: "Port and classic adapter with contract tests"
+    status: "DONE"
+    change: "implement-ninox-client"
+    evidence: "archived 2026-10-08; GAP-023 (order/desc read) still open"
+  - id: "T1.9"
+    ms: M1
+    due: 2026-10-09
+    owner: "Ninox"
+    title: "Live write tests and attachment limits"
+    status: "DONE"
+    change: "verify-live-send-pipeline"
+    evidence: "GAP-004 closed 2026-10-19 with the live measurement"
+  - id: "T1.10"
+    ms: "M1"
+    due: 2026-10-22
+    v02_due: 2026-10-09
+    owner: "Ninox"
+    title: "Token, wizard steps, mapping, summary"
+    status: "IN_PROGRESS"
+    change: "implement-setup-wizard"
+    evidence: "17 of 19 tasks; open 4.1 (validate) and 4.3 (revert roles.yaml widening on archive); change not archived"
+  - id: "T1.11"
+    ms: "M1"
+    due: 2026-10-09
+    owner: "Ninox"
+    title: "Send pipeline with read-back"
+    status: "DONE"
+    change: "implement-ninox-send-pipeline"
+    evidence: "merged 31b6b74 on 2026-10-10; live send to EF passed 2026-10-17; tasks.md still 0 of 11 ticked"
+  - id: "T1.12"
+    ms: "M1"
+    due: 2026-10-22
+    v02_due: 2026-10-09
+    owner: "Mobile"
+    title: "App shell, navigation, strings"
+    status: "IN_PROGRESS"
+    evidence: "app/lib has capture, extraction, review, wizard; not run on a phone"
+  - id: "T1.13"
+    ms: "M1"
+    due: 2026-10-22
+    v02_due: 2026-10-09
+    owner: "Mobile"
+    title: "Scanner to PDF, picker, share intent, byte-for-byte storage"
+    status: "IN_PROGRESS"
+    change: "implement-android-capture-and-store"
+    evidence: "code merged; needs a real phone to close"
+  - id: "T1.14"
+    ms: "M1"
+    due: 2026-10-09
+    owner: "Mobile"
+    title: "Local store and document state machine"
+    status: "DONE"
+    change: "implement-android-capture-and-store"
+    evidence: "merged 459c1c8 on 2026-10-10"
+  - id: "T1.15"
+    ms: "M1"
+    due: 2026-10-06
+    owner: "Mobile"
+    title: "ADR-011 decision and PDF positional adapter"
+    status: "DONE"
+    change: "close-adr-011-pdf-text-route"
+    evidence: "GAP-002 closed 2026-10-07 (pdfrx); 17 of 17 tasks ticked; change not archived"
+  - id: "T1.16"
+    ms: "M1"
+    due: 2026-10-09
+    owner: "Mobile"
+    title: "OCR adapter (ML Kit) and multi-pass"
+    status: "DONE"
+    change: "implement-photo-route"
+    evidence: "merged 052e2e0 and 18a5445; accuracy measured only against the PO's verdicts of 2026-10-20"
+
+  # ---- M2 Integration and alpha (alpha Fri 2026-10-16) ----
+  - id: "T2.1"
+    ms: M2
+    due: 2026-10-22
+    v02_due: 2026-10-16
+    owner: "Orchestrator"
+    title: "Route selection and consolidation wired end to end"
+    status: "IN_PROGRESS"
+    change: "implement-extraction-orchestration"
+    evidence: "parts A and B merged; part C (device harness for ExtractionService) needs the phone"
+  - id: "T2.2"
+    ms: M2
+    due: 2026-10-16
+    owner: "Mobile"
+    title: "Review screen"
+    status: "DONE"
+    change: "implement-review-screen"
+    evidence: "merged e2d4ef3 on 2026-10-18; not run on a device"
+  - id: "T2.3"
+    ms: M2
+    due: 2026-10-16
+    owner: "Mobile"
+    title: "History, retry, retention, duplicates"
+    status: "DONE"
+    change: "implement-history-retry-duplicates"
+    evidence: "merged; DEC-021 reason codes"
+  - id: "T2.4"
+    ms: M2
+    due: 2026-10-16
+    owner: "QA"
+    title: "Negative release checklist automated"
+    status: "DONE"
+    change: "implement-negative-release-checklist"
+    evidence: "merged 1d5ed74 on 2026-10-18; six tests in validation/release_checklist run in ci.yml"
+  - id: "T2.5"
+    ms: M2
+    due: 2026-10-22
+    v02_due: 2026-10-14
+    owner: "Mobile + QA"
+    title: "ADR-010 screening on the photographed corpus"
+    status: "IN_PROGRESS"
+    evidence: "the PO's verdicts exist since 2026-10-20 and a scorer gates photo-route merges; no screening report has been written; GAP-001 still open"
+  - id: "T2.6"
+    ms: M2
+    due: 2026-10-23
+    v02_due: 2026-10-16
+    owner: "Orchestrator"
+    title: "Alpha: the signed APK installed on the S22 (plan v0.3 D2)"
+    status: "NOT_STARTED"
+    evidence: "needs a release build; none exists"
+
+  - id: "T2.7"
+    ms: "M2"
+    due: 2026-10-22
+    owner: "Mobile + QA"
+    title: "Device pass on the S22: shell, scanner, share intent, review screen (plan v0.3)"
+    status: NOT_STARTED
+    evidence: "needs the phone reachable over wireless adb; numbers and screenshots stay outside the repository"
+  - id: "T2.8"
+    ms: "M2"
+    due: 2026-10-23
+    owner: "Orchestrator"
+    title: "Signed release APK (plan v0.3, replaces the internal testing track)"
+    status: NOT_STARTED
+    evidence: "D4 decided 2026-10-20: ML Kit bundled in the app (+12.5 MB, offline from first launch); needs the S22 and a signing key"
+  # ---- M3 Validation with users (Mon 2026-10-19 to Fri 2026-10-23) ----
+  - id: "T3.1"
+    ms: M3
+    due: 2026-10-27
+    v02_due: 2026-10-23
+    owner: "QA"
+    title: "Benchmark over both halves of the acceptance corpus"
+    status: "NOT_STARTED"
+  - id: "T3.2"
+    ms: M3
+    due: 2026-10-29
+    v02_due: 2026-10-22
+    owner: "QA + PO"
+    title: "Supervised sessions with 2-3 users"
+    status: "NOT_STARTED"
+    evidence: "whether users are booked is not recorded anywhere (ESTADO §6)"
+  - id: "T3.3"
+    ms: M3
+    due: 2026-10-30
+    v02_due: 2026-10-23
+    owner: "QA to Orchestrator"
+    title: "Triage and fix loop"
+    status: "NOT_STARTED"
+  - id: "T3.4"
+    ms: M3
+    due: 2026-11-02
+    v02_due: 2026-10-23
+    owner: "Orchestrator + PO"
+    title: "Thresholds, MVP report, R1 backlog"
+    status: "NOT_STARTED"

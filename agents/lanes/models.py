@@ -93,4 +93,9 @@ def make_model(spec: dict, *, api_key: str | None = None):
     if provider == "atria":
         return _atria_class()(model=model_id, api_key=key, base_url=spec["base_url"], streaming=True,
                               timeout=ATRIA_TIMEOUT_S, max_retries=2)
+    if provider == "abacus":
+        # Abacus RouteLLM: OpenAI-compatible gateway in front of Claude, GPT, Gemini and DeepSeek models.
+        # The system prompt goes as text for the same reason as Atria (the gateway fronts several vendors).
+        return _atria_class()(model=model_id, api_key=key, base_url=spec["base_url"],
+                              timeout=DEFAULT_TIMEOUT_S, max_retries=2)
     raise ValueError(f"unknown provider {provider!r}")

@@ -1,0 +1,29 @@
+# Tasks: implement-country-detection
+
+A task is done when its check passes. Core checks from `packages/paperdrop_core/` (`dart analyze
+--fatal-infos`, `dart format --set-exit-if-changed .`, `dart test`); app checks from `app/`; from the
+root `python .github/scripts/privacy_check.py` and `core_purity.py`.
+
+## 1. Core — dispatch A (design §2–§5)
+
+- [x] 1.1 `CountryDetection`, `Detected`, `Undetected`, `CountryEvidenceKind`, `UndetectedReason`.
+      *Done when* the types are exported and carry no document text.
+- [x] 1.2 `detectCountry` with rules 1–4 of design §3 over `classifyTaxId`, a closed country-name
+      list per row, dictionary language, currency exclusion. *Done when* the cases of design §5 pass.
+- [x] 1.3 Order independence and pass agreement: shuffled words give the same answer; passes that
+      disagree give `conflictingEvidence`. *Done when* both tests pass.
+- [x] 1.4 `extractDocument` with a nullable country: the
+      universal core only, row-dependent values `unverified`, `needsReview`. *Done when* a
+      no-row document extracts amounts and dates and never applies a rate gate.
+- [x] 1.5 The circularity case: date and amount formats do not change the detection.
+
+## 2. Mobile — dispatch B (after A is merged)
+
+- [x] 2.1 `ExtractionService` takes the detection instead of a fixed `country`; the reason of an
+      `Undetected` goes into the stored engine metadata, not into a failure.
+- [x] 2.2 Tests with fakes for Detected and each Undetected reason.
+
+## 3. Orchestrator and product owner
+
+- [x] 3.1 PO answered design §4 on 2026-10-13: universal core + review.
+- [x] 3.2 Merge with `--no-ff` after the PO's approval. (done: 0c650f5, 41fafe2)

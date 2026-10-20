@@ -93,7 +93,7 @@ assumed.
 | Measurement corpus | `C:\Users\admin\proyectos\Paperdrop_corpus\` — **outside the repository by design** |
 | Mobile test harness | None. `Ticket_reader_Ninox\phone-harness\` (driving a real phone over adb) was deleted by the PO on 2026-09-26; it was never part of the app |
 | Agent team | `agents/` — roles, models and skills (`agents/roles.yaml`, `agents/README.md`). The orchestrator runs in **Claude Code** (`CLAUDE.md`, `.claude/skills/`); the other five agents run in **LangGraph** (DEC-011) |
-| MVP plan | `docs/Plan/Paperdrop_MVP_Plan_v0.2_EN.md` — scope, team, milestones, dates |
+| MVP plan | `docs/Plan/Paperdrop_MVP_Plan_v0.2_EN.md` — scope, team, milestones; **its dates are superseded by `docs/Plan/Paperdrop_MVP_Plan_v0.3_EN.md`** (approved 2026-10-20, DEC-026) |
 
 ### 2.2 The documents
 
@@ -128,6 +128,9 @@ as they are; this is where their content lives now:
 
 | File | Holds |
 | --- | --- |
+| `docs/Plan/ESTADO.md` | The handover, 150 lines at most, overwritten at every close. Read it first |
+| `docs/Plan/plan-tasks.yaml` | Status of each plan task (T0.x–T3.x); the only place it is written by hand |
+| `docs/Plan/diario/` | Day-by-day history (the former `status/` files). Not read at start-up; read by date or by ID |
 | `openspec/gaps-register.md` | Every open hole or pending decision. Closed entries are kept, never deleted |
 | `openspec/product-decisions.md` | Every decision taken in this phase that diverges from the functional |
 | `openspec/project.md` | Project context, source-of-truth hierarchy, spec format, capability tree |
@@ -142,7 +145,7 @@ as they are; this is where their content lives now:
 | **FASE 1 — Discover.** Original brief → PDR v0.2 → ADR v0.2 → Funcional v1.0 | **Done.** Plus a real end-to-end test: 16 documents read, validated, written to a Ninox test base with their attachments, and read back |
 | **FASE 2 — Specify.** Specifications through OpenSpec | **Done.** 12 capabilities, all archived, `openspec validate --all --strict` green |
 | **FASE 2 — Plan.** Features, tasks, milestones, delivery dates and test design | **Done** on 2026-09-25: `docs/Plan/Paperdrop_MVP_Plan_v0.2_EN.md`, approved by the PO (DEC-009) |
-| **MVP build** — milestones M0–M3, 2026-09-28 → 2026-10-23 (buffer to 2026-10-30) | **M0 done** (archived 2026-09-28). **M1 and M2 are late and open.** Merged on `main`: money and canonical model, country table and validation core, extraction orchestration with country detection, photo route (ML Kit, four passes), PDF text route (`pdfrx`, ADR-011), classic Ninox client, setup wizard, send pipeline (live send to the test table `EF` passed 2026-10-17), local store, history/retry/duplicates (T2.3). **In flight:** T2.2 review screen and T2.4 negative release checklist (lanes). **Needs the PO or the phone:** T2.1 device harness, T2.5 ADR-010 screening (ground truth), T2.6 alpha, live-run leftovers of M1. Current state: the latest `docs/Plan/status/*.md` |
+| **MVP build** — milestones M0–M3, 2026-09-28 → 2026-10-23 (buffer to 2026-10-30) | **Live state: `docs/Plan/ESTADO.md` §2** (board generated from `docs/Plan/plan-tasks.yaml`). Not restated here: this file does not carry state that changes weekly |
 | **FASE 3 — Deployment.** Store publication and the Nortex Systems website write-up | Not started |
 
 The specification phase is a gate, not a formality: the 16-document test left
@@ -171,21 +174,14 @@ one. A specification that lets any of them happen again has failed.
 
 ## 5. What is open, right now
 
-Written down so the next session starts from the truth instead of from a guess.
+Not kept here. A table of open items in this file went stale within days (it still described T2.2 and
+T2.4 as in flight after they were merged). The open items live in three places, each with one job:
 
-| Item | State |
-| --- | --- |
-| ADR-010 — recognition engine for the photo route | **Proposed.** Approach decided (platform engine behind a port, confirmed by the screening of plan T2.5). Blocks `FR-EXT-005`, `FR-EXT-015`, `UC-14` |
-| ADR-011 — PDF text-extraction library | **Decided 2026-10-07 by the PO: `pdfrx` (PDFium) on Android** (DEC-015). Tasks 4.1–4.3 of `close-adr-011-pdf-text-route` are still unticked |
-| Ninox attachment-upload limits | Closed for the basic case. Open: maximum file size, multi-page PDF near that limit, real upload timings |
-| A choice field written with text outside its option list | Unverified in every test so far |
-| Acceptance thresholds for product metrics | Deferred until the first corpus screening |
-| The product name | **Closed**: "Paperdrop for Ninox" (DEC-006, GAP-011). Ninox's trademark guidelines still to be read before a store listing |
-| Capability tree | **Approved and complete.** Recorded in openspec/project.md §3 |
-| Specifications | **Complete.** 12 specs in `openspec/specs/`, all changes archived, validated by `openspec validate --all --strict`. Amended on 2026-09-25 by `resolve-mvp-planning-gaps` (GAP-018, GAP-019, GAP-022); text encoding repaired (GAP-024) |
-| Formula fields in the Ninox schema | **Measured** on 2026-09-25: `.../tables` omits them, `.../schema` marks them with `fn`; no read-only marker exists. `docs/Plan/SPIKE_GAP-022_schema_formula_fields.md` |
-| Privacy gate | **Closed** on 2026-09-23. Section 6 |
-| Residue of real personal data in excluded material | Moved out of the repository tree to the private corpus on 2026-09-26 (T0.4). GAP-017, §6 |
+* `docs/Plan/ESTADO.md` — the handover: the plan board, what is next, what waits for the PO, what is not known.
+* `openspec/gaps-register.md` — every open hole or pending decision, with its ID.
+* `openspec/product-decisions.md` — every decision, with its ID.
+
+ESTADO.md cites a gap or decision by ID and does not restate it.
 
 ---
 
@@ -239,8 +235,30 @@ re-exposes that data.** Tracked as GAP-017.
 
 ## 7. Closing ritual for a session
 
-1. Update `openspec/gaps-register.md` with anything opened or closed.
-2. Update `openspec/product-decisions.md` with any decision that diverges from
-   the functional.
-3. State plainly what is finished, what is open, and what the next session
-   starts with. A capability described as "practically done" is not done.
+Mandatory, without asking for confirmation.
+
+1. `date -u` for the header.
+2. Run `python docs/Plan/scripts/plan_board.py --drift`. Anything merged is ticked in its `tasks.md` and,
+   once the PO has approved it, archived.
+3. Update `docs/Plan/plan-tasks.yaml` for every task that moved. A task is `DONE` only with `evidence` read
+   in this session. Then `python docs/Plan/scripts/plan_board.py --write`.
+4. **Overwrite** `docs/Plan/ESTADO.md` whole; do not append under yesterday's content. §1 what was checked
+   today and against what; §3 what is next; §4 what waits for the PO; §5 only what is open (resolved items
+   are deleted, they already have their ID); §6 never empty. **150 lines at most**: the pre-commit hook and CI
+   reject the commit otherwise.
+5. Update `openspec/gaps-register.md` and `openspec/product-decisions.md` with anything opened, closed or decided.
+   If a lane cannot write them (quota, model), the orchestrator does it in the same close. It is not deferred.
+6. The day's narrative goes to `docs/Plan/diario/<date>.md`. The state file carries no history.
+7. State plainly what is finished, what is open, and what the next session starts with. A capability described
+   as "practically done" is not done.
+
+Five rules for what ESTADO.md says, taken from the sibling project:
+
+* Quote, do not paraphrase. States and model assignments are copied with their pointer.
+* What it asserts is checked the day it is written, against code or the database, never against another document.
+* The date is read from the machine, never from memory.
+* It is closed when the work is finished, not when it seems finished. If work goes on after the close, reopen
+  and rewrite it.
+* Evidence that depends on someone remembering to produce it is not evidence. Look at who produces it.
+
+Code, migrations and tasks do not cite ESTADO.md (it is rewritten daily and the pointer expires); they cite IDs.
