@@ -61,9 +61,9 @@ report, and the supervised sessions. M3 started on Mon 19 Oct with no alpha to p
 
 ## 3 · What is next, in this order
 
-1. **Replan decision (PO).** M2 is late; M3 cannot start without an alpha. Proposal to write and approve: a
-   plan v0.3 that moves T2.6 and M3 into the buffer (26–30 Oct) and states what leaves R0. Orchestrator drafts
-   after the PO reads §2.
+1. **Replan decision (PO).** Draft `docs/Plan/Paperdrop_MVP_Plan_v0.3_EN.md` written 2026-10-20, **not approved**:
+   alpha 23 Oct as a signed APK, sessions 28–29 Oct, MVP report 2 Nov; decisions D1–D6 in its §2. Dates in
+   `plan-tasks.yaml` change only after approval.
 2. **Photo route, T2.5.** Score every change with `Paperdrop_corpus\tools\score.py` against the PO's verdicts of
    2026-10-20 (gate in memory `photo-route-ground-truth-and-gate`). Write the screening report for GAP-001.
 3. **Release build and alpha (T2.6).** Needs the phone and the PO; blocked on item 4 of §4.
@@ -76,11 +76,11 @@ report, and the supervised sessions. M3 started on Mon 19 Oct with no alpha to p
 
 | # | What | Needed by |
 |---|---|---|
-| 1 | Replan (§3 item 1): where M3 goes and what leaves R0 | today |
+| 1 | Plan v0.3 draft: D1 dates, D2 APK not Play track, D3 photo stays, D5 notice users need, D6 T0.8 | today |
 | 2 | `git push` of `main` (60 commits) | when the PO decides |
-| 3 | ML Kit packaging: bundled +12.5 MB, or Play-services model +99 KB | before the release build |
+| 3 | ML Kit packaging (D4): bundled +12.5 MB, or Play-services model +99 KB | Wed 21 Oct |
 | 4 | Whether a release build and alpha track are wanted before the sessions | before T2.6 |
-| 5 | Bookings for the 2–3 users of T3.2 (the plan asked for them by 9 Oct) | today |
+| 5 | Users for T3.2: "available when needed" (PO, 2026-10-20). Call them on Mon 26 Oct for 28–29 Oct; how much notice they need is not known | Mon 26 Oct |
 | 6 | Leftover branches: `change/fix-photo-ocr-amount-parsing` (unmerged), `backup/pre-push-main-20261007`, `claude/ticket-reader-ninox-session1-ee5bf1` — keep or delete | whenever |
 
 ## 5 · Open, and only open
@@ -107,4 +107,4 @@ report, and the supervised sessions. M3 started on Mon 19 Oct with no alpha to p
   the 19 photographs only.
 * Whether the full test suite is green on `main`. It has not been run since the merges of 18–20 Oct.
 * Whether the two PDF-corpus halves and the photographed corpus are complete in `Paperdrop_corpus`.
-* Whether users are booked for the sessions.
+* How much notice the users need. They are available on request (PO, 2026-10-20); nobody is booked.
