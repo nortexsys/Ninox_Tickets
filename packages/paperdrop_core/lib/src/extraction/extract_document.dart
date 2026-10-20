@@ -20,6 +20,7 @@ import '../format/decimal.dart';
 import '../layout/binding.dart';
 import '../layout/lines.dart';
 import '../layout/positioned_word.dart';
+import '../layout/rows.dart';
 import '../layout/text_page.dart';
 import '../model/calendar_date.dart';
 import '../model/canonical_document.dart';
@@ -29,6 +30,9 @@ import '../model/provenance.dart';
 import '../money/currency.dart';
 import '../money/money.dart';
 import '../money/rate.dart';
+import '../photo/arithmetic_reader.dart';
+import '../photo/labelled_reader.dart';
+import '../photo/photo_route.dart';
 import '../solver/currency.dart';
 import '../solver/negative.dart';
 import '../solver/operands.dart';
@@ -103,6 +107,16 @@ CanonicalDocument extractDocument({
           : ExtractionStage.countryDetected,
     );
     trace.record('pass_count', _passCountStage(passes.length));
+  }
+
+  if (route == 'photo-ocr') {
+    return _extractPhotoRoute(
+      passes: passes,
+      country: country,
+      routeLabel: routeLabel,
+      sourceHash: sourceHash,
+      trace: trace,
+    );
   }
 
   final DecimalConvention? decimalConvention;
@@ -1267,4 +1281,266 @@ bool _pageListEquals(List<TextPage> left, List<TextPage> right) {
     }
   }
   return true;
+}
+
+/// Extracts a photographed document through the two ported readers.
+///
+/// The country row is the caller's input; no detection runs here. A missing
+/// row means no read at all and a reason the review screen can show
+/// (GAP-036). The PDF text route and the XML route are not affected.
+CanonicalDocument _extractPhotoRoute({
+  required List<ExtractionPass> passes,
+  required CountryRow? country,
+  required String routeLabel,
+  required String sourceHash,
+  ExtractionTrace? trace,
+}) {
+  if (country == null) {
+    return CanonicalDocument(
+      needsReview: true,
+      reviewReason: ReviewReason.countryWithoutRow,
+      recognitionEngine: routeLabel,
+      sourceHash: sourceHash,
+    );
+  }
+
+  final format = ReceiptReaderFormat.fromCountryRow(country);
+  final netReadings = <Reading<Money>>[];
+  final vatReadings = <Reading<Money>>[];
+  final grossReadings = <Reading<Money>>[];
+  final rateReadings = <Reading<RateBp>>[];
+  final dateReadings = <Reading<CalendarDate>>[];
+
+  for (final pass in passes) {
+    final pages = [...pass.pages]..sort(_byPageIndex);
+    final buffer = StringBuffer();
+    for (final page in pages) {
+      final text = rowsToText(groupIntoLines(page));
+      if (text.isEmpty) {
+        continue;
+      }
+      if (buffer.isNotEmpty) {
+        buffer.writeln();
+      }
+      buffer.write(text);
+    }
+    final text = buffer.toString();
+
+    final labelled = parseReceipt(text, format);
+    final arithmetic = parseReceiptArithmetic(text, format);
+
+    addPhotoAmountReading(
+      netReadings,
+      labelled.net,
+      arithmetic.net,
+      pass.passId,
+      country.currency,
+    );
+    addPhotoAmountReading(
+      vatReadings,
+      labelled.vat,
+      arithmetic.vat,
+      pass.passId,
+      country.currency,
+    );
+    addPhotoAmountReading(
+      grossReadings,
+      labelled.gross,
+      arithmetic.gross,
+      pass.passId,
+      country.currency,
+    );
+    addPhotoRateReading(
+      rateReadings,
+      labelled.rate,
+      arithmetic.rate,
+      pass.passId,
+    );
+
+    final dateIso = labelled.dateIso ?? arithmetic.dateIso;
+    if (dateIso != null) {
+      dateReadings.add(
+        Reading<CalendarDate>(
+          CalendarDate.parse(dateIso),
+          pass.passId,
+          Provenance.read,
+        ),
+      );
+    }
+  }
+
+  final netConsensus = resolveConsensus<Money>(netReadings);
+  final vatConsensus = resolveConsensus<Money>(vatReadings);
+  final grossConsensus = resolveConsensus<Money>(grossReadings);
+  final rateConsensus = resolveConsensus<RateBp>(rateReadings);
+
+  final grossDisputed =
+      grossReadings.isNotEmpty && grossConsensus is NoConsensus<Money>;
+  final baseDisputed =
+      netReadings.isNotEmpty && netConsensus is NoConsensus<Money>;
+  final taxDisputed =
+      vatReadings.isNotEmpty && vatConsensus is NoConsensus<Money>;
+
+  if (grossDisputed || baseDisputed || taxDisputed) {
+    if (trace != null) {
+      if (grossDisputed) {
+        trace.record('gross_total', ExtractionStage.noMajority);
+      }
+      if (baseDisputed) {
+        trace.record('net_total', ExtractionStage.noMajority);
+      }
+      if (taxDisputed) {
+        trace.record('tax_total', ExtractionStage.noMajority);
+      }
+    }
+
+    final grossTotal = grossDisputed
+        ? const Absent<Money>()
+        : photoAmountField(
+            _consensusValue<Money>(grossConsensus),
+            photoProvenanceFor(
+              grossReadings,
+              _consensusValue<Money>(grossConsensus),
+            ),
+          );
+    final netTotal = baseDisputed
+        ? const Absent<Money>()
+        : photoAmountField(
+            _consensusValue<Money>(netConsensus),
+            photoProvenanceFor(
+              netReadings,
+              _consensusValue<Money>(netConsensus),
+            ),
+          );
+    final taxTotal = taxDisputed
+        ? const Absent<Money>()
+        : photoAmountField(
+            _consensusValue<Money>(vatConsensus),
+            photoProvenanceFor(
+              vatReadings,
+              _consensusValue<Money>(vatConsensus),
+            ),
+          );
+    final docDate = _nonAmountField<CalendarDate>(
+      dateReadings,
+      FieldKind.other,
+      textLayerReading: false,
+      trace: trace,
+      field: 'doc_date',
+    );
+    final currency = countryCurrencyField(country);
+
+    return CanonicalDocument(
+      docDate: docDate,
+      grossTotal: grossTotal,
+      currency: currency,
+      netTotal: netTotal,
+      taxTotal: taxTotal,
+      needsReview: true,
+      recognitionEngine: routeLabel,
+      sourceHash: sourceHash,
+    );
+  }
+
+  final grossValue = _consensusValue<Money>(grossConsensus);
+  final baseValue = _consensusValue<Money>(netConsensus);
+  final taxValue = _consensusValue<Money>(vatConsensus);
+  final rateValue = _consensusValue<RateBp>(rateConsensus);
+
+  final grossProvenance = photoProvenanceFor(grossReadings, grossValue);
+  final baseProvenance = photoProvenanceFor(netReadings, baseValue);
+  final taxProvenance = photoProvenanceFor(vatReadings, taxValue);
+  final rateProvenance = photoProvenanceFor(rateReadings, rateValue);
+
+  final grossField = photoAmountField(grossValue, grossProvenance);
+  final baseField = photoAmountField(baseValue, baseProvenance);
+  final taxField = photoAmountField(taxValue, taxProvenance);
+
+  final sumCheck = _amountCheck(grossField, baseField, taxField);
+
+  final taxes = taxValue != null && taxProvenance == Provenance.read
+      ? <ReadOperand>[_amountOperand(OperandRole.tax, taxValue)]
+      : const <ReadOperand>[];
+  final admittedRates = rateValue != null && rateProvenance == Provenance.read
+      ? <ReadOperand>[_rateOperand(rateValue)]
+      : const <ReadOperand>[];
+  final taxCheck = _taxIdentityCheck(
+    base: baseField,
+    tax: taxField,
+    taxes: taxes,
+    admittedRates: admittedRates,
+  );
+
+  final grossTotal = _finalizeAmount(
+    grossField,
+    grossConsensus,
+    sumCheck,
+    textLayerReading: false,
+    taxCheck: taxCheck,
+    isTaxOperand: false,
+  );
+  final netTotal = _finalizeAmount(
+    baseField,
+    netConsensus,
+    sumCheck,
+    textLayerReading: false,
+    taxCheck: taxCheck,
+    isTaxOperand: true,
+  );
+  final taxTotal = _finalizeAmount(
+    taxField,
+    vatConsensus,
+    sumCheck,
+    textLayerReading: false,
+    taxCheck: taxCheck,
+    isTaxOperand: true,
+  );
+
+  final taxSlots = photoTaxSlots(
+    country: country,
+    rateValue: rateValue,
+    rateProvenance: rateProvenance,
+    baseValue: baseValue,
+    baseProvenance: baseProvenance,
+    taxValue: taxValue,
+    taxProvenance: taxProvenance,
+  );
+
+  final docDate = _nonAmountField<CalendarDate>(
+    dateReadings,
+    FieldKind.other,
+    textLayerReading: false,
+    trace: trace,
+    field: 'doc_date',
+  );
+  final currency = countryCurrencyField(country);
+
+  // The country currency is green by DEC-023 and is deliberately not a field
+  // that can satisfy review on its own: a photo with no read values still has
+  // to be reviewed.
+  final reviewFields = <FieldValue<Object?>>[
+    docDate,
+    grossTotal,
+    netTotal,
+    taxTotal,
+  ];
+
+  if (trace != null) {
+    _recordConfidenceCapped(trace, 'gross_total', grossTotal);
+    _recordConfidenceCapped(trace, 'net_total', netTotal);
+    _recordConfidenceCapped(trace, 'tax_total', taxTotal);
+    _recordConfidenceCapped(trace, 'doc_date', docDate);
+  }
+
+  return CanonicalDocument(
+    docDate: docDate,
+    grossTotal: grossTotal,
+    currency: currency,
+    netTotal: netTotal,
+    taxTotal: taxTotal,
+    taxSlots: taxSlots,
+    needsReview: _needsReview(reviewFields),
+    recognitionEngine: routeLabel,
+    sourceHash: sourceHash,
+  );
 }

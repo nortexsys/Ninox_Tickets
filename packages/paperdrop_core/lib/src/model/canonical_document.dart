@@ -183,6 +183,37 @@ class Surcharge {
   int get hashCode => Object.hash(label, amount);
 }
 
+/// The reason the review screen must show a document before it is sent.
+enum ReviewReason {
+  /// The country in force has no row in the country table, so the photo route
+  /// produced no read and the fields are to be filled by hand.
+  countryWithoutRow('country_without_row');
+
+  /// Creates a review reason with its [wireName].
+  const ReviewReason(this.wireName);
+
+  /// The wire name used for serialisation.
+  final String wireName;
+
+  /// Serialises this reason by its wire name.
+  String toJson() => wireName;
+
+  /// Reads a reason from its wire name.
+  static ReviewReason fromJson(Object? json) {
+    if (json is! String) {
+      throw FormatException('review reason JSON must be a string');
+    }
+
+    for (final value in values) {
+      if (value.wireName == json) {
+        return value;
+      }
+    }
+
+    throw FormatException('unknown review reason: $json');
+  }
+}
+
 /// The immutable canonical model of one extracted document.
 class CanonicalDocument {
   /// The document date, as `YYYY-MM-DD` without a time zone.
@@ -276,6 +307,9 @@ class CanonicalDocument {
   /// Whether the review screen must show this document before it is sent.
   final bool needsReview;
 
+  /// The reason the review screen must show this document, when one applies.
+  final ReviewReason? reviewReason;
+
   /// The recognition engine and route that produced the values.
   final String recognitionEngine;
 
@@ -317,6 +351,7 @@ class CanonicalDocument {
     this.distanceKm = const Absent<int>(),
     this.durationMin = const Absent<int>(),
     required this.needsReview,
+    this.reviewReason,
     required this.recognitionEngine,
     required this.sourceHash,
   }) : taxSlots = List.unmodifiable(taxSlots),
@@ -413,6 +448,7 @@ class CanonicalDocument {
     'distanceKm': distanceKm.toJson(intCodec),
     'durationMin': durationMin.toJson(intCodec),
     'needsReview': needsReview,
+    'reviewReason': reviewReason?.toJson(),
     'recognitionEngine': recognitionEngine,
     'sourceHash': sourceHash,
   };
@@ -527,6 +563,9 @@ class CanonicalDocument {
       distanceKm: field<int>('distanceKm', intCodec, const Absent<int>()),
       durationMin: field<int>('durationMin', intCodec, const Absent<int>()),
       needsReview: json['needsReview'] as bool,
+      reviewReason: json['reviewReason'] == null
+          ? null
+          : ReviewReason.fromJson(json['reviewReason']),
       recognitionEngine: json['recognitionEngine'] as String,
       sourceHash: json['sourceHash'] as String,
     );
@@ -553,6 +592,7 @@ class CanonicalDocument {
       'exchangeRate: $exchangeRate, paymentMethod: $paymentMethod, '
       'cardBrand: $cardBrand, cardMasked: $cardMasked, iban: $iban, '
       'surcharges: ${surcharges.length}, needsReview: $needsReview, '
+      'reviewReason: $reviewReason, '
       'recognitionEngine: $recognitionEngine, sourceHash: $sourceHash)';
 
   /// Value equality on every field and list entry.
@@ -592,6 +632,7 @@ class CanonicalDocument {
         other.distanceKm == distanceKm &&
         other.durationMin == durationMin &&
         other.needsReview == needsReview &&
+        other.reviewReason == reviewReason &&
         other.recognitionEngine == recognitionEngine &&
         other.sourceHash == sourceHash;
   }
@@ -629,6 +670,7 @@ class CanonicalDocument {
     distanceKm,
     durationMin,
     needsReview,
+    reviewReason,
     recognitionEngine,
     sourceHash,
   ]);

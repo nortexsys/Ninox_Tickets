@@ -51,19 +51,23 @@ enum Provenance {
   }
 }
 
-/// The separate origin of an extracted value: from the document or from
-/// memory.
+/// The separate origin of an extracted value: from the document, from memory
+/// or from the country setting.
 ///
 /// This is deliberately separate from [Provenance] (GAP-028): the four tags
 /// describe how a value was obtained *from the document*, and §6.1.1's
 /// "memory" for `supplier_name` is recorded here. A value typed or corrected
-/// by the user is the `Edited` case of `FieldValue`, not a source.
+/// by the user is the `Edited` case of `FieldValue`, not a source. The
+/// country setting source is DEC-023's origin for the photo route's currency.
 enum ValueSource {
   /// The value came from the document.
   document,
 
   /// The value came from supplier memory.
-  memory;
+  memory,
+
+  /// The value came from the country setting in force for the ticket.
+  countrySetting;
 
   /// Serialises this source by its name.
   String toJson() => name;

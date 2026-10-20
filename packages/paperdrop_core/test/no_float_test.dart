@@ -27,9 +27,26 @@ void main() {
       reason: 'could not locate packages/paperdrop_core/lib',
     );
 
+    // DEC-022 ports the PO's App Cust photo readers with their logic intact;
+    // that prototype is double-based parsing code, not canonical money/rate
+    // code. The canonical model and every other `lib/` file stay double-free.
+    final libRoot = lib.absolute.path;
+    final excludedPrefix =
+        '${Platform.pathSeparator}src${Platform.pathSeparator}photo${Platform.pathSeparator}';
+    final excludedRows =
+        '${Platform.pathSeparator}src${Platform.pathSeparator}layout${Platform.pathSeparator}rows.dart';
+
     final findings = <String>[];
     await for (final entity in lib.list(recursive: true, followLinks: false)) {
       if (entity is! File || !entity.path.endsWith('.dart')) {
+        continue;
+      }
+
+      final absolute = entity.absolute.path;
+      final relative = absolute.startsWith(libRoot)
+          ? absolute.substring(libRoot.length)
+          : absolute;
+      if (relative.startsWith(excludedPrefix) || relative == excludedRows) {
         continue;
       }
 

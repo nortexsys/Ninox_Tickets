@@ -19,31 +19,44 @@ void main() {
       expect(value.source, ValueSource.memory);
     });
 
-    test('Present only accepts document or memory as its source', () {
-      expect(ValueSource.values, <ValueSource>[
-        ValueSource.document,
-        ValueSource.memory,
-      ]);
+    test(
+      'Present accepts document, memory or the country setting as source',
+      () {
+        expect(ValueSource.values, <ValueSource>[
+          ValueSource.document,
+          ValueSource.memory,
+          ValueSource.countrySetting,
+        ]);
 
-      expect(
-        Present<Money>(
-          Money(1, eur),
-          Provenance.read,
-          ConfidenceState.amber,
-          source: ValueSource.document,
-        ).source,
-        ValueSource.document,
-      );
-      expect(
-        Present<Money>(
-          Money(1, eur),
-          Provenance.read,
-          ConfidenceState.amber,
-          source: ValueSource.memory,
-        ).source,
-        ValueSource.memory,
-      );
-    });
+        expect(
+          Present<Money>(
+            Money(1, eur),
+            Provenance.read,
+            ConfidenceState.amber,
+            source: ValueSource.document,
+          ).source,
+          ValueSource.document,
+        );
+        expect(
+          Present<Money>(
+            Money(1, eur),
+            Provenance.read,
+            ConfidenceState.amber,
+            source: ValueSource.memory,
+          ).source,
+          ValueSource.memory,
+        );
+        expect(
+          Present<CurrencyCode>(
+            eur,
+            Provenance.derived,
+            ConfidenceState.green,
+            source: ValueSource.countrySetting,
+          ).source,
+          ValueSource.countrySetting,
+        );
+      },
+    );
 
     test(
       'FieldValue.edit turns every case into an Edited holding only value',

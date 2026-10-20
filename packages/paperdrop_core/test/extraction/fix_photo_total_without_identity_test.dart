@@ -54,7 +54,14 @@ void main() {
           ConfidenceState.amber,
         ),
       );
-      expect(document.netTotal, const Absent<Money>());
+      expect(
+        document.netTotal,
+        Present<Money>(
+          Money(1250, eur),
+          Provenance.derived,
+          ConfidenceState.amber,
+        ),
+      );
       expect(document.taxTotal, const Absent<Money>());
       expect(document.taxSlots, hasLength(4));
       expect(
@@ -69,9 +76,8 @@ void main() {
       expect(document.needsReview, isTrue);
     });
 
-    test('[validation-confidence/three-confidence-strengths] '
-        'a labelled total with no identity is read and stays amber '
-        '(photo, universal core)', () {
+    test('[countries-languages/country-is-an-input] '
+        'a country without a row gets no read at all on the photo route', () {
       final document = extractDocument(
         passes: <ExtractionPass>[
           photoPass('p1-native', totalOnlyPage(total: '12,50')),
@@ -81,18 +87,13 @@ void main() {
         sourceHash: 'h',
       );
 
-      expect(
-        document.grossTotal,
-        Present<Money>(
-          Money(1250, eur),
-          Provenance.read,
-          ConfidenceState.amber,
-        ),
-      );
+      expect(document.grossTotal, const Absent<Money>());
       expect(document.netTotal, const Absent<Money>());
       expect(document.taxTotal, const Absent<Money>());
+      expect(document.currency, const Absent<CurrencyCode>());
       expect(document.taxSlots, isEmpty);
       expect(document.needsReview, isTrue);
+      expect(document.reviewReason, ReviewReason.countryWithoutRow);
     });
 
     test('[extraction-pipeline/negative-context-suppresses-non-tax-figures] '
@@ -155,7 +156,14 @@ void main() {
           ConfidenceState.amber,
         ),
       );
-      expect(document.netTotal, const Absent<Money>());
+      expect(
+        document.netTotal,
+        Present<Money>(
+          Money(1250, eur),
+          Provenance.derived,
+          ConfidenceState.amber,
+        ),
+      );
       expect(document.taxTotal, const Absent<Money>());
       expect(
         trace.stages['gross_total'],
@@ -169,9 +177,9 @@ void main() {
     });
   });
 
-  group('universal-core date order', () {
-    test('[countries-languages/format-inference] '
-        'a day greater than twelve resolves the order with no country row', () {
+  group('photo route with a country without a row', () {
+    test('[countries-languages/country-is-an-input] '
+        'no date order is inferred and no read is produced', () {
       final document = extractDocument(
         passes: <ExtractionPass>[
           photoPass(
@@ -190,19 +198,16 @@ void main() {
         sourceHash: 'h',
       );
 
-      expect(
-        document.docDate,
-        Present<CalendarDate>(
-          CalendarDate(2026, 9, 28),
-          Provenance.read,
-          ConfidenceState.amber,
-        ),
-      );
+      expect(document.docDate, const Absent<CalendarDate>());
+      expect(document.grossTotal, const Absent<Money>());
+      expect(document.netTotal, const Absent<Money>());
+      expect(document.currency, const Absent<CurrencyCode>());
+      expect(document.needsReview, isTrue);
+      expect(document.reviewReason, ReviewReason.countryWithoutRow);
     });
 
-    test('[validation-confidence/date-coherence-and-ambiguity] '
-        'an undecidable date is not assumed with no country row', () {
-      final trace = CollectingTrace();
+    test('[countries-languages/country-is-an-input] '
+        'an ambiguous date is not assumed with no country row', () {
       final document = extractDocument(
         passes: <ExtractionPass>[
           photoPass(
@@ -219,14 +224,11 @@ void main() {
         country: null,
         table: table,
         sourceHash: 'h',
-        trace: trace,
       );
 
       expect(document.docDate, const Absent<CalendarDate>());
-      expect(
-        trace.stages['doc_date'],
-        contains(ExtractionStage.valueNotParsed),
-      );
+      expect(document.needsReview, isTrue);
+      expect(document.reviewReason, ReviewReason.countryWithoutRow);
     });
 
     test('[countries-languages/launch-rows] '

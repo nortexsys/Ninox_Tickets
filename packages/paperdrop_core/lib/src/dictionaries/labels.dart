@@ -186,3 +186,74 @@ bool _setEquals(Set<String> left, Set<String> right) {
   }
   return left.containsAll(right);
 }
+
+/// The roles the photo labelled reader binds from a rebuilt row.
+enum PhotoReaderRole {
+  /// A total label word (`TOTAL`, `IMPORTE`, `PAGAR`).
+  total,
+
+  /// A taxable base label word (`BASE`).
+  base,
+
+  /// A tax amount label word (`IVA`, `CUOTA`).
+  vat,
+
+  /// A printed tax-rate label word (`IVA`, `TIPO`).
+  rate,
+
+  /// A date label word (`FECHA`).
+  date,
+}
+
+/// One word of the photo labelled reader's vocabulary.
+///
+/// These are single-token words, not the phrases of [labelTerms]: the photo
+/// reader tokenises a rebuilt row and matches each token, exactly as the
+/// prototype does, so its vocabulary is word-level and deliberately separate
+/// from the Annex C phrase seeds.
+class PhotoReaderLabelTerm {
+  /// The role this word binds.
+  final PhotoReaderRole role;
+
+  /// The word exactly as the tokenizer emits it (upper-case, no punctuation).
+  final String term;
+
+  /// The ISO 639-1 language codes the word belongs to.
+  final Set<String> languages;
+
+  /// Creates a photo reader label word.
+  const PhotoReaderLabelTerm(this.role, this.term, this.languages);
+
+  /// A value-only string form.
+  @override
+  String toString() => '$role: $term ${languages.toList()}';
+
+  /// Value equality on role, term and languages.
+  @override
+  bool operator ==(Object other) =>
+      other is PhotoReaderLabelTerm &&
+      other.role == role &&
+      other.term == term &&
+      _setEquals(other.languages, languages);
+
+  @override
+  int get hashCode =>
+      Object.hash(role, term, Object.hashAllUnordered(languages));
+}
+
+/// The photo labelled reader's vocabulary.
+///
+/// Spain's list contains every word the prototype uses: `TOTAL`, `IMPORTE` and
+/// `PAGAR` for the total; `BASE` for the base; `IVA` and `CUOTA` for the tax
+/// amount; `IVA` and `TIPO` for the printed rate; and `FECHA` for the date.
+const List<PhotoReaderLabelTerm> photoReaderLabelTerms = <PhotoReaderLabelTerm>[
+  PhotoReaderLabelTerm(PhotoReaderRole.total, 'TOTAL', {'es'}),
+  PhotoReaderLabelTerm(PhotoReaderRole.total, 'IMPORTE', {'es'}),
+  PhotoReaderLabelTerm(PhotoReaderRole.total, 'PAGAR', {'es'}),
+  PhotoReaderLabelTerm(PhotoReaderRole.base, 'BASE', {'es'}),
+  PhotoReaderLabelTerm(PhotoReaderRole.vat, 'IVA', {'es'}),
+  PhotoReaderLabelTerm(PhotoReaderRole.vat, 'CUOTA', {'es'}),
+  PhotoReaderLabelTerm(PhotoReaderRole.rate, 'IVA', {'es'}),
+  PhotoReaderLabelTerm(PhotoReaderRole.rate, 'TIPO', {'es'}),
+  PhotoReaderLabelTerm(PhotoReaderRole.date, 'FECHA', {'es'}),
+];
