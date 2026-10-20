@@ -1,0 +1,5 @@
+# Design: add-amount-coherence-rules
+
+Where: the photo route's amount assembly in `packages/paperdrop_core/lib/src/photo/` and its wiring in `extract_document.dart` (`_extractPhotoRoute`). Rules are pure functions over the chosen amounts and the printed rates the readers already return; each has a failing synthetic test first (invented values, `EJEMPLO S.L.`-style, no real data). The PDF text route is not touched. Existing tests that encode "base equals total when no VAT is printed" must stay green: a base equal to the gross is allowed when no tax is read (several tickets are like that); rule 1 only fires when all three are equal.
+Trust rules do not change: a dropped value is absent; a preferred arithmetic triple keeps `derived` provenance and never goes green alone (PRE-008, BR-05).
+Checks: `dart format`, `dart analyze --fatal-infos`, `dart test` in `packages/paperdrop_core`, `privacy_check.py`, `core_purity.py`, `no_ninox_db_id`. The orchestrator then scores on the 19 photographs on the host (counts only).
