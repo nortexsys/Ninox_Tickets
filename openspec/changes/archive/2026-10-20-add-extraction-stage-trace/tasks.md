@@ -9,5 +9,5 @@
 
 ## 2. Orchestrator
 
-- [ ] 2.1 Review; run the checks; run the trace over the private photographs on the host (counts per stage, no values).
-- [ ] 2.2 PO approves; merge `--no-ff`; write the next change from the dominant stages.
+- [x] 2.1 Review; run the checks; run the trace over the private photographs on the host (counts per stage, no values). (done: 5953523, docs/Plan/diario/2026-10-17.md)
+- [x] 2.2 PO approves; merge `--no-ff`; write the next change from the dominant stages. (done: 5953523, e716fbf)

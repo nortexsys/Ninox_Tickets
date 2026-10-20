@@ -24,7 +24,7 @@ private corpus is read, copied or committed by a lane. No write to Ninox.
 
 ## 2. Orchestrator and product owner
 
-- [ ] 2.1 Review the lane report and diff; README dependency row (orchestrator).
-- [ ] 2.2 Device run on the S22 over a synthetic scan, then over the photographed corpus (private);
-      JSON pulled to the private corpus.
-- [ ] 2.3 Merge with `--no-ff` after the PO's approval. ADR-010 stays *proposed* until T2.5.
+- [x] 2.1 Review the lane report and diff; README dependency row (orchestrator). (done: 052e2e0, 58c1097)
+- [x] 2.2 Device run on the S22 over a synthetic scan, then over the photographed corpus (private);
+      JSON pulled to the private corpus. (done: docs/Plan/diario/2026-10-17.md (S22 synthetic and 19 photographs))
+- [x] 2.3 Merge with `--no-ff` after the PO's approval. ADR-010 stays *proposed* until T2.5. (done: 052e2e0, 58c1097)

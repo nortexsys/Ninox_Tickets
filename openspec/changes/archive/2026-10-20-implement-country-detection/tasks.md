@@ -26,4 +26,4 @@ root `python .github/scripts/privacy_check.py` and `core_purity.py`.
 ## 3. Orchestrator and product owner
 
 - [x] 3.1 PO answered design §4 on 2026-10-13: universal core + review.
-- [ ] 3.2 Merge with `--no-ff` after the PO's approval.
+- [x] 3.2 Merge with `--no-ff` after the PO's approval. (done: 0c650f5, 41fafe2)

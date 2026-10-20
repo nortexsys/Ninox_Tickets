@@ -8,6 +8,6 @@
 
 ## 2. Orchestrator and product owner
 
-- [ ] 2.1 Review the diff and the report; run the checks of design §3.
-- [ ] 2.2 Re-run the extraction harness on the S22; compare yield with 2026-10-18.
-- [ ] 2.3 PO approves; merge `--no-ff`.
+- [x] 2.1 Review the diff and the report; run the checks of design §3. (done: 24df6ee)
+- [x] 2.2 Re-run the extraction harness on the S22; compare yield with 2026-10-18. (done: S22 run 2026-10-19 in docs/Plan/diario/2026-10-17.md)
+- [x] 2.3 PO approves; merge `--no-ff`. (done: 24df6ee)

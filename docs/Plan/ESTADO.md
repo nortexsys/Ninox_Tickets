@@ -23,7 +23,7 @@ ahead of `origin/main` (`3eb209a`) and **has not been pushed**. Nothing was writ
 | Gaps 031–040 are in the register | `openspec/gaps-register.md` | Filed. 031, 035–038, 040 closed; 032–034 and 039 open. The status of 2026-10-17 said they were not filed |
 | CI scripts on `main` | run locally | `core_purity` 0, `no_ninox_db_id` 0, `encoding_guard` 0, **`privacy_check` 1 finding** (§5) |
 | Tests | **not run this session** | Last known: app 423, core 265, ninox_client 272 (status 2026-10-10 tree), not re-run on `main` since |
-| Merged changes against their `tasks.md` | `plan_board.py --drift` | **19 changes are merged on `main` with unticked or partly ticked tasks, and none is archived** |
+| Merged changes against their `tasks.md` | `plan_board.py --drift` | 20 changes were merged with open tasks and none archived; **15 archived on 2026-10-20**; 5 remain (§5) |
 | Task status | `plan-tasks.yaml` against `main` | Board in §2 |
 
 ## 2 · Where we are against the plan
@@ -68,8 +68,8 @@ report, and the supervised sessions. M3 started on Mon 19 Oct with no alpha to p
    2026-10-20 (gate in memory `photo-route-ground-truth-and-gate`). Write the screening report for GAP-001.
 3. **Release build and alpha (T2.6).** Needs the phone and the PO; blocked on item 4 of §4.
 4. **Device harness (T2.1 C) and phone runs of T1.12, T1.13, T2.2.** Need the S22 on wireless adb.
-5. **Administrative closure of the 19 merged changes:** tick `tasks.md`, `openspec validate`, archive
-   (a lane task; list from `plan_board.py --drift`). Closes T1.10 (revert the `roles.yaml` widening, task 4.3).
+5. **Finish the archive closure (§5):** the `error-500` re-recording (`verify-live-send-pipeline` 2.4,
+   `implement-ninox-send-pipeline` 2.3), `SendJournal` wiring (2.4), `roles.yaml` revert (wizard 4.3), then archive.
 6. **Repair the scenario-coverage report** (§5), then read it before M3.
 
 ## 4 · Approvals waiting for the PO
@@ -92,7 +92,19 @@ report, and the supervised sessions. M3 started on Mon 19 Oct with no alpha to p
   tests do not carry scenario tags or the script misses them. Until known, no coverage figure is usable.
 * **Gaps open:** GAP-001 (ADR-010, blocks `FR-EXT-005`, `FR-EXT-015`, `UC-14`), 003 (thresholds, closes with
   M3), 005, 006, 007, 008, 009, 012, 023, 025, 029, 030, 032, 033, 034, 039 (parts 2, 3). Register is the source.
-* **Not archived:** all 19 changes in `plan_board.py --drift`; `close-adr-011-pdf-text-route` is 17 of 17 ticked.
+* **Not archived (5, from `plan_board.py --drift`):** `implement-ninox-send-pipeline` 9/11 (2.3 `error-500`
+  not re-recorded; 2.4 no `SendJournal` in `app/`), `verify-live-send-pipeline` 8/9 (same `error-500`),
+  `implement-photo-passes` 8/9 (2.2 no record the PO read the pass numbers), `implement-setup-wizard` 17/19
+  (4.1 cannot pass: no spec deltas; 4.3 revert `agents/roles.yaml` on archive), `implement-validation-and-extraction-core`
+  15/16 (6.2 waits for QA's private runs). Also unarchived: `implement-android-capture-and-store` 10/10 ticked.
+* **`openspec validate --all --strict` is red, 7 failures, none new:** "must have at least one delta" on the open
+  changes without a `specs/` folder, and on `fix-photo-ocr-amount-parsing`. The 12 specs pass. `AGENTS.md` §3 said it
+  was green; it is not for the changes.
+* **Archived with indirect evidence (PO to confirm or revert):** six merges do not record the PO's approval in their
+  message (`implement-country-detection`, `-extraction-orchestration`, `-photo-route`, `-history-retry-duplicates`,
+  `-text-layer-confidence`); S22 tasks of `fix-photo-total-without-identity`, `fix-text-pdf-extraction-yield`,
+  `implement-photo-route`, `adopt-app-cust-readers` were ticked from the runs in `diario/2026-10-17.md`, not from a
+  run of each change alone. Mixed PDFs (point 5, GAP-033) was never answered.
 * **Atria quota:** Spec and QA lanes run on DeepSeek by the PO's order of 2026-10-17 (memory
   `lanes-use-deepseek-until-told`). Do not recharge or switch without being told.
 * **Accuracy of the photo route** is measured only against the PO's verdicts of 2026-10-20; the contrast pass and
