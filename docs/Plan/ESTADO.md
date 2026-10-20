@@ -33,7 +33,7 @@ Board as of 2026-10-20 (generated from `plan-tasks.yaml`; do not edit by hand).
 
 | Milestone | Done | In progress | Not started | Late | Days late (oldest) |
 |---|---|---|---|---|---|
-| M0 | 9 of 10 | 1 | 0 | 1 | 18 |
+| M0 | 10 of 10 | 0 | 0 | 0 | 0 |
 | M1 | 13 of 16 | 3 | 0 | 0 | 0 |
 | M2 | 3 of 8 | 2 | 3 | 0 | 0 |
 | M3 | 0 of 4 | 0 | 4 | 0 | 0 |
@@ -42,7 +42,6 @@ Open tasks (everything not DONE):
 
 | Task | Due | Status | Change | Why it is not done |
 |---|---|---|---|---|
-| T0.8 Ground truth of the 16 documents | 02 Oct | IN PROGRESS · LATE | - | not verified this session; the PO's verdicts of 2026-10-20 cover the 19 photographs only |
 | T1.10 Token, wizard steps, mapping, summary | 22 Oct (v0.2: 09 Oct) | IN PROGRESS | implement-setup-wizard | 17 of 19 tasks; open 4.1 (validate) and 4.3 (revert roles.yaml widening on archive); change not archived |
 | T1.12 App shell, navigation, strings | 22 Oct (v0.2: 09 Oct) | IN PROGRESS | - | app/lib has capture, extraction, review, wizard; not run on a phone |
 | T1.13 Scanner to PDF, picker, share intent, byte-for-byte storage | 22 Oct (v0.2: 09 Oct) | IN PROGRESS | implement-android-capture-and-store | code merged; needs a real phone to close |
@@ -50,7 +49,7 @@ Open tasks (everything not DONE):
 | T2.5 ADR-010 screening on the photographed corpus | 22 Oct (v0.2: 14 Oct) | IN PROGRESS | - | the PO's verdicts exist since 2026-10-20 and a scorer gates photo-route merges; no screening report has been written; GAP-001 still open |
 | T2.6 Alpha: the signed APK installed on the S22 (plan v0.3 D2) | 23 Oct (v0.2: 16 Oct) | NOT STARTED | - | needs a release build; none exists |
 | T2.7 Device pass on the S22: shell, scanner, share intent, review screen (plan v0.3) | 22 Oct | NOT STARTED | - | needs the phone reachable over wireless adb; numbers and screenshots stay outside the repository |
-| T2.8 Signed release APK (plan v0.3, replaces the internal testing track) | 23 Oct | NOT STARTED | - | needs D4 (ML Kit packaging form) from the PO |
+| T2.8 Signed release APK (plan v0.3, replaces the internal testing track) | 23 Oct | NOT STARTED | - | D4 decided 2026-10-20: ML Kit bundled in the app (+12.5 MB, offline from first launch); needs the S22 and a signing key |
 | T3.1 Benchmark over both halves of the acceptance corpus | 27 Oct (v0.2: 23 Oct) | NOT STARTED | - |  |
 | T3.2 Supervised sessions with 2-3 users | 29 Oct (v0.2: 22 Oct) | NOT STARTED | - | whether users are booked is not recorded anywhere (ESTADO §6) |
 | T3.3 Triage and fix loop | 30 Oct (v0.2: 23 Oct) | NOT STARTED | - |  |
@@ -59,8 +58,8 @@ Open tasks (everything not DONE):
 
 Reading: plan v0.3 (approved 2026-10-20, DEC-026) moved the dates; the board shows the v0.2 date next to each.
 Code for nearly every M1 and M2 task is merged. What is open needs the phone or the PO: device runs (T2.7), the
-screening report (T2.5), the release APK (T2.8, needs D4), then the sessions of 28–29 Oct. T0.8 is the only
-task late against the v0.3 dates.
+screening report (T2.5), the release APK (T2.8, needs D4), then the sessions of 28–29 Oct. Nothing is late
+against the v0.3 dates; M0 is closed.
 
 ## 3 · What is next, in this order
 
@@ -68,7 +67,7 @@ task late against the v0.3 dates.
    (pairing is per wifi network: the PO runs `adb pair`). Hard date: no device run by Wed 21 Oct slips the alpha.
 2. **Photo route, T2.5.** Score every change with the scorer kept in the private corpus against the PO's verdicts of
    2026-10-20 (gate in memory `photo-route-ground-truth-and-gate`). Write the screening report for GAP-001.
-3. **Signed release APK and alpha, Fri 23 Oct (T2.8, T2.6).** Blocked on D4 (§4 item 3). Fallback in plan v0.3 §6:
+3. **Signed release APK and alpha, Fri 23 Oct (T2.8, T2.6).** D4 decided: ML Kit bundled. Fallback in plan v0.3 §6:
    sessions run on the debug build on the PO's S22.
 4. **Sessions plan:** the PO calls the users on Mon 26 Oct for Wed 28 – Thu 29 Oct (48 hours of notice assumed).
 5. **Finish the archive closure (§5):** the `error-500` re-recording (`verify-live-send-pipeline` 2.4,
@@ -79,9 +78,9 @@ task late against the v0.3 dates.
 
 | # | What | Needed by |
 |---|---|---|
-| 1 | ~~Plan v0.3~~ approved 2026-10-20 (D1, D2, D3, D5). **D6 open:** confirm the ground truth of the 16 documents (T0.8) or close it as superseded by the 19-photograph verdicts | now |
+| 1 | ~~Plan v0.3, D1–D6~~ all decided 2026-10-20 (DEC-026) | — |
 | 2 | `git push` of `main` (60 commits) | when the PO decides |
-| 3 | **D4 open:** ML Kit packaging, bundled +12.5 MB or Play-services model +99 KB. T2.8 cannot start without it | Wed 21 Oct |
+| 3 | ~~D4~~ decided: ML Kit bundled in the app. The signing key for T2.8 is the PO's: say when it exists | Thu 22 Oct |
 | 4 | `adb pair` of the S22 on the current wifi, so the device pass can start | Wed 21 Oct |
 | 5 | Users for T3.2: "available when needed" (PO, 2026-10-20). Approved with 48 hours of notice assumed (D5); call them on Mon 26 Oct for 28–29 Oct | Mon 26 Oct |
 | 6 | Leftover branches: `change/fix-photo-ocr-amount-parsing` (unmerged), `backup/pre-push-main-20261007`, `claude/ticket-reader-ninox-session1-ee5bf1` — keep or delete | whenever |
@@ -120,8 +119,6 @@ task late against the v0.3 dates.
 ## 6 · What is not known
 
 * Whether the S22 is reachable now, and which wifi it is on (wireless adb pairs per network).
-* Whether the 16-document ground truth (T0.8, due 2 Oct) was ever confirmed in full. The 2026-10-20 verdicts cover
-  the 19 photographs only.
 * Whether the full test suite is green on `main`. It has not been run since the merges of 18–20 Oct.
 * Whether the two PDF-corpus halves and the photographed corpus are complete in `Paperdrop_corpus`.
-* How much notice the users need. They are available on request (PO, 2026-10-20); nobody is booked.
+* Nobody is booked; the users are available on request and 48 hours of notice is an assumption (D5).

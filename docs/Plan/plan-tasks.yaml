@@ -69,8 +69,8 @@ tasks:
     due: 2026-10-02
     owner: "QA + PO"
     title: "Ground truth of the 16 documents"
-    status: "IN_PROGRESS"
-    evidence: "not verified this session; the PO's verdicts of 2026-10-20 cover the 19 photographs only"
+    status: "DONE"
+    evidence: "closed as superseded by the PO on 2026-10-20 (plan v0.3 D6): the PO's hand verdicts on the 19 photographs replace the 16-document ground truth; no further confirmation is owed"
   - id: "T0.9"
     ms: M0
     due: 2026-09-29
@@ -282,7 +282,7 @@ tasks:
     owner: "Orchestrator"
     title: "Signed release APK (plan v0.3, replaces the internal testing track)"
     status: NOT_STARTED
-    evidence: "needs D4 (ML Kit packaging form) from the PO"
+    evidence: "D4 decided 2026-10-20: ML Kit bundled in the app (+12.5 MB, offline from first launch); needs the S22 and a signing key"
   # ---- M3 Validation with users (Mon 2026-10-19 to Fri 2026-10-23) ----
   - id: "T3.1"
     ms: M3

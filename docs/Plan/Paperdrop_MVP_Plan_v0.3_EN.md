@@ -1,6 +1,6 @@
 # Paperdrop for Ninox — MVP replan
 
-**Version:** 0.3 — **APPROVED by the product owner on 2026-10-20** (DEC-026): D1, D2, D3 and D5 as proposed. **D4 and D6 are choices, not proposals, and are still open** (§8). Supersedes the dates of v0.2.1.
+**Version:** 0.3 — **APPROVED by the product owner on 2026-10-20** (DEC-026): D1, D2, D3 and D5 as proposed. D4 (ML Kit **bundled**) and D6 (T0.8 **closed as superseded**) decided by the PO the same day. Supersedes the dates of v0.2.1.
 **Date:** 2026-10-20 (Tue)
 **Base:** `Paperdrop_MVP_Plan_v0.2_EN.md` (v0.2.1). This document is a delta: whatever it does not mention stays as in v0.2.
 **Evidence:** `docs/Plan/ESTADO.md` §1–§2 and `docs/Plan/plan-tasks.yaml`, both read against `main` (`d2013b2`) on 2026-10-20.
@@ -98,4 +98,4 @@ Scope matrix (§4 of v0.2), architecture, the team and its roles, the privacy ga
 
 ## 8. Decisions
 
-Approved 2026-10-20: D1 (dates), D2 (APK instead of Play track), D3 (photo stays), D5 (48 hours of notice assumed; the PO calls the users on Mon 26 Oct). **Open:** D4 (ML Kit form, by Wed 21 Oct; without it T2.8 cannot start) and D6 (T0.8: confirm the 16-document ground truth, or close it as superseded).
+Approved 2026-10-20: D1 (dates), D2 (APK instead of Play track), D3 (photo stays), D5 (48 hours of notice assumed; the PO calls the users on Mon 26 Oct). Decided 2026-10-20 after the approval: D4 — ML Kit **bundled** in the app (+12.5 MB, offline from first launch); D6 — T0.8 **closed as superseded** by the verdicts on the 19 photographs. Nothing is open.
