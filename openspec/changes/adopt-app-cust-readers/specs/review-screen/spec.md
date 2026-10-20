@@ -61,6 +61,48 @@ SHALL NOT alter the order of the six core fields.
 
 ---
 
+### Requirement: second-read-is-requested-and-shown-running
+
+The review screen SHALL offer the user a second read of the document on request ("re-read to refine") and SHALL show that it is running while it runs, so that the wait is not mistaken for a block and the result is not mistaken for the first read's. When the second read finishes, the screen SHALL show the values it filled or refined, and SHALL keep every value the user edited or typed as the user's — with the user's value and its edited mark, whatever the second read returned (`user-edits-are-authoritative`). The screen SHALL allow the save while a second read runs and SHALL NOT make it a condition of saving (BR-14, `never-block-a-save`).
+[Origen: Funcional §4.4 FR-REV-009; Funcional §4.4 FR-REV-010; Funcional §5 BR-14; DEC-007; DEC-024]
+
+#### Scenario: the user asks for a second read
+
+- GIVEN a document under review whose first read is on screen
+- WHEN the user asks for a second read
+- THEN the second read starts on the same document
+- AND the screen shows that it is running
+
+#### Scenario: the screen shows that the second read is running and then stops showing it
+
+- GIVEN a second read under way
+- WHEN it finishes, whether or not it filled anything
+- THEN the screen no longer shows it as running
+- AND the values it produced are on screen
+
+#### Scenario: a value the user edited is not overwritten by the second read
+
+- GIVEN a total the user typed on the review screen
+- WHEN the second read returns another total
+- THEN the screen still shows the user's total
+- AND it is still marked as edited
+
+#### Scenario: a value the user did not touch may be filled or refined
+
+- GIVEN an empty field, and a date the first read produced that the user has not
+  touched
+- WHEN the second read returns a value for each
+- THEN the screen shows what the second read produced for them
+
+#### Scenario: a save is not held back by a second read
+
+- GIVEN a second read running on the document under review
+- WHEN the user saves
+- THEN the save proceeds
+- AND the second read has not become a condition of saving
+
+---
+
 ## Out of Scope
 
 - **The country table, the default country and what a row supplies.**
@@ -74,7 +116,7 @@ SHALL NOT alter the order of the six core fields.
   comes from the country setting — is that capability's exception to BR-04, and this
   screen only renders the state it is given.
 - **A save being blocked.** `never-block-a-save` (BR-14) still governs: a country
-  change never stands between the user and a save.
+  change never stands between the user and a save, and neither does a second read.
 
 ---
 
@@ -84,7 +126,8 @@ SHALL NOT alter the order of the six core fields.
   that follows from the country in force (`country-is-an-input`).
 - `extraction-pipeline` — owns the readers and the values the country row produces
   (`photo-route-readers-take-their-formats-from-the-country-row`,
-  `currency-is-read-from-the-document`).
+  `currency-is-read-from-the-document`) and what the second read is and may write
+  (`second-read-on-the-users-request`).
 - `validation-confidence` — owns the state in which the currency and every other
   value is presented, which this screen only renders. A currency that comes from the
   country setting is green there by DEC-023, the exception that decision records to
@@ -94,6 +137,11 @@ SHALL NOT alter the order of the six core fields.
 
 ## Open Questions
 
-- **GAP-040** — the "re-read to refine" second read (proposal, item 4) is the only way
-  a changed country reaches the values, and it has no requirement yet: this change
-  does not specify it.
+- **Settled on 2026-10-20 (GAP-040, DEC-024).** The second read on the user's request
+  is `second-read-is-requested-and-shown-running`, above: the screen offers it, shows
+  that it is running, and keeps a value the user edited or typed. The read itself, and
+  the rule that it may only fill an empty field or refine a value the user did not
+  touch, is `extraction-pipeline` · `second-read-on-the-users-request`. A country
+  change made on this screen reaches the values only when the document is read again
+  (`country-shown-and-editable-per-ticket`); the requested second read specified here
+  is such a read of the same document.

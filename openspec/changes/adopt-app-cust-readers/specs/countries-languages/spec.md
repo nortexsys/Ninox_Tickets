@@ -130,16 +130,20 @@ table, and it still applies to whatever the ticket carries.
 - `validation-confidence` — owns what may be presented as confirmed. A currency that
   comes from a row rather than from the document is still that capability's to state;
   DEC-023 is its exception to BR-04, made there and not here.
-- `local-config-privacy` — owns the configuration file and the clearing action; if
-  the default country travels in either, that is a change to its requirements and is
-  not made here (GAP-039).
+- `local-config-privacy` — owns the configuration file and the clearing action. Since
+  the PO's decision of 2026-10-20 the default country travels in the configuration
+  file, and that is written there and not here (`configuration-export-and-import`);
+  what the clearing action does to it is still open (GAP-039, item (2)).
 - `setup-wizard` — owns the first run. Whether the country is offered there is not
-  decided (GAP-039).
+  decided (GAP-039, item (3)).
 
 ---
 
 ## Open Questions
 
-- **GAP-039** — whether the default country travels in the configuration export,
-  whether the clearing action resets it to the phone's region, and whether it is
-  offered as a step of the first-run wizard.
+- **GAP-039, items (2) and (3) — open, non-blocking.** Item (1) is settled: the
+  default country travels in the configuration export/import file (PO, 2026-10-20;
+  `local-config-privacy` · `configuration-export-and-import`, above). Still undecided:
+  whether the clearing action resets the default country to the phone's region, and
+  whether the first-run wizard offers it as a step. Neither answer changes the country
+  input specified here.
