@@ -13,6 +13,8 @@ import 'package:paperdrop/history/history_entry.dart';
 import 'package:paperdrop/history/history_store.dart';
 import 'package:paperdrop/intake/document_intake.dart';
 import 'package:paperdrop/intake/intake_result.dart';
+import 'package:paperdrop_core/paperdrop_core.dart'
+    show CountryRow, CountryTable;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -65,11 +67,27 @@ void main() {
 
   const String evalDirectory = String.fromEnvironment('EXTRACTION_EVAL_DIR');
 
+  // The country in force for every document of a run: on the photo route the country is an input
+  // and no longer a detection (DEC-022), so a run has to name one. Spain by default, because that is
+  // the row the re-measurement of `adopt-app-cust-readers` §5 compares with `main`; the text routes
+  // ignore it and keep detecting their own country.
+  const String evalCountry = String.fromEnvironment(
+    'EXTRACTION_EVAL_COUNTRY',
+    defaultValue: 'ES',
+  );
+
   test('every document goes through the extraction, one summary each', () async {
     final Directory input = Directory(evalDirectory);
     if (!input.existsSync()) {
       fail(
         'EXTRACTION_EVAL_DIR is not a directory on this device: $evalDirectory',
+      );
+    }
+    final CountryRow? country = CountryTable.launch.rowFor(evalCountry);
+    if (country == null) {
+      fail(
+        'EXTRACTION_EVAL_COUNTRY names a country the launch table has no row '
+        'for: $evalCountry',
       );
     }
 
@@ -139,7 +157,10 @@ void main() {
             .convert(stored.readAsBytesSync())
             .toString();
         final Stopwatch elapsed = Stopwatch()..start();
-        final ExtractionOutcome outcome = await service.extract(document);
+        final ExtractionOutcome outcome = await service.extract(
+          document,
+          country: country,
+        );
         elapsed.stop();
         final String sha256After = sha256
             .convert(stored.readAsBytesSync())
