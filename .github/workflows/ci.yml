@@ -49,6 +49,25 @@ jobs:
       - name: Test ninox_client
         working-directory: packages/ninox_client
         run: dart test
+      # pdfium_dart 0.3.1's loader (lib/src/pdfium_loader.dart) looks for
+      # "<resolved-executable-dir>/lib/libpdfium.so" when Flutter runs on
+      # Linux, which for `flutter test` is the engine artifact directory
+      # under the Flutter SDK cache. That artifact is not a PDFium file and
+      # `flutter precache` does not fetch one (design.md fix-ci-pdfium-runner
+      # §2, option (c)): place the same PDFium build the native-assets hook
+      # downloads (pdfium_dart's hook/build.dart pins "chromium/7811") there
+      # before the step that runs the failing tests.
+      - name: Install PDFium for the Linux test host
+        run: |
+          set -euo pipefail
+          FLUTTER_BIN="$(command -v flutter)"
+          FLUTTER_ROOT_DIR="$(dirname "$(dirname "$(readlink -f "$FLUTTER_BIN")")")"
+          ENGINE_LIB_DIR="$FLUTTER_ROOT_DIR/bin/cache/artifacts/engine/linux-x64/lib"
+          mkdir -p "$ENGINE_LIB_DIR"
+          curl -fsSL -o /tmp/pdfium-linux-x64.tgz \
+            "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium%2F7811/pdfium-linux-x64.tgz"
+          tar -xzf /tmp/pdfium-linux-x64.tgz -C /tmp lib/libpdfium.so
+          cp /tmp/lib/libpdfium.so "$ENGINE_LIB_DIR/libpdfium.so"
       - name: Test app with coverage
         working-directory: app
         run: flutter test --coverage
