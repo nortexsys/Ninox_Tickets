@@ -12,7 +12,7 @@ bounding boxes (`ocr.dart`). Its tests are synthetic.
 
 ## What Changes
 
-PO decisions of 2026-10-19.
+PO decisions of 2026-10-19, and of 2026-10-20 where a line says so.
 
 1. **Port the three readers into Core as the photo route's reader**, logic unchanged. `DECOUPLING.md`
    of the App Cust says nothing is copied without a decision; this is that decision.
@@ -26,6 +26,38 @@ PO decisions of 2026-10-19.
 4. **Two reads:** a first read automatically; a second, on the user's request ("re-read to refine"),
    that runs the other reader / more passes. The prototype's *Relectura* toggle is the model.
 5. Scope: **photo route only.** The PDF text route and the Ninox layers are not touched.
+6. **The default country travels in the configuration file** (PO decision of 2026-10-20,
+   GAP-039 item 1): export and import carry it, so a restored device keeps the country
+   the user was working in. Whether the clearing action resets it to the phone's region,
+   and whether the first-run wizard offers it as a step, remain open and non-blocking.
+7. **The second read gets a requirement of its own** (PO decision of 2026-10-20,
+   GAP-040 option (a), DEC-024): `extraction-pipeline` runs it on request and it never
+   overwrites a value the user edited or typed; `review-screen` offers it and shows that
+   it is running. BR-06 and the confidence rules are unchanged.
+
+## Capabilities
+
+### New Capabilities
+
+- None.
+
+### Modified Capabilities
+
+- `countries-languages`: the country of a photograph is an input with a default in the
+  settings, not a detection result, and the row it resolves to supplies the formats.
+- `extraction-pipeline`: the photo route reads through the two country-parametrised
+  readers, the currency comes from the country row, and a second read runs on the
+  user's request without changing the consensus rules.
+- `review-screen`: the country is shown and editable per ticket, and the requested
+  second read is shown while it runs and never overwrites an edit.
+- `local-config-privacy`: the default country travels in the configuration
+  export/import file.
+
+## Spec type
+
+Full for `extraction-pipeline` and `validation-confidence`, which are Full in
+`openspec/project.md` §3.1; Lite for `countries-languages`, `review-screen` and
+`local-config-privacy` (`openspec/project.md` §6).
 
 ## Out of scope
 
