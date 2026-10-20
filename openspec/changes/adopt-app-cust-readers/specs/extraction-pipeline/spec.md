@@ -4,13 +4,20 @@
 
 The currency of a document read by the **photo route** SHALL be the currency the
 country row in force for the ticket declares, and the photo route SHALL NOT run a
-currency-reading stage that can fail. The currency of a document read by any other
-route SHALL still be extracted from the document's own evidence — the printed ISO
-code, the symbol, the issuer country — and SHALL never be defaulted to the table's
-currency. Which state a currency may be presented in, and whether an unsustained one
-suppresses the amounts, remain `validation-confidence`'s (FR-VAL-009) and are not
-changed here.
-[Origen: Funcional §4.2 FR-EXT-013; PDR §6 (v0.2); Finding 3; DEC-022]
+currency-reading stage that can fail. That currency SHALL be recorded with the
+country setting as its origin and SHALL NOT be given the provenance of a reading, and
+the state it is presented in is `validation-confidence`'s
+(`currency-carries-its-own-confidence-state`, green for this source by DEC-023).
+The currency of a document read by any other route SHALL still be extracted from the
+document's own evidence — the printed ISO code, the symbol, the issuer country — and
+SHALL never be defaulted to the table's currency. Which state a currency may be
+presented in, and whether an unsustained one suppresses the amounts, remain
+`validation-confidence`'s (FR-VAL-009) and are not changed here.
+Where the country in force has no row in the table, the photo route SHALL NOT take a
+currency from any other source in its place — no table, no mapping, no evidence on the
+image — and the field SHALL be left for the user to fill, like the ticket's other
+fields (`countries-languages` · `country-is-an-input`).
+[Origen: Funcional §4.2 FR-EXT-013; PDR §6 (v0.2); Finding 3; DEC-022; DEC-023]
 
 #### Scenario: a euro receipt is tagged EUR
 
@@ -39,6 +46,14 @@ changed here.
 - WHEN the record is assembled
 - THEN its currency is EUR, the currency the Spanish row declares
 - AND no currency evidence printed on the image was needed to reach it
+- AND its origin is the country setting, not a reading of the image
+
+#### Scenario: a country without a row gets no currency from anywhere else
+
+- GIVEN a photographed ticket whose country in force has no row in the country table
+- WHEN the record is assembled
+- THEN no currency is taken from a table, a mapping or the image in the row's place
+- AND the currency field is left for the user to fill
 
 ---
 
@@ -58,7 +73,10 @@ readers consume — decimal convention, date order and date separator, legal rat
 currency and label vocabulary — SHALL come from the country row in force for the
 ticket, and SHALL NOT be fixed for any country in the reading logic; for Spain the
 ported readers SHALL give the same result as the prototype they come from on the
-ported test cases.
+ported test cases. Where the country in force has no row in the table, neither reader
+SHALL run: the photo route SHALL produce no read for that ticket rather than a read
+under assumed conventions, and the ticket's fields SHALL be left for the user to fill
+by hand (`countries-languages` · `country-is-an-input`).
 [Origen: Funcional §4.2 FR-EXT-014, FR-EXT-015; Funcional §4.2 FR-EXT-008; Funcional §5 BR-07; Funcional Annex C; PDR §6.1; DEC-022]
 
 #### Scenario: a printed label binds its value
@@ -96,6 +114,16 @@ ported test cases.
 - WHEN they are run against the ported readers with Spain in force
 - THEN every expectation of the prototype holds unchanged
 
+#### Scenario: a country without a row gets no read at all
+
+- GIVEN a photographed ticket whose country in force is Portugal, which has no row in
+  the country table
+- WHEN the ticket is read
+- THEN neither the labelled reader nor the arithmetic reader runs
+- AND no decimal convention, date order, date separator, rate set, currency or label
+  vocabulary is assumed in their place
+- AND the ticket's fields are left for the user to fill by hand
+
 ---
 
 ## Out of Scope
@@ -103,8 +131,11 @@ ported test cases.
 - **Which country is in force for a ticket, and how it is chosen.** That is
   `countries-languages` · `country-is-an-input`; this capability only consumes the
   row it resolves to.
-- **The currency's confidence state.** Unchanged: `validation-confidence` (FR-VAL-009,
-  BR-12) owns it, and `openspec/project.md` §3.3 keeps reading and trusting apart.
+- **The currency's confidence state.** Unchanged in ownership: `validation-confidence`
+  (FR-VAL-009, BR-12) owns it, and `openspec/project.md` §3.3 keeps reading and
+  trusting apart. Its value for the photo route is stated above; the green that
+  DEC-023 gives the country-sourced currency is that capability's exception to BR-04,
+  made there and not here.
 - **Which rates are legal and which dictionary words exist.** `countries-languages`
   owns the data. This capability owns that the readers take it from the row.
 - **The PDF text route and the XML route.** They are not touched by this change: the
@@ -122,7 +153,7 @@ ported test cases.
   (`country-is-an-input`, `document-dictionaries-are-separate-from-interface-language`).
 - `validation-confidence` — owns the three strengths, the confirmatory rule that
   consumes this capability's provenance (FR-VAL-002, BR-02, BR-05), and currency's
-  confidence state (FR-VAL-009).
+  confidence state (FR-VAL-009, and DEC-023's green for the country-sourced currency).
 - `review-screen` — shows the country in force and lets the user change it
   (`country-shown-and-editable-per-ticket`).
 
@@ -130,13 +161,6 @@ ported test cases.
 
 ## Open Questions
 
-- **GAP-036** — a ticket whose country has no country row: what the readers do, and
-  whether the country can be selected at all. Blocking for that case only; the
-  requirements above are written for a ticket whose country has a row.
-- **GAP-037** — which state a currency that comes from the country row carries when
-  it is displayed. It is not a reading, so `validation-confidence`'s
-  `currency-carries-its-own-confidence-state` has nothing to sustain it from, and no
-  requirement here decides its colour.
 - **GAP-034** — what a history entry records about the country in force now that the
   photo route no longer detects one. The suffix convention the PO accepted is
   unchanged; its subject is not decided.
