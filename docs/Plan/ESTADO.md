@@ -10,7 +10,7 @@ Start with §6, then §3.
 
 ---
 
-**2026-10-20, 11:20 UTC · Status: OPEN (first state file; written from `main` at `d2013b2`).** `main` is 60 commits
+**2026-10-20 · Status: OPEN (written from `main` at `d2013b2`; plan v0.3 approved the same day).** `main` is 60 commits
 ahead of `origin/main` (`3eb209a`) and **has not been pushed**. Nothing was written to Ninox in this session.
 
 ## 1 · What was checked today, and against what
@@ -34,8 +34,8 @@ Board as of 2026-10-20 (generated from `plan-tasks.yaml`; do not edit by hand).
 | Milestone | Done | In progress | Not started | Late | Days late (oldest) |
 |---|---|---|---|---|---|
 | M0 | 9 of 10 | 1 | 0 | 1 | 18 |
-| M1 | 13 of 16 | 3 | 0 | 3 | 11 |
-| M2 | 3 of 6 | 2 | 1 | 3 | 6 |
+| M1 | 13 of 16 | 3 | 0 | 0 | 0 |
+| M2 | 3 of 8 | 2 | 3 | 0 | 0 |
 | M3 | 0 of 4 | 0 | 4 | 0 | 0 |
 
 Open tasks (everything not DONE):
@@ -43,31 +43,34 @@ Open tasks (everything not DONE):
 | Task | Due | Status | Change | Why it is not done |
 |---|---|---|---|---|
 | T0.8 Ground truth of the 16 documents | 02 Oct | IN PROGRESS · LATE | - | not verified this session; the PO's verdicts of 2026-10-20 cover the 19 photographs only |
-| T1.10 Token, wizard steps, mapping, summary | 09 Oct | IN PROGRESS · LATE | implement-setup-wizard | 17 of 19 tasks; open 4.1 (validate) and 4.3 (revert roles.yaml widening on archive); change not archived |
-| T1.12 App shell, navigation, strings | 09 Oct | IN PROGRESS · LATE | - | app/lib has capture, extraction, review, wizard; not run on a phone |
-| T1.13 Scanner to PDF, picker, share intent, byte-for-byte storage | 09 Oct | IN PROGRESS · LATE | implement-android-capture-and-store | code merged; needs a real phone to close |
-| T2.1 Route selection and consolidation wired end to end | 16 Oct | IN PROGRESS · LATE | implement-extraction-orchestration | parts A and B merged; part C (device harness for ExtractionService) needs the phone |
-| T2.5 ADR-010 screening on the photographed corpus | 14 Oct | IN PROGRESS · LATE | - | the PO's verdicts exist since 2026-10-20 and a scorer gates photo-route merges; no screening report has been written; GAP-001 still open |
-| T2.6 Alpha on the internal testing track | 16 Oct | NOT STARTED · LATE | - | needs a release build; none exists |
-| T3.1 Benchmark over both halves of the acceptance corpus | 23 Oct | NOT STARTED | - |  |
-| T3.2 Supervised sessions with 2-3 users | 22 Oct | NOT STARTED | - | whether users are booked is not recorded anywhere (ESTADO §6) |
-| T3.3 Triage and fix loop | 23 Oct | NOT STARTED | - |  |
-| T3.4 Thresholds, MVP report, R1 backlog | 23 Oct | NOT STARTED | - |  |
+| T1.10 Token, wizard steps, mapping, summary | 22 Oct (v0.2: 09 Oct) | IN PROGRESS | implement-setup-wizard | 17 of 19 tasks; open 4.1 (validate) and 4.3 (revert roles.yaml widening on archive); change not archived |
+| T1.12 App shell, navigation, strings | 22 Oct (v0.2: 09 Oct) | IN PROGRESS | - | app/lib has capture, extraction, review, wizard; not run on a phone |
+| T1.13 Scanner to PDF, picker, share intent, byte-for-byte storage | 22 Oct (v0.2: 09 Oct) | IN PROGRESS | implement-android-capture-and-store | code merged; needs a real phone to close |
+| T2.1 Route selection and consolidation wired end to end | 22 Oct (v0.2: 16 Oct) | IN PROGRESS | implement-extraction-orchestration | parts A and B merged; part C (device harness for ExtractionService) needs the phone |
+| T2.5 ADR-010 screening on the photographed corpus | 22 Oct (v0.2: 14 Oct) | IN PROGRESS | - | the PO's verdicts exist since 2026-10-20 and a scorer gates photo-route merges; no screening report has been written; GAP-001 still open |
+| T2.6 Alpha: the signed APK installed on the S22 (plan v0.3 D2) | 23 Oct (v0.2: 16 Oct) | NOT STARTED | - | needs a release build; none exists |
+| T2.7 Device pass on the S22: shell, scanner, share intent, review screen (plan v0.3) | 22 Oct | NOT STARTED | - | needs the phone reachable over wireless adb; numbers and screenshots stay outside the repository |
+| T2.8 Signed release APK (plan v0.3, replaces the internal testing track) | 23 Oct | NOT STARTED | - | needs D4 (ML Kit packaging form) from the PO |
+| T3.1 Benchmark over both halves of the acceptance corpus | 27 Oct (v0.2: 23 Oct) | NOT STARTED | - |  |
+| T3.2 Supervised sessions with 2-3 users | 29 Oct (v0.2: 22 Oct) | NOT STARTED | - | whether users are booked is not recorded anywhere (ESTADO §6) |
+| T3.3 Triage and fix loop | 30 Oct (v0.2: 23 Oct) | NOT STARTED | - |  |
+| T3.4 Thresholds, MVP report, R1 backlog | 02 Nov (v0.2: 23 Oct) | NOT STARTED | - |  |
 <!-- BOARD:END -->
 
-Reading: the plan assumed M1 closed on 9 Oct and the alpha on 16 Oct. Code for nearly every M1 and M2 task
-is merged. What is open is what needs the phone or the PO: device runs, a release build, the screening
-report, and the supervised sessions. M3 started on Mon 19 Oct with no alpha to put in front of users.
+Reading: plan v0.3 (approved 2026-10-20, DEC-026) moved the dates; the board shows the v0.2 date next to each.
+Code for nearly every M1 and M2 task is merged. What is open needs the phone or the PO: device runs (T2.7), the
+screening report (T2.5), the release APK (T2.8, needs D4), then the sessions of 28–29 Oct. T0.8 is the only
+task late against the v0.3 dates.
 
 ## 3 · What is next, in this order
 
-1. **Replan decision (PO).** Draft `docs/Plan/Paperdrop_MVP_Plan_v0.3_EN.md` written 2026-10-20, **not approved**:
-   alpha 23 Oct as a signed APK, sessions 28–29 Oct, MVP report 2 Nov; decisions D1–D6 in its §2. Dates in
-   `plan-tasks.yaml` change only after approval.
+1. **Device pass, Tue 20 – Thu 22 Oct (T2.7, T2.1 C, T1.12, T1.13).** Needs the S22 reachable over wireless adb
+   (pairing is per wifi network: the PO runs `adb pair`). Hard date: no device run by Wed 21 Oct slips the alpha.
 2. **Photo route, T2.5.** Score every change with the scorer kept in the private corpus against the PO's verdicts of
    2026-10-20 (gate in memory `photo-route-ground-truth-and-gate`). Write the screening report for GAP-001.
-3. **Release build and alpha (T2.6).** Needs the phone and the PO; blocked on item 4 of §4.
-4. **Device harness (T2.1 C) and phone runs of T1.12, T1.13, T2.2.** Need the S22 on wireless adb.
+3. **Signed release APK and alpha, Fri 23 Oct (T2.8, T2.6).** Blocked on D4 (§4 item 3). Fallback in plan v0.3 §6:
+   sessions run on the debug build on the PO's S22.
+4. **Sessions plan:** the PO calls the users on Mon 26 Oct for Wed 28 – Thu 29 Oct (48 hours of notice assumed).
 5. **Finish the archive closure (§5):** the `error-500` re-recording (`verify-live-send-pipeline` 2.4,
    `implement-ninox-send-pipeline` 2.3), `SendJournal` wiring (2.4), `roles.yaml` revert (wizard 4.3), then archive.
 6. **Repair the scenario-coverage report** (§5), then read it before M3.
@@ -76,11 +79,11 @@ report, and the supervised sessions. M3 started on Mon 19 Oct with no alpha to p
 
 | # | What | Needed by |
 |---|---|---|
-| 1 | Plan v0.3 draft: D1 dates, D2 APK not Play track, D3 photo stays, D5 notice users need, D6 T0.8 | today |
+| 1 | ~~Plan v0.3~~ approved 2026-10-20 (D1, D2, D3, D5). **D6 open:** confirm the ground truth of the 16 documents (T0.8) or close it as superseded by the 19-photograph verdicts | now |
 | 2 | `git push` of `main` (60 commits) | when the PO decides |
-| 3 | ML Kit packaging (D4): bundled +12.5 MB, or Play-services model +99 KB | Wed 21 Oct |
-| 4 | Whether a release build and alpha track are wanted before the sessions | before T2.6 |
-| 5 | Users for T3.2: "available when needed" (PO, 2026-10-20). Call them on Mon 26 Oct for 28–29 Oct; how much notice they need is not known | Mon 26 Oct |
+| 3 | **D4 open:** ML Kit packaging, bundled +12.5 MB or Play-services model +99 KB. T2.8 cannot start without it | Wed 21 Oct |
+| 4 | `adb pair` of the S22 on the current wifi, so the device pass can start | Wed 21 Oct |
+| 5 | Users for T3.2: "available when needed" (PO, 2026-10-20). Approved with 48 hours of notice assumed (D5); call them on Mon 26 Oct for 28–29 Oct | Mon 26 Oct |
 | 6 | Leftover branches: `change/fix-photo-ocr-amount-parsing` (unmerged), `backup/pre-push-main-20261007`, `claude/ticket-reader-ninox-session1-ee5bf1` — keep or delete | whenever |
 
 ## 5 · Open, and only open

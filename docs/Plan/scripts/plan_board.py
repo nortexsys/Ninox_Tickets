@@ -64,7 +64,8 @@ def render(tasks: list[dict], today: dt.date) -> str:
             continue
         flag = LABEL[t["status"]] + (" · LATE" if is_late(t, today) else "")
         note = (t.get("evidence") or "").replace("|", "/")
-        out.append(f"| {t['id']} {t['title']} | {t['due'].strftime('%d %b')} | {flag} | {t.get('change') or '-'} | {note} |")
+        was = f" (v0.2: {t['v02_due'].strftime('%d %b')})" if t.get("v02_due") else ""
+        out.append(f"| {t['id']} {t['title']} | {t['due'].strftime('%d %b')}{was} | {flag} | {t.get('change') or '-'} | {note} |")
     out.append(END)
     return "\n".join(out)
 

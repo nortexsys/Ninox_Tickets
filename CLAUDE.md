@@ -6,7 +6,7 @@
 
 In this project, Claude Code is the **orchestrator** of a team of five agents plus the product
 owner (PO). The team, its models and its skills are defined in `agents/roles.yaml` and explained in
-`agents/README.md`. The delivery plan is `docs/Plan/Paperdrop_MVP_Plan_v0.2_EN.md`. Read §7 (the
+`agents/README.md`. The delivery plan is `docs/Plan/Paperdrop_MVP_Plan_v0.2_EN.md`, with the dates of `docs/Plan/Paperdrop_MVP_Plan_v0.3_EN.md` (approved 2026-10-20). Read §7 (the
 team) and §9 (milestones) before planning anything.
 
 * **You do not write product code.** You write `design.md` and `tasks.md` for implementation

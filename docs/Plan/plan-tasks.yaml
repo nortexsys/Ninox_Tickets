@@ -7,6 +7,7 @@
 # status: DONE | IN_PROGRESS | BLOCKED_PO | NOT_STARTED.   LATE is derived (due passed, not DONE).
 # DONE needs `evidence`: a commit, a merged change, a file or a run that was READ, not remembered.
 # change: the OpenSpec change that carries the task (blank when there is none).
+# Dates are those of plan v0.3 (approved 2026-10-20); `v02_due` keeps the v0.2 date so the slip stays visible.
 # Last full review against `main` (d2013b2): 2026-10-20.
 
 tasks:
@@ -160,7 +161,8 @@ tasks:
     evidence: "GAP-004 closed 2026-10-19 with the live measurement"
   - id: "T1.10"
     ms: "M1"
-    due: 2026-10-09
+    due: 2026-10-22
+    v02_due: 2026-10-09
     owner: "Ninox"
     title: "Token, wizard steps, mapping, summary"
     status: "IN_PROGRESS"
@@ -176,14 +178,16 @@ tasks:
     evidence: "merged 31b6b74 on 2026-10-10; live send to EF passed 2026-10-17; tasks.md still 0 of 11 ticked"
   - id: "T1.12"
     ms: "M1"
-    due: 2026-10-09
+    due: 2026-10-22
+    v02_due: 2026-10-09
     owner: "Mobile"
     title: "App shell, navigation, strings"
     status: "IN_PROGRESS"
     evidence: "app/lib has capture, extraction, review, wizard; not run on a phone"
   - id: "T1.13"
     ms: "M1"
-    due: 2026-10-09
+    due: 2026-10-22
+    v02_due: 2026-10-09
     owner: "Mobile"
     title: "Scanner to PDF, picker, share intent, byte-for-byte storage"
     status: "IN_PROGRESS"
@@ -217,7 +221,8 @@ tasks:
   # ---- M2 Integration and alpha (alpha Fri 2026-10-16) ----
   - id: "T2.1"
     ms: M2
-    due: 2026-10-16
+    due: 2026-10-22
+    v02_due: 2026-10-16
     owner: "Orchestrator"
     title: "Route selection and consolidation wired end to end"
     status: "IN_PROGRESS"
@@ -249,42 +254,62 @@ tasks:
     evidence: "merged 1d5ed74 on 2026-10-18; six tests in validation/release_checklist run in ci.yml"
   - id: "T2.5"
     ms: M2
-    due: 2026-10-14
+    due: 2026-10-22
+    v02_due: 2026-10-14
     owner: "Mobile + QA"
     title: "ADR-010 screening on the photographed corpus"
     status: "IN_PROGRESS"
     evidence: "the PO's verdicts exist since 2026-10-20 and a scorer gates photo-route merges; no screening report has been written; GAP-001 still open"
   - id: "T2.6"
     ms: M2
-    due: 2026-10-16
+    due: 2026-10-23
+    v02_due: 2026-10-16
     owner: "Orchestrator"
-    title: "Alpha on the internal testing track"
+    title: "Alpha: the signed APK installed on the S22 (plan v0.3 D2)"
     status: "NOT_STARTED"
     evidence: "needs a release build; none exists"
 
+  - id: "T2.7"
+    ms: "M2"
+    due: 2026-10-22
+    owner: "Mobile + QA"
+    title: "Device pass on the S22: shell, scanner, share intent, review screen (plan v0.3)"
+    status: NOT_STARTED
+    evidence: "needs the phone reachable over wireless adb; numbers and screenshots stay outside the repository"
+  - id: "T2.8"
+    ms: "M2"
+    due: 2026-10-23
+    owner: "Orchestrator"
+    title: "Signed release APK (plan v0.3, replaces the internal testing track)"
+    status: NOT_STARTED
+    evidence: "needs D4 (ML Kit packaging form) from the PO"
   # ---- M3 Validation with users (Mon 2026-10-19 to Fri 2026-10-23) ----
   - id: "T3.1"
     ms: M3
-    due: 2026-10-23
+    due: 2026-10-27
+    v02_due: 2026-10-23
     owner: "QA"
     title: "Benchmark over both halves of the acceptance corpus"
     status: "NOT_STARTED"
   - id: "T3.2"
     ms: M3
-    due: 2026-10-22
+    due: 2026-10-29
+    v02_due: 2026-10-22
     owner: "QA + PO"
     title: "Supervised sessions with 2-3 users"
     status: "NOT_STARTED"
     evidence: "whether users are booked is not recorded anywhere (ESTADO §6)"
   - id: "T3.3"
     ms: M3
-    due: 2026-10-23
+    due: 2026-10-30
+    v02_due: 2026-10-23
     owner: "QA to Orchestrator"
     title: "Triage and fix loop"
     status: "NOT_STARTED"
   - id: "T3.4"
     ms: M3
-    due: 2026-10-23
+    due: 2026-11-02
+    v02_due: 2026-10-23
     owner: "Orchestrator + PO"
     title: "Thresholds, MVP report, R1 backlog"
     status: "NOT_STARTED"

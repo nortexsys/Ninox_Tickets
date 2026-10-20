@@ -93,7 +93,7 @@ assumed.
 | Measurement corpus | `C:\Users\admin\proyectos\Paperdrop_corpus\` — **outside the repository by design** |
 | Mobile test harness | None. `Ticket_reader_Ninox\phone-harness\` (driving a real phone over adb) was deleted by the PO on 2026-09-26; it was never part of the app |
 | Agent team | `agents/` — roles, models and skills (`agents/roles.yaml`, `agents/README.md`). The orchestrator runs in **Claude Code** (`CLAUDE.md`, `.claude/skills/`); the other five agents run in **LangGraph** (DEC-011) |
-| MVP plan | `docs/Plan/Paperdrop_MVP_Plan_v0.2_EN.md` — scope, team, milestones, dates |
+| MVP plan | `docs/Plan/Paperdrop_MVP_Plan_v0.2_EN.md` — scope, team, milestones; **its dates are superseded by `docs/Plan/Paperdrop_MVP_Plan_v0.3_EN.md`** (approved 2026-10-20, DEC-026) |
 
 ### 2.2 The documents
 

@@ -1,6 +1,6 @@
 # Paperdrop for Ninox — MVP replan
 
-**Version:** 0.3 — **DRAFT, not approved.** Nothing in `plan-tasks.yaml` or `ESTADO.md` changes until the product owner approves it (`AGENTS.md` rule: the orchestrator never closes scope or dates alone).
+**Version:** 0.3 — **APPROVED by the product owner on 2026-10-20** (DEC-026): D1, D2, D3 and D5 as proposed. **D4 and D6 are choices, not proposals, and are still open** (§8). Supersedes the dates of v0.2.1.
 **Date:** 2026-10-20 (Tue)
 **Base:** `Paperdrop_MVP_Plan_v0.2_EN.md` (v0.2.1). This document is a delta: whatever it does not mention stays as in v0.2.
 **Evidence:** `docs/Plan/ESTADO.md` §1–§2 and `docs/Plan/plan-tasks.yaml`, both read against `main` (`d2013b2`) on 2026-10-20.
@@ -57,7 +57,7 @@ Slip against v0.2: **alpha +7 days, sessions +8 days, MVP report +10 calendar da
 
 ## 4. Task changes
 
-Dates apply only after approval; today `plan-tasks.yaml` keeps the v0.2 dates, so the board shows the real delay.
+Dates are in force since the approval of 2026-10-20. `plan-tasks.yaml` keeps the v0.2 date next to each one (`v02_due`), so the board shows the slip.
 
 | Task | v0.2 | v0.3 | Note |
 | --- | --- | --- | --- |
@@ -96,6 +96,6 @@ Dates apply only after approval; today `plan-tasks.yaml` keeps the v0.2 dates, s
 
 Scope matrix (§4 of v0.2), architecture, the team and its roles, the privacy gate, the rule that every write to Ninox needs the PO's approval, and the test environment. **One correction to v0.2 §1, P5:** the test database is **`jd1m8n8l4j7i`** (`JI-PRUEBAS-CLAUDE`), team `qCq3JS7q7ptoap8Yg`; `db0000000000` was wrong (`AGENTS.md` §1.4, corrected 2026-10-07).
 
-## 8. What the PO decides to approve this plan
+## 8. Decisions
 
-D1 (dates), D2 (APK instead of Play track), D3 (photo stays), D4 (ML Kit form, by Wed 21 Oct), D5 (notice the users need), D6 (T0.8). If any is "no", say which and the plan is redrafted that day.
+Approved 2026-10-20: D1 (dates), D2 (APK instead of Play track), D3 (photo stays), D5 (48 hours of notice assumed; the PO calls the users on Mon 26 Oct). **Open:** D4 (ML Kit form, by Wed 21 Oct; without it T2.8 cannot start) and D6 (T0.8: confirm the 16-document ground truth, or close it as superseded).
