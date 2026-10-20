@@ -30,6 +30,7 @@ import '../model/provenance.dart';
 import '../money/currency.dart';
 import '../money/money.dart';
 import '../money/rate.dart';
+import '../photo/amount_coherence.dart';
 import '../photo/arithmetic_reader.dart';
 import '../photo/labelled_reader.dart';
 import '../photo/photo_route.dart';
@@ -1329,26 +1330,17 @@ CanonicalDocument _extractPhotoRoute({
     final labelled = parseReceipt(text, format);
     final arithmetic = parseReceiptArithmetic(text, format);
 
-    addPhotoAmountReading(
-      netReadings,
-      labelled.net,
-      arithmetic.net,
-      pass.passId,
-      country.currency,
+    final coherentAmounts = applyAmountCoherenceRules(
+      labelled: labelled,
+      arithmetic: arithmetic,
     );
-    addPhotoAmountReading(
-      vatReadings,
-      labelled.vat,
-      arithmetic.vat,
-      pass.passId,
-      country.currency,
-    );
-    addPhotoAmountReading(
-      grossReadings,
-      labelled.gross,
-      arithmetic.gross,
-      pass.passId,
-      country.currency,
+    addCoherentPhotoAmountReadings(
+      netReadings: netReadings,
+      vatReadings: vatReadings,
+      grossReadings: grossReadings,
+      amounts: coherentAmounts,
+      passId: pass.passId,
+      currency: country.currency,
     );
     addPhotoRateReading(
       rateReadings,

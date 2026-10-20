@@ -16,6 +16,7 @@ import '../model/provenance.dart';
 import '../money/currency.dart';
 import '../money/money.dart';
 import '../money/rate.dart';
+import 'amount_coherence.dart';
 import 'labelled_reader.dart';
 
 /// Adds the combined labelled/arithmetic amount for one pass to [readings].
@@ -44,6 +45,42 @@ void addPhotoAmountReading(
   }
   final provenance = fromLabelled
       ? provenanceForOrigin(chosen.origin)
+      : Provenance.derived;
+  readings.add(Reading<Money>(money, passId, provenance));
+}
+
+/// Adds the coherent photo amounts for one pass to the three [readings].
+///
+/// A labelled value keeps its origin-derived provenance; an arithmetic value
+/// stays `derived`, even when rule 4 preferred the arithmetic triple.
+void addCoherentPhotoAmountReadings({
+  required List<Reading<Money>> netReadings,
+  required List<Reading<Money>> vatReadings,
+  required List<Reading<Money>> grossReadings,
+  required CoherentPhotoAmounts amounts,
+  required String passId,
+  required CurrencyCode currency,
+}) {
+  _addCoherentAmount(netReadings, amounts.net, passId, currency);
+  _addCoherentAmount(vatReadings, amounts.vat, passId, currency);
+  _addCoherentAmount(grossReadings, amounts.gross, passId, currency);
+}
+
+void _addCoherentAmount(
+  List<Reading<Money>> readings,
+  CoherentPhotoAmount amount,
+  String passId,
+  CurrencyCode currency,
+) {
+  if (!amount.has) {
+    return;
+  }
+  final money = moneyFromDouble(amount.amount!, currency);
+  if (money == null) {
+    return;
+  }
+  final provenance = amount.source == PhotoAmountSource.labelled
+      ? provenanceForOrigin(amount.value.origin)
       : Provenance.derived;
   readings.add(Reading<Money>(money, passId, provenance));
 }

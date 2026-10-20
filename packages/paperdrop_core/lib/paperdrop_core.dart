@@ -41,6 +41,7 @@ export 'src/model/provenance.dart';
 export 'src/money/currency.dart';
 export 'src/money/money.dart';
 export 'src/money/rate.dart';
+export 'src/photo/amount_coherence.dart';
 export 'src/photo/arithmetic_reader.dart';
 export 'src/photo/labelled_reader.dart';
 export 'src/solver/currency.dart';
